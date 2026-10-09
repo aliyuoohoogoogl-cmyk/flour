@@ -484,7 +484,59 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="sync-notification" id="syncNotification"></div><script>const ACC_KEY='flour_accounts_v3';
+<div class="sync-notification" id="syncNotification"></div><script>// ✅ إعدادات التحديث التلقائي
+const APP_VERSION = "1.1";
+const APP_UPDATE_URL = "https://aliyuoohoogoogl-cmyk.github.io/flour/latest.json";
+
+async function checkForUpdates(){
+  try{
+    const r = await fetch(APP_UPDATE_URL + '?t=' + Date.now());
+    if(!r.ok) return;
+    const data = await r.json();
+    if(!data) return;
+    const oldBox = document.getElementById('updateNotificationBox');
+    if(oldBox) oldBox.remove();
+    const cloudVersion = String(data.version || '');
+    if(cloudVersion && cloudVersion !== APP_VERSION){
+      const myP = APP_VERSION.split('.').map(n=>parseInt(n)||0);
+      const clP = cloudVersion.split('.').map(n=>parseInt(n)||0);
+      let newer = false;
+      for(let i=0;i<Math.max(myP.length,clP.length);i++){
+        const m=myP[i]||0, c=clP[i]||0;
+        if(c>m){newer=true;break;}
+        if(c<m){break;}
+      }
+      if(!newer) return;
+      showUpdateNotification(cloudVersion, data.notes || '', data.url);
+    }
+  }catch(e){console.warn('checkForUpdates:', e);}
+}
+
+function showUpdateNotification(version, notes, url){
+  const box = document.createElement('div');
+  box.id = 'updateNotificationBox';
+  box.style.cssText = 'position:fixed;bottom:20px;right:20px;left:20px;max-width:400px;margin:0 auto;background:linear-gradient(135deg,#3498db,#2980b9);color:#fff;padding:16px 18px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);z-index:99997;direction:rtl';
+  box.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="font-size:22px">🔔</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:bold">في تحديث جديد للبرنامج!</div>
+        <div style="font-size:11px;opacity:.9;margin-top:2px">النسخة: ${version}</div>
+      </div>
+      <button onclick="this.parentElement.parentElement.remove()" style="background:rgba(255,255,255,.2);color:#fff;border:none;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer">×</button>
+    </div>
+    <div style="font-size:12px;background:rgba(255,255,255,.15);padding:8px 10px;border-radius:8px;margin-bottom:10px">📝 ${notes}</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="window.location.href='${url}'" style="flex:1;background:#fff;color:#2980b9;border:none;padding:10px;border-radius:8px;font-weight:bold;font-size:13px;cursor:pointer">⬇️ حمّل التحديث</button>
+      <button onclick="this.parentElement.parentElement.remove()" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-size:13px;cursor:pointer">⏰ بعدين</button>
+    </div>`;
+  document.body.appendChild(box);
+}
+
+setTimeout(checkForUpdates, 2000);
+setInterval(checkForUpdates, 60000);
+
+const ACC_KEY='flour_accounts_v3';
 const CUR_KEY='flour_current_user_v2';
 const DATA_PREFIX='flour_shop_v7_';
 let currentUser=null,currentAccount=null,db=null,currentMethod='نقد',currentExMethod='نقد';
@@ -3614,4 +3666,4 @@ if(s && a.find(x=>x.username===s)){
 })();
 </script>
 </body>
-</html>
+   </html>
