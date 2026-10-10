@@ -507,12 +507,20 @@ async function checkForUpdates(){
         if(c<m){break;}
       }
       if(!newer) return;
-      showUpdateNotification(cloudVersion, data.notes || '', data.url);
+      // ✅ الجديد: تحقق إذا شفت هذا التحديث من قبل
+      const seenKey = 'flour_seen_update_' + cloudVersion;
+      if(localStorage.getItem(seenKey) === 'true'){
+        return;
+      }
+      showUpdateNotification(cloudVersion, data.notes || '', data.url, seenKey);
     }
   }catch(e){console.warn('checkForUpdates:', e);}
 }
 
-function showUpdateNotification(version, notes, url){
+function showUpdateNotification(version, notes, url, seenKey){
+  // ✅ حفظ إنه شفت التحديث
+  if(seenKey) localStorage.setItem(seenKey, 'true');
+  
   const box = document.createElement('div');
   box.id = 'updateNotificationBox';
   box.style.cssText = 'position:fixed;bottom:20px;right:20px;left:20px;max-width:400px;margin:0 auto;background:linear-gradient(135deg,#3498db,#2980b9);color:#fff;padding:16px 18px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);z-index:99997;direction:rtl';
@@ -535,6 +543,18 @@ function showUpdateNotification(version, notes, url){
 
 setTimeout(checkForUpdates, 2000);
 setInterval(checkForUpdates, 60000);
+
+// ✅ تسجيل Service Worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(reg => {
+        console.log('✅ Service Worker مسجّل');
+        setInterval(() => reg.update(), 5 * 60 * 1000);
+      })
+      .catch(e => console.warn('SW error:', e));
+  });
+}
 
 const ACC_KEY='flour_accounts_v3';
 const CUR_KEY='flour_current_user_v2';
