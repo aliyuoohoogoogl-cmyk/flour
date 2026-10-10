@@ -1219,7 +1219,7 @@ function getAvailableDeposit(buyer, typeName){
 if(!buyer || !typeName) return 0;
 const pools = _getDepositPool(buyer, typeName);
 let total = 0;
-pools.forEach(p => { total += p.remainingQty; });
+pools.forEach(p => { if(p.kind === 'specific') total += p.remainingQty; });
 return Math.max(0, total);
 }
 
@@ -1230,6 +1230,7 @@ let total = 0;
 (db.deposits||[]).forEach(d=>{
 if(d.isWithdrawal||d.isCarry||d.cashPayment) return;
 if(_cleanPerson(d.person)!==bC) return;
+if(_cleanType(d.typeName||'') !== '') return; // ✅ الحر فقط
 const origAmt = +d.originalAmount || +d.amount || 0;
 const usedAmt = +d._usedMoney || 0;
 const remAmt = Math.max(0, origAmt - usedAmt);
@@ -1466,16 +1467,17 @@ if(key==='typeId'&&val){
 const buyer=document.getElementById('sBuyer').value.trim();
 const t=db.flourTypes.find(x=>x.id===val);
 if(t&&buyer&&!it.price){
-  if(currentMethod === 'واصل'){
-    const dep = (db.deposits||[]).find(d=>
-      _cleanPerson(d.person)===_cleanPerson(buyer) &&
-      _cleanType(d.typeName)===_cleanType(t.name) &&
-      !d.isWithdrawal && !d._finished && !d.cashPayment && !d.isCarry &&
-      (+d.unitPrice||0) > 0 &&
-      ((+d.originalQty||+d.qty||0) - (+d._usedQty||0)) > 0
-    );
-    if(dep) it.price = +dep.unitPrice;
-  }
+  // ✅ التعديل 1: السعر التلقائي فقط من إيداع نفس النوع (specific)
+  const dep = (db.deposits||[]).find(d=>
+    _cleanPerson(d.person)===_cleanPerson(buyer) &&
+    _cleanType(d.typeName)===_cleanType(t.name) &&
+    d.typeName && d.typeName !== '' && // ← نوع محدد فقط
+    !d.isWithdrawal && !d._finished && !d.cashPayment && !d.isCarry &&
+    (+d.unitPrice||0) > 0 &&
+    ((+d.originalQty||+d.qty||0) - (+d._usedQty||0)) > 0
+  );
+  if(dep) it.price = +dep.unitPrice;
+  // ✅ إذا مو موجود — نترك السعر فاضي (المستخدم يكتبه)
   if(!it.price){
     const c=(db.customerPrices||[]).find(x=>x.name===buyer);
     if(c){const pp=c.prices.find(x=>x.typeName===t.name);if(pp)it.price=pp.price;}
@@ -1570,7 +1572,7 @@ const hasSpecificDeposit = pools.some(p => p.kind === 'specific');
 let remainingQtyToDeduct = qty;
 let remainingAmtToDeduct = price > 0 ? (qty * price) : 0;
 
-// ✅ 1. النوع المحدد يُستقطع أولاً (إن وُجد)
+// ✅ 1. الاستقطاع من النوع المحدد أولاً (فقط إذا مطابق)
 pools.forEach(p => {
 if(p.kind === 'specific'){
 if(remainingQtyToDeduct > 0 && p.remainingQty > 0){
@@ -1592,14 +1594,18 @@ remainingAmtToDeduct -= amtFromThis;
 }
 });
 
-// ✅ 2. المبلغ الحر يُستقطع فقط إذا لم يكن هناك إيداع نوع محدد، أو إذا فرغ النوع المحدد
+// ✅ 2. الاستقطاع من الحر (فقط إذا انتهى النوع المحدد أو لم يكن موجوداً)
 pools.forEach(p => {
 if(p.kind !== 'free') return;
-// إذا في إيداع نوع محدد ولم ينتهي بعد، لا نستقطع من الحر
+// إذا كان هناك إيداع نوع محدد، ولم ينتهِ بعد → لا نستقطع من الحر
 if(hasSpecificDeposit){
-const specificStillActive = pools.some(sp => sp.kind === 'specific' && (sp.remainingQty > 0 || sp.remainingAmt > 0) && ((sp._deductedQty||0) < sp.remainingQty || (sp._deductedAmt||0) < sp.remainingAmt));
+const specificStillActive = pools.some(sp => 
+sp.kind === 'specific' && 
+((sp.remainingQty - (sp._deductedQty||0)) > 0 || (sp.remainingAmt - (sp._deductedAmt||0)) > 0)
+);
 if(specificStillActive) return;
 }
+// ✅ استقطع من الحر
 if(remainingAmtToDeduct > 0 && p.remainingAmt > 0){
 const amtToTake = Math.min(p.remainingAmt, remainingAmtToDeduct);
 if(!p._deductedAmt) p._deductedAmt = 0;
@@ -1608,7 +1614,7 @@ remainingAmtToDeduct -= amtToTake;
 }
 });
 
-// ✅ 3. تطبيق الخصومات على قاعدة البيانات
+// ✅ 3. تطبيق الخصومات
 pools.forEach(p => {
 const dep = db.deposits.find(x => x.id === p.depositId);
 if(!dep) return;
@@ -1631,7 +1637,7 @@ dep._finished = true;
 }
 });
 
-// ✅ 4. تسجيل الاستقطاعات في سجل الإيداعات
+// ✅ 4. تسجيل الاستقطاعات
 pools.forEach(p => {
 const usedQty = p._deductedQty || 0;
 const usedAmt = p._deductedAmt || 0;
