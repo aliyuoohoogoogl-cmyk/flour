@@ -485,7 +485,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 
 <div class="toast" id="toast"></div>
 <div class="sync-notification" id="syncNotification"></div><script>// ✅ إعدادات التحديث التلقائي
-const APP_VERSION = "1.3";
+const APP_VERSION = "1.4";
 const APP_UPDATE_URL = "https://aliyuoohoogoogl-cmyk.github.io/flour/latest.json";
 
 async function checkForUpdates(){
@@ -1550,6 +1550,7 @@ const hasSpecificDeposit = pools.some(p => p.kind === 'specific');
 let remainingQtyToDeduct = qty;
 let remainingAmtToDeduct = price > 0 ? (qty * price) : 0;
 
+// ✅ 1. النوع المحدد يُستقطع أولاً (إن وُجد)
 pools.forEach(p => {
 if(p.kind === 'specific'){
 if(remainingQtyToDeduct > 0 && p.remainingQty > 0){
@@ -1568,18 +1569,26 @@ p._deductedAmt += amtFromThis;
 remainingQtyToDeduct -= qtyToTake;
 remainingAmtToDeduct -= amtFromThis;
 }
-} else if(p.kind === 'free'){
-if(!hasSpecificDeposit || remainingAmtToDeduct > 0){
-if(price > 0 && p.remainingAmt > 0 && remainingAmtToDeduct > 0){
+}
+});
+
+// ✅ 2. المبلغ الحر يُستقطع فقط إذا لم يكن هناك إيداع نوع محدد، أو إذا فرغ النوع المحدد
+pools.forEach(p => {
+if(p.kind !== 'free') return;
+// إذا في إيداع نوع محدد ولم ينتهي بعد، لا نستقطع من الحر
+if(hasSpecificDeposit){
+const specificStillActive = pools.some(sp => sp.kind === 'specific' && (sp.remainingQty > 0 || sp.remainingAmt > 0) && ((sp._deductedQty||0) < sp.remainingQty || (sp._deductedAmt||0) < sp.remainingAmt));
+if(specificStillActive) return;
+}
+if(remainingAmtToDeduct > 0 && p.remainingAmt > 0){
 const amtToTake = Math.min(p.remainingAmt, remainingAmtToDeduct);
 if(!p._deductedAmt) p._deductedAmt = 0;
 p._deductedAmt += amtToTake;
 remainingAmtToDeduct -= amtToTake;
 }
-}
-}
 });
 
+// ✅ 3. تطبيق الخصومات على قاعدة البيانات
 pools.forEach(p => {
 const dep = db.deposits.find(x => x.id === p.depositId);
 if(!dep) return;
@@ -1602,6 +1611,7 @@ dep._finished = true;
 }
 });
 
+// ✅ 4. تسجيل الاستقطاعات في سجل الإيداعات
 pools.forEach(p => {
 const usedQty = p._deductedQty || 0;
 const usedAmt = p._deductedAmt || 0;
@@ -1616,6 +1626,7 @@ remQtyAfter:null,remMoneyAfter:null,_editedAt:Date.now()
 }
 });
 
+// ✅ 5. حساب الباقي للعرض
 let remQtyShow = null;
 let remMoneyShow = null;
 let hasQtyDeposit = false;
@@ -2085,7 +2096,7 @@ if(freeAmount<=0 && validItems.length===0 && rem<=0){
 return toast('اكتب مبلغ أو كمية',true);
 }
 const bC = _cleanPerson(p);
-// ✅ التعديل 1: المبلغ الحر — الفصل بين الرصيد القديم والعادي
+// ✅ التعديل: المبلغ الحر — الفصل بين الرصيد القديم والعادي
 if(freeAmount>0){
 let freeDep = db.deposits.find(x => _cleanPerson(x.person) === bC && (!x.typeName || x.typeName === '') && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && !!x.legacy === !!isLegacy);
 if(freeDep){
@@ -2103,7 +2114,7 @@ const qty=+it.qty||0;
 const price=+it.price||0;
 const total=qty*price;
 const tC = _cleanType(t.name);
-// ✅ التعديل 2: إيداع الأنواع — الفصل بين الرصيد القديم والعادي
+// ✅ التعديل: إيداع الأنواع — الفصل بين الرصيد القديم والعادي
 let dep = db.deposits.find(x => _cleanPerson(x.person) === bC && _cleanType(x.typeName) === tC && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && x.originalQty !== undefined && !!x.legacy === !!isLegacy);
 if(dep){
 dep.originalQty = (+dep.originalQty || 0) + qty;
@@ -3666,4 +3677,4 @@ if(s && a.find(x=>x.username===s)){
 })();
 </script>
 </body>
-   </html>
+  </html>
