@@ -1,14 +1,18 @@
-const CACHE_VERSION = 'flour-v1';
+const CACHE_VERSION = 'flour-v3';
 const CACHE_FILES = [
   './',
-  './index.html',
-  './latest.json'
+  './latest.json',
+  './manifest.json',
+  './icon-192.jpg',
+  './icon-512.jpg'
 ];
 
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_VERSION).then(cache => cache.addAll(CACHE_FILES).catch(e => console.log(e)))
+    caches.open(CACHE_VERSION).then(cache => 
+      cache.addAll(CACHE_FILES).catch(e => console.log(e))
+    )
   );
 });
 
@@ -26,15 +30,21 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = event.request.url;
   
-  // ✅ latest.json — من الشبكة دائماً (نتحقق من التحديثات)
-  if (url.includes('latest.json')) {
+  // ✅ index.html و latest.json — من الشبكة دائماً (network-first)
+  if (url.includes('index.html') || url.includes('latest.json') || url.endsWith('/flour/') || url.endsWith('/flour')) {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
+      fetch(event.request)
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
     );
     return;
   }
   
-  // ✅ الملفات الأخرى — Cache first مع fallback للشبكة
+  // ✅ الملفات الأخرى (أيقونات، manifest) — Cache first
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
@@ -45,6 +55,6 @@ self.addEventListener('fetch', event => {
         }
         return response;
       });
-    }).catch(() => caches.match('./index.html'))
+    })
   );
 });
