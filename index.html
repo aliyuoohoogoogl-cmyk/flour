@@ -485,7 +485,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 
 <div class="toast" id="toast"></div>
 <div class="sync-notification" id="syncNotification"></div><script>// ✅ إعدادات التحديث التلقائي
-const APP_VERSION = "1.9";
+const APP_VERSION = "1.11";
 const APP_UPDATE_URL = "https://aliyuoohoogoogl-cmyk.github.io/flour/latest.json";
 
 async function checkForUpdates(){
@@ -1074,7 +1074,7 @@ toast('✅ تم استقبال بيانات السحابة');
 toast('ما موجود بيانات',true);
 }
 }catch(e){console.error(e);toast('❌ فشل',true);}
-  }function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+}function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function nowISO(){return new Date().toISOString();}
 function fmt(dt){if(!dt)return '-';const d=new Date(dt);const p=n=>String(n).padStart(2,'0');const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];const dn=days[d.getDay()];let h=d.getHours();const ap=h>=12?'م':'ص';h=h%12;if(h===0)h=12;return`${dn} ${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${h}:${p(d.getMinutes())} ${ap}`;}
 function fmtShort(dt){if(!dt)return '-';const d=new Date(dt);const p=n=>String(n).padStart(2,'0');const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];const dn=days[d.getDay()];let h=d.getHours();const ap=h>=12?'م':'ص';h=h%12;if(h===0)h=12;return`${dn} ${p(d.getDate())}/${p(d.getMonth()+1)} ${h}:${p(d.getMinutes())} ${ap}`;}
@@ -2578,7 +2578,7 @@ _finalTotal=_reportTotal + _carry;
 _finalExpenses=_te;
 _finalCashbox=_finalTotal - _finalExpenses + (db._cashboxOffset || 0);
 document.getElementById('reportArea').innerHTML=h;
-  }async function viewReport(){
+}async function viewReport(){
 window._printRowLimit=25;window._autoFontSize=false;
 const c=document.getElementById('reportArea').innerHTML;
 if(!c||c.includes('لا توجد بيانات')){toast('لا توجد بيانات',true);return;}
@@ -3142,7 +3142,7 @@ _finalExpenses=_te2;
 _finalCashbox=a.cashboxAtArchive!==undefined?a.cashboxAtArchive:(_finalTotal-_finalExpenses);
 _currentViewHTML=c;currentReportImages=[];
 openOverlay('📦 أرشيف '+(a.dateArabic||fmt(a.archivedAt)),c,'#8e44ad');
-  }function renderExItems(){
+}function renderExItems(){
 const retWrap=document.getElementById('exReturnItemsWrap');
 const swpWrap=document.getElementById('exSwapItemsWrap');
 if(!retWrap||!swpWrap)return;
@@ -3629,4 +3629,4 @@ if(s && a.find(x=>x.username===s)){
 })();
 </script>
 </body>
-  </html>
+                         </html>
