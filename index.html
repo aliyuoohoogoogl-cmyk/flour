@@ -154,6 +154,52 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 .sync-notification.show{transform:translateX(-50%) translateY(0);opacity:1}
 .sync-notification.err{background:linear-gradient(135deg,#e74c3c,#c0392b)}
 .sync-notification.ok{background:linear-gradient(135deg,#27ae60,#229954)}
+
+/* ✅ جداول متجاوبة على الجوال */
+@media (max-width: 600px){
+  #reportArea table,
+  #flourList table {
+    font-size: 9px !important;
+    width: 100% !important;
+    table-layout: auto !important;
+  }
+  #reportArea table th,
+  #reportArea table td,
+  #flourList table th,
+  #flourList table td {
+    font-size: 9px !important;
+    padding: 3px 2px !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+  }
+  #reportArea table th:nth-child(8),
+  #reportArea table td:nth-child(8),
+  #reportArea table th:nth-child(10),
+  #reportArea table td:nth-child(10) {
+    display: none !important;
+  }
+  #reportArea,
+  #flourList {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  #reportOverlayContent img {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block !important;
+  }
+  #reportArea .card {
+    padding: 6px !important;
+  }
+  #reportArea .card h2 {
+    font-size: 12px !important;
+  }
+  .badge {
+    font-size: 8px !important;
+    padding: 2px 5px !important;
+  }
+}
+
 @media print{*,*::before,*::after{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important}body.printing-overlay > *{display:none !important;visibility:hidden !important}body.printing-overlay #reportOverlay{display:block !important;visibility:visible !important;position:static !important;inset:auto !important;background:#fff !important;padding:0 !important;margin:0 !important;overflow:visible !important;z-index:auto !important;box-shadow:none !important;width:100% !important}body.printing-overlay #reportOverlay *{visibility:visible !important}body.printing-overlay #reportOverlay > div:first-child{display:none !important}body.printing-overlay #reportOverlayContent{display:block !important;padding:6px !important;margin:0 !important;background:#fff !important}body.printing-overlay #reportOverlayContent img{max-width:100% !important;height:auto !important;display:block !important;page-break-inside:avoid !important;margin:0 auto 6px auto !important}body.printing-overlay #reportOverlayContent table{width:100% !important;border-collapse:collapse !important;page-break-inside:auto !important}body.printing-overlay #reportOverlayContent tr{page-break-inside:avoid !important}body.printing-overlay .buyer-body,body.printing-overlay .arch-body{display:block !important}body.printing-overlay #reportOverlay button,body.printing-overlay #reportOverlay .dots-menu,body.printing-overlay #reportOverlay .dots-btn,body.printing-overlay #reportOverlay .dots-dropdown,body.printing-overlay #reportOverlay .dots-backdrop{display:none !important}@page{margin:8mm;size:A4 portrait}}
 </style>
 </head>
@@ -485,7 +531,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 
 <div class="toast" id="toast"></div>
 <div class="sync-notification" id="syncNotification"></div><script>// ✅ إعدادات التحديث التلقائي
-const APP_VERSION = "1.11";
+const APP_VERSION = "1.1";
 const APP_UPDATE_URL = "https://aliyuoohoogoogl-cmyk.github.io/flour/latest.json";
 
 async function checkForUpdates(){
@@ -668,7 +714,7 @@ if(dep._usedMoney === undefined) dep._usedMoney=0;
 });
 }
 
-// ✅ _applyCloudDB — معدّل: الأحدث يفوز + فلترة الأرشيف
+// ✅ _applyCloudDB — معدّل: حذف فلتر الأرشيف
 function _applyCloudDB(cloudDb){
 if(!cloudDb) return false;
 const _localBackup = db;
@@ -676,19 +722,7 @@ try{
 _fixDBFields(cloudDb);
 const _beforeSnapshot = JSON.stringify(db);
 
-// ✅ 1. فلترة بيانات ما قبل الأرشفة (حذف نهائي)
-const _archCutoff = cloudDb._lastArchiveAt || db._lastArchiveAt || '';
-if(_archCutoff){
-  const lists = ['sales','payments','expenses','cashAdditions','exchanges'];
-  lists.forEach(key=>{
-    (db[key]||[]).forEach(item=>{
-      if(item && item.date && item.date <= _archCutoff){ markDeleted(key, item.id); }
-    });
-    db[key] = (db[key]||[]).filter(it => !it.date || it.date > _archCutoff);
-  });
-}
-
-// ✅ 2. الأحدث يفوز — استبدال كامل
+// ✅ الأحدث يفوز — استبدال كامل (بدون فلتر أرشيف)
 const localTime = +db._lastSaved || 0;
 const cloudTime = +cloudDb._lastSaved || 0;
 
@@ -2587,8 +2621,14 @@ try{
 const imgs=await generatePages(c);
 if(!imgs.length){toast('فشل',true);return;}
 currentReportImages=imgs;_currentViewHTML=c;
+// ✅ صور متجاوبة للجوال
 let g=`<div style="text-align:center;margin-bottom:15px;background:#fff;padding:12px;border-radius:10px"><b style="color:#8B4513">📚 ${imgs.length} صورة</b></div>`;
-imgs.forEach((im,i)=>{g+=`<div style="margin-bottom:20px;background:#fff;border-radius:10px;padding:10px"><img src="${im}" style="width:100%;border-radius:6px"><div style="margin-top:8px;text-align:center;font-size:13px;color:#8B4513;font-weight:bold">📄 صفحة ${i+1} من ${imgs.length}</div></div>`;});
+imgs.forEach((im,i)=>{
+  g+=`<div style="margin-bottom:20px;background:#fff;border-radius:10px;padding:10px;overflow:hidden">
+    <img src="${im}" style="width:100%;max-width:100%;height:auto;display:block;border-radius:6px;object-fit:contain">
+    <div style="margin-top:8px;text-align:center;font-size:13px;color:#8B4513;font-weight:bold">📄 صفحة ${i+1} من ${imgs.length}</div>
+  </div>`;
+});
 openOverlay('🌾 كشف المطابقة',g,'#D2691E');
 toast('✅ تم توليد '+imgs.length+' صور');
 }catch(e){console.error(e);toast('فشل',true);}
@@ -2866,7 +2906,7 @@ t.totalSold=0;t.updatedAt=_archiveTime;t._visibleFrom=_archiveTime;t._manualOver
 });
 db.sales=[];db.payments=[];db.expenses=[];db.buyers=[];db.cashAdditions=[];db.exchanges=[];
 db.deposits=keptDeposits;
-// ✅ التعديل: نحذف فقط الديون المسددة — الديون اليدوية غير المسددة تبقى
+// ✅ نحذف فقط الديون المسددة (المبلغ = 0)
 db.debts = db.debts.filter(d => +d.amount > 0.01);
 
 _skipNextMerge=true;
@@ -3629,4 +3669,4 @@ if(s && a.find(x=>x.username===s)){
 })();
 </script>
 </body>
-                         </html>
+  </html>
