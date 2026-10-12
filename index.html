@@ -2133,32 +2133,35 @@ renderDepositTypes();
 toast('تم الإيداع ✅'+(rem>0?' — الباقي للديون':''));
 }
 
-// ✅ renderDeposit — جدول موحّد جديد
+// ✅ renderDeposit — التصميم القديم (بطاقات)
 function renderDeposit(){
 const bal=document.getElementById('depositBalances');
 const _plSet=new Set([...db.deposits.filter(d=>!d._finished&&!d.isWithdrawal&&!d.isCarry&&!d.cashPayment).map(d=>d.person),...db.reservations.map(r=>r.person)]);
 const pl=[..._plSet];
-
-let h=`<div class="deposit-table-card">`;
-h+=`<div class="card-header">`;
-h+=`<div class="title">💰 أرصدة الإيداعات</div>`;
-h+=`<div class="date-row">`;
-const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
-h+=`<div><b>📅:</b> ${fmt(nowISO())}</div><div><b>📆:</b> ${days[new Date().getDay()]}</div>`;
-h+=`</div></div>`;
-
-h+=`<table class="deposit-table"><tr>`;
-h+=`<th>#</th><th>الاسم</th><th>🚛 الناقل</th><th>النوع</th><th>📦 أصلي</th><th>📦 مستخدم</th><th>📦 متبقي</th><th>💵 سعر المفرد</th><th>💰 الأصلي</th><th>💰 مستخدم</th><th>💰 متبقي</th><th>الحالة</th><th class="hide-mobile">🕐 التاريخ</th>`;
-h+=`</tr>`;
-
-let counter = 0;
-
+if(!pl.length)bal.innerHTML='<div class="empty">لا توجد إيداعات</div>';
+else{
+let h='';
 pl.forEach(p=>{
 const liveDeps = db.deposits.filter(d=>_cleanPerson(d.person)===_cleanPerson(p) && !d.isWithdrawal && !d.isCarry && !d.cashPayment && !d._finished);
 if(!liveDeps.length) return;
-liveDeps.forEach((dep, idx)=>{
-counter++;
-const dType = dep.typeName || '💵 مبلغ حر';
+
+let totalMoney = 0;
+let totalQty = 0;
+liveDeps.forEach(d=>{
+const origQty = +d.originalQty || +d.qty || 0;
+const origAmt = +d.originalAmount || +d.amount || 0;
+const usedQty = +d._usedQty || 0;
+const usedAmt = +d._usedMoney || 0;
+totalQty += Math.max(0, origQty - usedQty);
+totalMoney += Math.max(0, origAmt - usedAmt);
+});
+const isFinished = (totalMoney <= 0 && totalQty <= 0);
+
+h+=`<div class="buyer-group" style="${isFinished?'opacity:0.7':''}"><div class="buyer-head" onclick="toggleBuyer('depP_${p.replace(/[^a-zA-Z0-9]/g,'')}')"><div class="name">👤 <b>${p}</b> <span style="font-size:11px;color:#888">(${liveDeps.length} إيداع)</span></div><div style="display:flex;gap:6px;flex-wrap:wrap">${totalMoney>0?`<span class="total" style="background:#27ae60">💰 ${money(totalMoney)}</span>`:''}${totalQty>0?`<span class="total" style="background:#2980b9">📦 ${money(totalQty)} كيس</span>`:''}<button class="blue small" onclick="event.stopPropagation();editPersonDepositBalance('${p.replace(/'/g,"\\'")}')">✏️</button><button class="danger small" onclick="event.stopPropagation();delPersonDeposits('${p.replace(/'/g,"\\'")}')">🗑️</button></div></div><div class="buyer-body open" id="depP_${p.replace(/[^a-zA-Z0-9]/g,'')}">`;
+
+h+=`<table style="font-size:11px;margin:6px"><tr><th>النوع</th><th>📦 الأصلي</th><th>📦 المستخدم</th><th>📦 المتبقي</th><th>💰 الأصلي</th><th>💰 المستخدم</th><th>💰 المتبقي</th><th>💵 السعر</th><th>📅 التاريخ</th><th>الحالة</th><th></th></tr>`;
+liveDeps.forEach(dep=>{
+const dType = dep.typeName || '— مبلغ حر —';
 const origQty = +dep.originalQty || +dep.qty || 0;
 const origAmt = +dep.originalAmount || +dep.amount || 0;
 const usedQty = +dep._usedQty || 0;
@@ -2167,32 +2170,32 @@ const remQty = Math.max(0, origQty - usedQty);
 const remAmt = Math.max(0, origAmt - usedAmt);
 const depFinished = (remQty <= 0 && remAmt <= 0);
 
-const nameCell = idx === 0 ? `<td class="name">👤 ${p}</td>` : `<td class="name"></td>`;
-const legacyBadge = dep.legacy ? ' <span class="badge-legacy">📜 قديم</span>' : '';
-
-h+=`<tr class="deposit-row${depFinished?' finished':''}${dep.legacy?' legacy-row':''}">`;
-h+=`<td class="num">${counter}</td>`;
-h+=nameCell;
-h+=`<td class="carrier">${dep.carrier || '—'}</td>`;
-h+=`<td class="type">${dType}${legacyBadge}</td>`;
-h+=`<td class="orig">${origQty>0?money(origQty):'—'}</td>`;
-h+=`<td class="used">${usedQty>0?money(usedQty):'—'}</td>`;
-h+=`<td class="rem">${origQty>0?(remQty<=0?'<span style="background:#8b0000;color:#fff;padding:1px 5px;border-radius:8px;font-size:8px">انتهى</span>':money(remQty)):'—'}</td>`;
-h+=`<td class="price">${dep.unitPrice?money(dep.unitPrice):'—'}</td>`;
-h+=`<td class="money-o">${origAmt>0?money(origAmt):'—'}</td>`;
-h+=`<td class="money-u">${usedAmt>0?money(usedAmt):'—'}</td>`;
-h+=`<td class="money-r">${origAmt>0?(remAmt<=0?'<span style="background:#8b0000;color:#fff;padding:1px 5px;border-radius:8px;font-size:8px">انتهى</span>':money(remAmt)):'—'}</td>`;
-h+=`<td>${depFinished?'<span style="background:#8b0000;color:#fff;padding:1px 6px;border-radius:8px;font-size:8px;font-weight:bold">منتهي</span>':'<span style="background:#27ae60;color:#fff;padding:1px 6px;border-radius:8px;font-size:8px;font-weight:bold">مفعّل</span>'}</td>`;
-h+=`<td class="time hide-mobile">${fmtShort(dep.date)}</td>`;
-h+=`</tr>`;
+let qtyCells = '';
+let moneyCells = '';
+if(origQty > 0){
+qtyCells = `<td style="color:#2980b9;font-weight:bold">${money(origQty)}</td><td style="color:#e67e22;font-weight:bold">${money(usedQty)}</td><td style="color:${remQty<=0?'#8b0000':'#c0392b'};font-weight:bold">${remQty<=0?'<span style="background:#8b0000;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px">انتهى</span>':money(remQty)}</td>`;
+} else {
+qtyCells = `<td style="color:#ccc">—</td><td style="color:#ccc">—</td><td style="color:#ccc">—</td>`;
+}
+if(origAmt > 0){
+moneyCells = `<td style="color:#2980b9;font-weight:bold">${money(origAmt)}</td><td style="color:#e67e22;font-weight:bold">${money(usedAmt)}</td><td style="color:${remAmt<=0?'#8b0000':'#c0392b'};font-weight:bold">${remAmt<=0?'<span style="background:#8b0000;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px">انتهى</span>':money(remAmt)}</td>`;
+} else {
+moneyCells = `<td style="color:#ccc">—</td><td style="color:#ccc">—</td><td style="color:#ccc">—</td>`;
+}
+h+=`<tr${depFinished?' style="background:#f5f5f5;opacity:0.7"':''}>
+<td><b>${dType}</b>${dep.legacy?' <span style="background:#f39c12;color:#fff;padding:1px 6px;border-radius:6px;font-size:9px">📜 قديم</span>':''}</td>
+${qtyCells}
+${moneyCells}
+<td style="color:#8B4513;font-weight:bold">${dep.unitPrice?money(dep.unitPrice):'—'}</td>
+<td style="font-size:10px;color:#666">${fmtShort(dep.date)}</td>
+<td>${depFinished?'<span style="background:#95a5a6;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">انتهى</span>':'<span style="background:#27ae60;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">مفعّل</span>'}</td>
+<td style="white-space:nowrap"><button class="blue small" onclick="editDeposit('${dep.id}')">✏️</button> <button class="gold small" onclick="editDateTime('deposit','${dep.id}')">⏰</button> <button class="danger small" onclick="delDeposit('${dep.id}')">🗑️</button></td>
+</tr>`;
 });
+h+=`</table></div></div>`;
 });
-
-h+=`</table>`;
-h+=`</div>`;
-
 bal.innerHTML=h;
-
+}
 renderReservations();
 const el=document.getElementById('depositList');
 if(!db.deposits.length){el.innerHTML='<div class="empty">لا يوجد سجل</div>';return;}
@@ -3728,4 +3731,4 @@ if(s && a.find(x=>x.username===s)){
 })();
 </script>
 </body>
-                   </html>
+  </html>
