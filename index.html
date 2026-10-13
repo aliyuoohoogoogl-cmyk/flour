@@ -1032,7 +1032,8 @@ function hash(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i
 function getAccounts(){try{return JSON.parse(localStorage.getItem(ACC_KEY))||[];}catch(e){return[];}}
 function saveAccounts(a){localStorage.setItem(ACC_KEY,JSON.stringify(a));saveAccountsCloud(a);}
 
-function emptyDB(){return{flourTypes:[],sales:[],debts:[],deposits:[],payments:[],expenses:[],archive:[],buyers:[],reservations:[],cashAdditions:[],customerPrices:[],exchanges:[],_notifications:[],_lastSaved:0,_needsSync:false,_pendingUpload:false,_permanentCarry:0,_cashboxOffset:0,_deleted:{}};}
+// ✅ emptyDB — مع _manualOverrides
+function emptyDB(){return{flourTypes:[],sales:[],debts:[],deposits:[],payments:[],expenses:[],archive:[],buyers:[],reservations:[],cashAdditions:[],customerPrices:[],exchanges:[],_notifications:[],_manualOverrides:{},_lastSaved:0,_needsSync:false,_pendingUpload:false,_permanentCarry:0,_cashboxOffset:0,_deleted:{}};}
 
 function showError(m){const e=document.getElementById('authError');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),4000);}
 
@@ -1077,6 +1078,8 @@ if(!d.customerPrices) d.customerPrices=[];
 if(!d.exchanges) d.exchanges=[];
 if(!d._notifications) d._notifications=[];
 if(!d._deleted) d._deleted={};
+// ✅ _manualOverrides
+if(!d._manualOverrides) d._manualOverrides={};
 if(d._permanentCarry === undefined) d._permanentCarry=0;
 if(d._cashboxOffset === undefined) d._cashboxOffset=0;
 if(d._lastArchiveAt === undefined) d._lastArchiveAt=null;
@@ -1088,7 +1091,6 @@ if(dep._usedMoney === undefined) dep._usedMoney=0;
 });
 }
 
-// ✅ _applyCloudDB — معدّلة: ترفض التحديث أثناء رفع معلّق
 function _applyCloudDB(cloudDb){
 if(!cloudDb) return false;
 const _localBackup = db;
@@ -1107,12 +1109,25 @@ if(cloudDb._lastActionBy === _deviceId){
   return false;
 }
 
+// ✅ حماية 3: احتفظ بـ _manualOverrides المحلية
+const _localManual = (db && db._manualOverrides) ? JSON.parse(JSON.stringify(db._manualOverrides)) : {};
+const _cloudManual = (cloudDb && cloudDb._manualOverrides) ? cloudDb._manualOverrides : {};
+
 const localTime = +db._lastSaved || 0;
 const cloudTime = +cloudDb._lastSaved || 0;
 
 if(cloudTime > localTime){
   db = Object.assign(emptyDB(), cloudDb);
   _fixDBFields(db);
+  // ✅ دمج التعديلات اليدوية — الأحدث يفوز
+  if(!db._manualOverrides) db._manualOverrides={};
+  Object.keys(_localManual).forEach(k=>{
+    const localTS = _localManual[k].timestamp || 0;
+    const cloudTS = (db._manualOverrides[k] && db._manualOverrides[k].timestamp) || 0;
+    if(localTS > cloudTS){
+      db._manualOverrides[k] = _localManual[k];
+    }
+  });
   try{localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db));}catch(e){}
   return true;
 }
@@ -1173,7 +1188,6 @@ if(data._lastActionBy === _deviceId) {
 if(data.updatedAt && data.updatedAt.toMillis) _lastCloudServerTime = data.updatedAt.toMillis();
 return;
 }
-// ✅ ما يقبل التحديث إذا في رفع معلّق
 if(db && db._pendingUpload === true){
   console.log('⏸️ رفع معلّق — تم تجاهل تحديث realtime');
   return;
@@ -1202,7 +1216,6 @@ console.warn('startRealtimeListener error:',e);
 
 function stopRealtimeListener(){if(cloudUnsubscribe){try{cloudUnsubscribe();}catch(e){}cloudUnsubscribe=null;console.log('🛑 تم إيقاف الاستماع');}}
 
-// ✅ إضافة إشعار — محلي + سحابي (بالخلفية)
 async function _addNotification(type, fullName, identifier){
 if(db){
 if(!db._notifications) db._notifications=[];
@@ -1744,6 +1757,13 @@ if(cloudDb && localDb){
   if(cloudTime > localTime){
     db = Object.assign(emptyDB(), cloudDb);
     _fixDBFields(db);
+    // ✅ دمج التعديلات اليدوية
+    const _localManual = localDb._manualOverrides || {};
+    Object.keys(_localManual).forEach(k=>{
+      const localTS = _localManual[k].timestamp || 0;
+      const cloudTS = (db._manualOverrides[k] && db._manualOverrides[k].timestamp) || 0;
+      if(localTS > cloudTS){ db._manualOverrides[k] = _localManual[k]; }
+    });
     localStorage.setItem(key, JSON.stringify(db));
     setSyncStatus('ok','☁️ متزامن');
   } else {
@@ -1775,7 +1795,7 @@ if(cloudDb && localDb){
 }
 }
 
-// ===== ✅ حفظ — debounce + منع الكتابة فوق التعديل =====
+// ===== ✅ حفظ — debounce 1 ثانية
 let _saveTimer = null;
 
 function save(){
@@ -1787,21 +1807,20 @@ if(Array.isArray(db[key])){ db[key].forEach(item=>{if(item&&!item._editedAt)item
 db._lastSaved = now;
 db._lastActionBy = _deviceId;
 db._actionId = _deviceId + '_' + now + '_' + Math.random().toString(36).slice(2,7);
-db._pendingUpload = true;  // ✅ علامة إن في رفع معلّق
+db._pendingUpload = true;
 
 try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){ toast('⚠️ المساحة ممتلئة', true); }
 
 if(cloudEnabled && cloudDataRef && navigator.onLine){
-  setSyncStatus('loading','⏳ جاري الحفظ...');
+  // ✅ ما نعرض "جاري الحفظ" إلا لما يبدأ الرفع الفعلي
   if(_saveTimer) clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(_doUpload, 2000);
+  _saveTimer = setTimeout(_doUpload, 1000);
 } else {
   db._needsSync = true;
   setSyncStatus('warn','📱 محلي');
 }
 }
 
-// ✅ الرفع الفعلي للسحابة
 function _doUpload(){
 if(!currentUser || !cloudEnabled || !cloudDataRef){
   if(db) db._pendingUpload = false;
@@ -1812,8 +1831,9 @@ if(!navigator.onLine){
   setSyncStatus('warn','📱 محلي');
   return;
 }
+// ✅ عرض "جاري الحفظ" فقط أثناء الرفع الفعلي
+setSyncStatus('loading','⏳ جاري الحفظ...');
 try{
-  // ✅ نصغّر البيانات قبل الرفع
   const _clean = JSON.parse(JSON.stringify(db));
   delete _clean._deleted;
   delete _clean._needsSync;
@@ -1843,7 +1863,6 @@ try{
 }
 }
 
-// ✅ رفع فوري عند إغلاق التطبيق
 window.addEventListener('beforeunload', function(){
   if(_saveTimer && currentUser && cloudEnabled && cloudDataRef && navigator.onLine){
     clearTimeout(_saveTimer);
@@ -2522,7 +2541,6 @@ hasMoneyDeposit: price > 0 ? hasMoneyDeposit : false
 return {wasselRemByType, wasselWithdrawals};
 }
 
-// ✅ doSale — مجموع الكميات حسب النوع (يحل مشكلة البيع بأنواع متعددة)
 function doSale(){
 _matchedFlourIds.clear();
 const buyer=document.getElementById('sBuyer').value.trim();
@@ -2558,14 +2576,14 @@ if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(pa
 let saleTotal=0;
 const saleItems=[];
 
-// ✅ أولاً: نجمع الكميات لكل نوع (حتى لو نفس النوع بصفين أو أكثر)
+// ✅ نجمع الكميات حسب النوع
 const qtyByType={};
 validItems.forEach(it=>{
 if(!qtyByType[it.typeId]) qtyByType[it.typeId]=0;
 qtyByType[it.typeId]+=(+it.qty||0);
 });
 
-// ✅ ثانياً: ننقص المخزون ونزيد المباع مرة وحدة لكل نوع
+// ✅ ننقص المخزون ونزيد المباع مرة وحدة لكل نوع
 Object.keys(qtyByType).forEach(typeId=>{
 const t=db.flourTypes.find(x=>x.id===typeId);
 if(!t) return;
@@ -2575,7 +2593,6 @@ t.totalSold=(+t.totalSold||0) + totalQty;
 t._editedAt=Date.now();
 });
 
-// ✅ ثالثاً: نسجل البيع بالفاتورة (كل صف لحاله)
 validItems.forEach(it=>{
 const t=db.flourTypes.find(x=>x.id===it.typeId);
 const qty=+it.qty;
@@ -2668,12 +2685,15 @@ save();renderAll();
 toast('تمت الإضافة ✅ '+fmtShort(d));
 }
 
+// ✅ delFlourType — يحذف التعديل اليدوي من الخريطة
 function delFlourType(id){
 if(!confirm('تأكيد الحذف؟'))return;
 _matchedFlourIds.clear();
 const t=db.flourTypes.find(x=>x.id===id);
 if(t){
   const tC=_cleanType(t.name);
+  // ✅ احذف التعديل اليدوي
+  if(db._manualOverrides) delete db._manualOverrides[tC];
   const otherDups=db.flourTypes.filter(x=>x.id!==id && _cleanType(x.name)===tC);
   otherDups.forEach(x=>markDeleted('flourTypes',x.id));
   db.flourTypes=db.flourTypes.filter(x=>x.id!==id && _cleanType(x.name)!==tC);
@@ -2684,6 +2704,7 @@ if(t){
 save();renderAll();
 }
 
+// ✅ editFlourType — يحفظ التعديل اليدوي بمكانين (على النوع + في _manualOverrides)
 function editFlourType(id){
 const t=db.flourTypes.find(x=>x.id===id);if(!t)return;
 const nnI=prompt('🌾 اسم النوع:',t.name);if(nnI===null)return;const nn=nnI.trim();if(!nn)return toast('اكتب الاسم',true);
@@ -2700,6 +2721,8 @@ db.payments.forEach(p=>{if(p.typeName===t.name)p.typeName=nn;});
 db.reservations.forEach(r=>{if(r.typeName===t.name)r.typeName=nn;});
 (db.customerPrices||[]).forEach(c=>{c.prices.forEach(p=>{if(p.typeName===t.name)p.typeName=nn;});});
 (db.exchanges||[]).forEach(e=>{(e.returnItems||[]).forEach(it=>{if(it.typeName===t.name)it.typeName=nn;});(e.swapItems||[]).forEach(it=>{if(it.typeName===t.name)it.typeName=nn;});});
+// ✅ احذف التعديل اليدوي القديم
+if(db._manualOverrides) delete db._manualOverrides[_cleanType(t.name)];
 }
 const now = nowISO();
 t.name=nn;t.qty=nQty;t.totalSold=nSold;t.unitPrice=nup;t.updatedAt=now;t._editedAt=Date.now();
@@ -2707,6 +2730,14 @@ t._manualOverride = Date.now();
 t._manualQty = nQty;
 t._manualOriginal = nAdd;
 if(!t._visibleFrom) t._visibleFrom = now;
+
+// ✅ خزنه بمكان آمن — ما يضيع
+if(!db._manualOverrides) db._manualOverrides = {};
+db._manualOverrides[_cleanType(nn)] = {
+  original: nAdd,
+  timestamp: Date.now()
+};
+
 save();renderAll();toast('✅ تم — تم احترام تعديلك اليدوي');
 }
 
@@ -4522,11 +4553,10 @@ function exportData(){const d={user:currentUser,role:currentAccount?currentAccou
 function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=(ev)=>{try{const p=JSON.parse(ev.target.result);const d=p.data||p;if(!confirm('استيراد؟'))return;db=Object.assign(emptyDB(),d);_fixDBFields(db);save();renderAll();renderArchive();renderSettings();toast('تم ✅');}catch(err){toast('ملف غير صالح',true);}};r.readAsText(f);e.target.value='';}
 function clearAll(){if(!confirm('حذف كل البيانات؟'))return;if(!confirm('تأكيد؟'))return;db=emptyDB();save();renderAll();renderArchive();toast('تم');}
 
-// ✅ recalculateAll — مع مؤشر تحميل + احترام التعديل اليدوي
+// ✅ recalculateAll — يقرأ التعديل اليدوي من _manualOverrides
 function recalculateAll(){
 if(!confirm('🔄 سيتم إعادة حساب كل الأرقام.\nمتابعة؟'))return;
 
-// ✅ مؤشر تحميل
 const _overlay=document.createElement('div');
 _overlay.id='recalcLoading';
 _overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;font-family:inherit';
@@ -4547,13 +4577,15 @@ if(d._usedQty === undefined) d._usedQty = 0;
 if(d._usedMoney === undefined) d._usedMoney = 0;
 });
 
+// ✅ تأكد إن الخريطة موجودة
+if(!db._manualOverrides) db._manualOverrides={};
+
 db.flourTypes.forEach(t=>{
 if(!t._visibleFrom){
 const firstDate = (t.additions && t.additions[0] && t.additions[0].date) || t.updatedAt || nowISO();
 t._visibleFrom = firstDate;
 }
 
-// ✅ حساب المباع
 const oldQty=t.qty;const oldSold=t.totalSold||0;
 let newSold=0;
 db.sales.forEach(s=>{
@@ -4567,14 +4599,26 @@ else if(s.typeName===t.name)newSold+=(s.qty||0);
 newSold=Math.max(0,newSold);
 t.totalSold=newSold;
 
-// ✅ حساب الكمية الأصلية — احترام التعديل اليدوي
+// ✅ ابحث عن التعديل اليدوي في الخريطة (أول مصدر)
+const _cleanName = _cleanType(t.name);
+const _mo = db._manualOverrides[_cleanName];
 let originalQty;
-if(t._manualOverride && t._manualOriginal !== undefined && t._manualOriginal !== null){
+if(_mo && _mo.original !== undefined && _mo.original !== null){
+  // ✅ الخريطة عندها التعديل → استخدمه
+  originalQty = +_mo.original || 0;
+  t._manualOverride = t._manualOverride || _mo.timestamp || Date.now();
+  t._manualOriginal = _mo.original;
+  respectedManual++;
+} else if(t._manualOverride && t._manualOriginal !== undefined && t._manualOriginal !== null){
+  // ✅ قديم — نحفظه بالخريطة للمرة القادمة
   originalQty = +t._manualOriginal || 0;
+  db._manualOverrides[_cleanName] = {original: t._manualOriginal, timestamp: t._manualOverride};
   respectedManual++;
 } else {
+  // ✅ لا يوجد تعديل يدوي → احسب من الإضافات
   originalQty = (t.additions||[]).reduce((a,x)=>a+(x.qty||0),0);
 }
+
 t.qty=Math.max(0, originalQty - newSold);
 t._editedAt=Date.now();
 if(oldQty!==t.qty)fixedQty++;
@@ -4584,7 +4628,7 @@ if(oldSold!==newSold)fixedSold++;
 db.buyers.forEach(b=>{const tr=db.sales.filter(s=>s.buyer===b.name);b.totalQty=tr.reduce((a,s)=>a+(s.qty||0),0);b.totalAmount=tr.reduce((a,s)=>a+(s.total||0),0);});
 db.reservations.forEach(r=>{r.usedQty=Math.max(0,Math.min(r.usedQty||0,r.totalQty));});
 
-// ✅ حفظ محلي
+// ✅ حفظ محلي + علامة رفع معلّق
 const now=Date.now();
 db._lastSaved=now;
 db._lastActionBy=_deviceId;
@@ -4741,7 +4785,6 @@ function copyText(t){if(navigator.clipboard&&navigator.clipboard.writeText){navi
 function fallbackCopy(t){const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');toast('✅');}catch(e){toast('تعذر',true);}document.body.removeChild(ta);}
 function htmlToText(h){const t=document.createElement('div');t.innerHTML=h;return t.innerText||t.textContent||'';}
 
-// ===== التنقل =====
 function gotoPage(name){
 var np=document.getElementById('notifPanel');
 if(np){np.classList.remove('show');np.style.display='none';}
@@ -4792,7 +4835,6 @@ setSyncStatus('err','📱 محلي');
 
 setInterval(function(){
 if(navigator.onLine && currentUser && cloudEnabled && cloudDataRef && !_isReceivingUpdate){
-// ✅ ما يفحص إذا في رفع معلّق
 if(db && db._pendingUpload === true) return;
 cloudDataRef.doc(currentUser).get().then(doc=>{
 if(!doc.exists || !doc.data() || !doc.data().data) return;
