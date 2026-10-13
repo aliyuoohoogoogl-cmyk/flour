@@ -15,6 +15,7 @@
 <style>
 *{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Arial,sans-serif}
 html,body,*{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important}
+html,body{overflow-x:hidden !important;max-width:100% !important}
 body{margin:0;background:#fdf8ee;color:#222;padding-bottom:90px}
 
 header{position:relative;background:#8B4513 url('https://iili.io/nVmzXrx.png') center/cover no-repeat;padding:18px 15px 22px;border-radius:0 0 22px 22px;overflow:hidden;box-shadow:0 4px 15px rgba(139,69,19,.25)}
@@ -36,8 +37,9 @@ header button{padding:6px 10px;font-size:11px;border:none;border-radius:6px;colo
 .bell-badge{position:absolute;top:-4px;right:-4px;background:#e74c3c;color:#fff;min-width:18px;height:18px;border-radius:10px;font-size:10px;font-weight:bold;display:none;align-items:center;justify-content:center;padding:0 4px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .bell-badge.show{display:flex}
 
-.notif-panel{position:fixed;top:0;right:-100%;bottom:0;width:90%;max-width:420px;background:#fffdf9;z-index:9999;box-shadow:-8px 0 30px rgba(0,0,0,.3);transition:right 0.3s ease;display:flex;flex-direction:column}
-.notif-panel.show{right:0}
+/* ✅ إشعارات — display:none بدل right:-100% */
+.notif-panel{position:fixed;top:0;right:0;bottom:0;width:90%;max-width:420px;background:#fffdf9;z-index:9999;box-shadow:-8px 0 30px rgba(0,0,0,.3);display:none;flex-direction:column}
+.notif-panel.show{display:flex}
 .notif-head{background:linear-gradient(135deg,#8B4513,#D2691E);color:#fff;padding:16px 18px;display:flex;justify-content:space-between;align-items:center}
 .notif-head h3{margin:0;font-size:16px}
 .notif-head .close-btn{background:rgba(255,255,255,0.2);border:none;color:#fff;width:34px;height:34px;border-radius:50%;font-size:18px;cursor:pointer;font-family:inherit}
@@ -62,8 +64,10 @@ header button{padding:6px 10px;font-size:11px;border:none;border-radius:6px;colo
 .notif-actions button{padding:5px 10px;font-size:11px;border-radius:6px;border:none;cursor:pointer;font-family:inherit;font-weight:bold}
 .notif-actions .btn-mark{background:#f0f0f0;color:#666}
 .notif-actions .btn-del{background:#e74c3c;color:#fff}
-.notif-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;opacity:0;pointer-events:none;transition:opacity 0.3s}
-.notif-overlay.show{opacity:1;pointer-events:auto}
+
+/* ✅ إشعارات overlay — display:none */
+.notif-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;display:none}
+.notif-overlay.show{display:block}
 
 .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px;background:#fdf8ee}
 .tab{background:#fffdf9;border:2px solid #f0e0d0;border-radius:14px;padding:10px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:inherit;box-shadow:0 2px 8px rgba(139,69,19,.08);font-size:11px;font-weight:bold;color:#8B5A2B}
@@ -71,7 +75,7 @@ header button{padding:6px 10px;font-size:11px;border:none;border-radius:6px;colo
 .tab.active{border-color:#D2691E;background:#fdf5e0}
 .tab.active .tb-icon{background:linear-gradient(135deg,#D2691E,#8B4513)}
 
-.page{display:none;padding:0 12px;max-width:1100px;margin:0 auto}
+.page{display:none;padding:0 12px;max-width:1100px;margin:0 auto;overflow-x:hidden}
 .page.active{display:block}
 
 .card{background:#fffdf9;border-radius:12px;padding:13px;margin-bottom:12px;box-shadow:0 2px 8px rgba(139,69,19,.08);border:1px solid #f0e0d0}
@@ -106,7 +110,7 @@ button.gray{background:#95a5a6}
 button.gold{background:#f39c12}
 button.small{padding:5px 9px;font-size:11px}
 
-/* ===== ✅ أزرار طريقة الدفع ===== */
+/* ✅ أزرار طريقة الدفع */
 .pay-methods{display:flex;gap:6px;flex-wrap:wrap}
 .pay-methods button{flex:1;background:#e8e0d5;color:#666;min-width:60px;font-weight:bold;padding:9px 6px;border-radius:8px;border:none;cursor:pointer;font-family:inherit;font-size:12px;transition:all 0.2s}
 .pay-methods button:active{transform:scale(0.96)}
@@ -248,7 +252,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 #reportArea .buyer-head{padding:5px 8px;font-size:11px}
 #reportArea table{font-size:9px}
 #reportArea th,#reportArea td{padding:3px 5px}
-.time-cell,#reportArea td.time-cell,#reportArea th.time-cell{font-size:11px !important;color:#666 !important;white-space:nowrap !important;text-align:center !important}
+.time-cell{font-size:11px !important;color:#666 !important;white-space:nowrap !important;text-align:center !important}
 .sync-notification{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-100px);background:linear-gradient(135deg,#3498db,#2980b9);color:#fff;padding:12px 24px;border-radius:25px;font-weight:bold;font-size:13px;z-index:99998;transition:transform .4s ease,opacity .4s ease;opacity:0;pointer-events:none;max-width:90%;text-align:center}
 .sync-notification.show{transform:translateX(-50%) translateY(0);opacity:1}
 .sync-notification.err{background:linear-gradient(135deg,#e74c3c,#c0392b)}
@@ -275,6 +279,13 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 .badge-legacy{background:#f39c12;color:#fff;padding:1px 5px;border-radius:5px;font-size:8px;font-weight:bold}
 
 @media print{body.printing-overlay > *{display:none !important}body.printing-overlay #reportOverlay{display:block !important;position:static !important;background:#fff !important}}
+
+/* ✅ منع الشاشة من الاتساع */
+@media (max-width: 600px){
+  #reportArea table,#flourList table{font-size:9px !important}
+  #reportArea,#flourList{overflow-x:auto !important;-webkit-overflow-scrolling:touch !important}
+  .badge{font-size:8px !important;padding:2px 5px !important}
+}
 </style>
 </head>
 <body>
@@ -3032,7 +3043,6 @@ function addExpense(){const d=document.getElementById('eDesc').value.trim();cons
 function renderExpense(){const el=document.getElementById('expenseList');if(!db.expenses.length){el.innerHTML='<div class="empty">لا توجد صرفيات</div>';return;}let h=`<table><tr><th>التاريخ</th><th>الوصف</th><th>المبلغ</th><th></th></tr>`;[...db.expenses].reverse().forEach(e=>{h+=`<tr><td style="font-size:11px">${fmt(e.date)}</td><td>${e.desc}</td><td style="color:#c0392b;font-weight:bold">${money(e.amount)}</td><td><button class="blue small" onclick="editExpense('${e.id}')">✏️</button> <button class="gold small" onclick="editDateTime('expense','${e.id}')">⏰</button> <button class="danger small" onclick="delExpense('${e.id}')">🗑️</button></td></tr>`;});el.innerHTML=h+'</table>';}
 function addCashAmount(){if(!db.cashAdditions)db.cashAdditions=[];const a=+document.getElementById('caAmount').value;const n=document.getElementById('caNote').value.trim();if(!a||a<=0)return toast('اكتب المبلغ',true);db.cashAdditions.push({id:uid(),amount:a,note:n,date:nowISO(),_editedAt:Date.now()});save();renderAll();document.getElementById('caAmount').value='';document.getElementById('caNote').value='';toast('✅');}
 </script><script>
-// ===== حسابات واصل =====
 function computeWasselBalances(deps){
 deps = deps || db.deposits;
 const events=[...deps].sort((a,b)=>a.date.localeCompare(b.date));
@@ -3066,7 +3076,7 @@ return {mode:'qty',qty:null,money:0,hasQtyDeposit:false,hasMoneyDeposit:false};
 
 let _finalCashbox=0;let _finalTotal=0;let _finalExpenses=0;
 
-// ===== دالة المطابقة الأساسية =====
+// ===== دالة المطابقة =====
 function renderReport(){
 var _archT=getArchiveTime();
 const wasselBals=computeWasselBalances();
@@ -3127,13 +3137,13 @@ else if(r.method==='إيداع'){badgeHtml=`<span style="background:#3498db;colo
 else if(r.method==='إضافات'){badgeHtml=`<span style="background:#f39c12;color:#fff;padding:3px 9px;border-radius:11px;font-size:10px;font-weight:bold">💵 إضافات</span>`;}
 else if(r.method==='استرجاع'){badgeHtml=`<span class="badge b-استرجاع">↩️ استرجاع</span>`;}
 else if(r.method==='تبديل'){badgeHtml=`<span class="badge b-تبديل">🔄 تبديل</span>`;}
-else if(r.method==='فرق'){badgeHtml=`<span class="badge b-فرق">💱 فرق استرجاع/تبديل</span>`;}
+else if(r.method==='فرق'){badgeHtml=`<span class="badge b-فرق">💱 فرق</span>`;}
 else if(r.method==='دين يدوي'){badgeHtml=`<span class="badge b-دين">📝 دين يدوي</span>`;}
 else{badgeHtml=`<span>${r.method}</span>`;}
 let _amtShow;
 if(r.method==='فرق'){
 const isNeg = r.diffValue < 0;
-_amtShow = (isNeg ? '-' : '+') + money(Math.abs(r.diffValue)) + (r.diffValue>0?' ('+(r.diffMethod==='دين'?'دين':'نقد')+')':' (صرفيات)');
+_amtShow = (isNeg ? '-' : '+') + money(Math.abs(r.diffValue));
 }
 else if(r.method==='استرجاع'||r.method==='تبديل'){_amtShow='—';}
 else if(r.method==='واصل'){_amtShow='<span style="color:#ccc">—</span>';}
@@ -3191,7 +3201,20 @@ _finalCashbox=_finalTotal - _finalExpenses + (db._cashboxOffset || 0);
 document.getElementById('reportArea').innerHTML=h;
 }
 
-// ===== عرض المطابقة كصور =====
+// ✅ عارض الصور — كامل الشاشة
+function openImageViewer(src){
+var old=document.getElementById('imgViewer');
+if(old) old.remove();
+var v=document.createElement('div');
+v.id='imgViewer';
+v.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999999;display:flex;align-items:center;justify-content:center;padding:10px';
+v.innerHTML='<img src="'+src+'" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px">'+
+'<button onclick="document.getElementById(\'imgViewer\').remove()" style="position:absolute;top:15px;right:15px;background:#e74c3c;color:#fff;border:none;width:44px;height:44px;border-radius:50%;font-size:22px;cursor:pointer;font-weight:bold;box-shadow:0 3px 10px rgba(0,0,0,0.4)">✕</button>';
+v.onclick=function(e){ if(e.target.tagName!=='IMG'){ v.remove(); } };
+document.body.appendChild(v);
+}
+
+// ✅ عرض المطابقة كصور — مع تكبير
 async function viewReport(){
 window._printRowLimit=25;window._autoFontSize=false;
 const c=document.getElementById('reportArea').innerHTML;
@@ -3204,8 +3227,8 @@ currentReportImages=imgs;_currentViewHTML=c;
 let g=`<div style="text-align:center;margin-bottom:15px;background:#fff;padding:12px;border-radius:10px"><b style="color:#8B4513">📚 ${imgs.length} صورة</b></div>`;
 imgs.forEach((im,i)=>{
   g+=`<div style="margin-bottom:20px;background:#fff;border-radius:10px;padding:10px;overflow:hidden">
-    <img src="${im}" style="width:100%;max-width:100%;height:auto;display:block;border-radius:6px;object-fit:contain">
-    <div style="margin-top:8px;text-align:center;font-size:13px;color:#8B4513;font-weight:bold">📄 صفحة ${i+1} من ${imgs.length}</div>
+    <img src="${im}" onclick="openImageViewer(this.src)" style="width:100%;max-width:100%;height:auto;display:block;border-radius:6px;object-fit:contain;cursor:zoom-in">
+    <div style="margin-top:8px;text-align:center;font-size:13px;color:#8B4513;font-weight:bold">📄 صفحة ${i+1} من ${imgs.length} — اضغط على الصورة للتكبير</div>
   </div>`;
 });
 openOverlay('🌾 كشف المطابقة',g,'#D2691E');
@@ -3213,6 +3236,7 @@ toast('✅ تم توليد '+imgs.length+' صور');
 }catch(e){console.error(e);toast('فشل',true);}
 }
 
+// ✅ عرض الأنواع كصور — مع تكبير
 function viewFlour(){
 if(!db.flourTypes.length){toast('لا توجد أنواع',true);return;}
 window._printRowLimit=20;window._autoFontSize=true;
@@ -3252,7 +3276,6 @@ function viewDepositBalances(){
 if(!db.deposits.length){toast('لا توجد إيداعات',true);return;}
 const _plSet=new Set([...db.deposits.filter(d=>!d._finished&&!d.isWithdrawal&&!d.isCarry&&!d.cashPayment).map(d=>d.person),...db.reservations.map(r=>r.person)]);
 const pl=[..._plSet];
-
 let c=`<div class="deposit-table-card">`;
 c+=`<div class="card-header">`;
 c+=`<div class="title">💰 أرصدة الإيداعات</div>`;
@@ -3260,13 +3283,10 @@ c+=`<div class="date-row">`;
 const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 c+=`<div><b>📅:</b> ${fmt(nowISO())}</div><div><b>📆:</b> ${days[new Date().getDay()]}</div>`;
 c+=`</div></div>`;
-
 c+=`<table class="deposit-table"><tr>`;
 c+=`<th>#</th><th>الاسم</th><th>🚛 الناقل</th><th>النوع</th><th>📦 أصلي</th><th>📦 مستخدم</th><th>📦 متبقي</th><th>💵 سعر المفرد</th><th>💰 الأصلي</th><th>💰 مستخدم</th><th>💰 متبقي</th><th>الحالة</th><th>🕐 التاريخ</th>`;
 c+=`</tr>`;
-
 let counter = 0;
-
 pl.forEach(p=>{
 const liveDeps = db.deposits.filter(d=>_cleanPerson(d.person)===_cleanPerson(p) && !d.isWithdrawal && !d.isCarry && !d.cashPayment && !d._finished);
 if(!liveDeps.length) return;
@@ -3280,10 +3300,8 @@ const usedAmt = +dep._usedMoney || 0;
 const remQty = Math.max(0, origQty - usedQty);
 const remAmt = Math.max(0, origAmt - usedAmt);
 const depFinished = (remQty <= 0 && remAmt <= 0);
-
 const nameCell = idx === 0 ? `<td class="name">👤 ${p}</td>` : `<td class="name"></td>`;
 const legacyBadge = dep.legacy ? ' <span class="badge-legacy">📜 قديم</span>' : '';
-
 c+=`<tr class="deposit-row${depFinished?' finished':''}${dep.legacy?' legacy-row':''}">`;
 c+=`<td class="num">${counter}</td>`;
 c+=nameCell;
@@ -3301,10 +3319,8 @@ c+=`<td class="time">${fmtShort(dep.date)}</td>`;
 c+=`</tr>`;
 });
 });
-
 c+=`</table>`;
 c+=`</div>`;
-
 _currentViewHTML=c;
 currentReportImages=[];
 _finalCashbox=0;_finalTotal=0;_finalExpenses=0;
@@ -3797,7 +3813,7 @@ const itemTotal=(+it.qty||0)*(+it.price||0);
 hR+=`<div class="sale-item-row">
 <select onchange="updateExItem('return','${it.id}','typeId',this.value)">${typeOpts}</select>
 <input type="number" placeholder="كمية" min="0" value="${it.qty}" oninput="updateExItem('return','${it.id}','qty',this.value)">
-<input type="number" placeholder="سعر المفرد" min="0" value="${it.price}" oninput="updateExItem('return','${it.id}','price',this.value)">
+<input type="number" placeholder="سعر (اختياري)" min="0" value="${it.price}" oninput="updateExItem('return','${it.id}','price',this.value)">
 <div class="item-total">${money(itemTotal)}</div>
 <button class="del-btn" onclick="removeExItem('return','${it.id}')">✖</button>
 </div>`;
@@ -3849,7 +3865,6 @@ const dn=document.getElementById('exDiffNote');
 if(dn){if(diff>0)dn.textContent='⬆️ مطلوب من الزبون';else if(diff<0)dn.textContent='⬇️ له عندنا (صرفيات)';else dn.textContent='🟰 ما موجود فرق';}
 }
 
-// ✅ setExMethod — معدّلة: تحذف inline styles
 function setExMethod(m){
 currentExMethod=m;
 document.querySelectorAll('#exPayMethodsWrap button[data-em]').forEach(b=>{
@@ -3859,6 +3874,7 @@ b.style.flex='1';
 });
 }
 
+// ✅ doExchange — معدّلة: الاسترجاع ما يحتاج سعر → يتحول لإيداع
 function doExchange(){
 const buyer=document.getElementById('exPerson').value.trim();
 const carrier=document.getElementById('exCarrier')?.value.trim()||'';
@@ -3868,7 +3884,8 @@ const validSwp=_exSwapItems.filter(it=>it.typeId&&+it.qty>0);
 if(!validRet.length&&!validSwp.length)return toast('أضف نوع واحد على الأقل',true);
 for(const it of validRet){const t=db.flourTypes.find(x=>x.id===it.typeId);if(!t){return toast('❌ نوع غير موجود',true);}}
 for(const it of validSwp){const t=db.flourTypes.find(x=>x.id===it.typeId);if(!t){return toast('❌ نوع غير موجود',true);}if(+it.qty>t.qty){if(!confirm('⚠️ كمية البديل "'+t.name+'" غير كافية! المتوفر: '+money(t.qty)+' كيس.\nمتابعة؟')){return;}}}
-for(const it of [...validRet,...validSwp]){
+// ✅ السعر مطلوب فقط للبديل
+for(const it of validSwp){
 const t=db.flourTypes.find(x=>x.id===it.typeId);
 if(!+it.price||+it.price<=0){return toast('❌ اكتب سعر المفرد للنوع "'+(t?t.name:'')+'"',true);}
 }
@@ -3877,6 +3894,9 @@ const dtInput=document.getElementById('exDateTime');
 if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(parsed.getTime())){d=parsed.toISOString();}}catch(e){}}
 let retTotal=0,swpTotal=0;
 const retItems=[],swpItems=[];
+const bC=_cleanPerson(buyer);
+
+// ✅ الاسترجاع: يضاف للمخزون + يتحول لإيداع (بدون سعر)
 validRet.forEach(it=>{
   const t=db.flourTypes.find(x=>x.id===it.typeId);
   const qty=+it.qty;
@@ -3888,7 +3908,29 @@ validRet.forEach(it=>{
   t.additions.push({qty:qty,date:d,note:'استرجاع من '+buyer});
   t._editedAt=Date.now();
   retItems.push({typeName:t.name,qty,unitPrice:price,total});
+
+  // ✅ يتحول لإيداع للزبون
+  const tC=_cleanType(t.name);
+  let dep = db.deposits.find(x => _cleanPerson(x.person) === bC && _cleanType(x.typeName) === tC && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished);
+  if(dep){
+    dep.originalQty = (+dep.originalQty || 0) + qty;
+    dep.qty = (+dep.qty || 0) + qty;
+    dep._editedAt = Date.now();
+  } else {
+    db.deposits.push({
+      id:uid(), person:buyer, carrier:carrier,
+      amount:0, originalAmount:0,
+      typeName:t.name, qty:qty, originalQty:qty,
+      unitPrice:0, totalPrice:0,
+      date:d, note:'↩️ استرجاع من الزبون',
+      _fromExchangeReturn:true,
+      _usedQty:0, _usedMoney:0,
+      _editedAt:Date.now()
+    });
+  }
 });
+
+// ✅ البديل: ينقص من المخزون (مع السعر)
 validSwp.forEach(it=>{
   const t=db.flourTypes.find(x=>x.id===it.typeId);
   const qty=+it.qty;
@@ -3898,6 +3940,7 @@ validSwp.forEach(it=>{
   t.qty-=qty;t.totalSold=(t.totalSold||0)+qty;t._editedAt=Date.now();
   swpItems.push({typeName:t.name,qty,unitPrice:price,total});
 });
+
 const calculatedDiff = swpTotal-retTotal;
 const diffInput = document.getElementById('exDiffTotal');
 const userDiffRaw = diffInput ? String(diffInput.value).trim() : '';
@@ -3942,7 +3985,7 @@ h+=`<div style="display:flex;justify-content:space-between;align-items:center;fl
 if(e.returnItems&&e.returnItems.length){
 h+=`<div style="font-size:12px;color:#9b59b6;font-weight:bold;margin-bottom:4px">↩️ المُرجَع</div>`;
 h+=`<table style="font-size:11px;margin-bottom:6px"><tr><th>النوع</th><th>الكمية</th><th>سعر</th><th>الإجمالي</th></tr>`;
-e.returnItems.forEach(ri=>{h+=`<tr><td>${ri.typeName}</td><td>${money(ri.qty)}</td><td>${money(ri.unitPrice)}</td><td style="color:#9b59b6;font-weight:bold">${money(ri.total)}</td></tr>`;});
+e.returnItems.forEach(ri=>{h+=`<tr><td>${ri.typeName}</td><td>${money(ri.qty)}</td><td>${ri.unitPrice?money(ri.unitPrice):'—'}</td><td style="color:#9b59b6;font-weight:bold">${ri.total?money(ri.total):'—'}</td></tr>`;});
 h+=`</table>`;
 }
 if(e.swapItems&&e.swapItems.length){
@@ -3967,6 +4010,15 @@ const e=db.exchanges.find(x=>x.id===id);if(!e)return;
   if(t){
     t.qty=Math.max(0,t.qty-ri.qty);
     t._editedAt=Date.now();
+  }
+  // ✅ حذف الإيداع اللي انضاف من الاسترجاع
+  const bC=_cleanPerson(e.buyer);
+  const tC=_cleanType(ri.typeName);
+  const dep=db.deposits.find(d=>_cleanPerson(d.person)===bC && _cleanType(d.typeName)===tC && d._fromExchangeReturn);
+  if(dep){
+    dep.originalQty=Math.max(0,(dep.originalQty||0)-ri.qty);
+    dep.qty=Math.max(0,(dep.qty||0)-ri.qty);
+    if(dep.originalQty<=0 && dep.qty<=0){markDeleted('deposits',dep.id);db.deposits=db.deposits.filter(d=>d.id!==dep.id);}
   }
 });
 (e.swapItems||[]).forEach(si=>{const t=db.flourTypes.find(x=>x.name===si.typeName);if(t){t.qty+=si.qty;t.totalSold=Math.max(0,(t.totalSold||0)-si.qty);t._editedAt=Date.now();}});
@@ -4260,8 +4312,25 @@ function copyText(t){if(navigator.clipboard&&navigator.clipboard.writeText){navi
 function fallbackCopy(t){const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');toast('✅');}catch(e){toast('تعذر',true);}document.body.removeChild(ta);}
 function htmlToText(h){const t=document.createElement('div');t.innerHTML=h;return t.innerText||t.textContent||'';}
 
-// ===== التنقل بين الصفحات =====
+// ✅ ✅ ✅ التنقل — يغلق كل النوافذ المنبثقة
 function gotoPage(name){
+// إغلاق الإشعارات قسراً
+var np=document.getElementById('notifPanel');
+if(np){np.classList.remove('show');np.style.display='none';}
+var no=document.getElementById('notifOverlay');
+if(no){no.classList.remove('show');no.style.display='none';}
+// إغلاق عناصر أخرى
+var dd=document.getElementById('dotsDropdown');
+if(dd) dd.classList.remove('show');
+var dbk=document.getElementById('dotsBackdrop');
+if(dbk) dbk.classList.remove('show');
+var ro=document.getElementById('reportOverlay');
+if(ro) ro.remove();
+// إرجاع شاشة الإشعارات لحالتها
+setTimeout(function(){ if(np) np.style.display=''; }, 100);
+document.body.style.overflow='';
+
+// التبديل بين الصفحات
 document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
 document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
 document.querySelectorAll('.bottom-nav button').forEach(x=>x.classList.remove('active'));
@@ -4283,10 +4352,10 @@ if(name==='buyers')renderBuyers();
 window.scrollTo({top:0,behavior:'smooth'});
 }
 
-// ===== ربط التبويبات =====
+// ربط التبويبات
 document.querySelectorAll('.tab').forEach(t=>{t.onclick=()=>{gotoPage(t.dataset.page);};});
 
-// ===== أحداث الشبكة =====
+// أحداث الشبكة
 window.addEventListener('online', function(){
 console.log('🌐 رجع النت');
 setSyncStatus('loading','☁️ رجع النت...');
@@ -4401,4 +4470,4 @@ if(s && a.find(x=>x.username===s)){
 })();
 </script>
 </body>
-                                                                                                                           </html>
+  </html>
