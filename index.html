@@ -2565,10 +2565,38 @@ if(!confirm('⚠️ تنبيه:\n\nكمية "'+t.name+'" في المخزون: '+
 }
 if(currentMethod!=='هدية'&&currentMethod!=='واصل'&&(!+it.price||+it.price<=0)){return toast('اكتب السعر للنوع "'+t.name+'"',true);}
 }
+
+// ✅ ✅ ✅ فحص "واصل" — لكل نوع على حدة
 if(currentMethod==='واصل'){
-const hasAnyDeposit=db.deposits.some(d=>_cleanPerson(d.person)===_cleanPerson(buyer)&&!d.isWithdrawal&&!d.isCarry&&!d.cashPayment);
-if(!hasAnyDeposit)return toast('❌ الزبون ما عند إيداع',true);
+for(const it of validItems){
+  const t=db.flourTypes.find(x=>x.id===it.typeId);
+  if(!t) continue;
+  const availQty = getAvailableDeposit(buyer, t.name);
+  const availMoney = getAvailableMoneyDeposit(buyer);
+  const price = +it.price||0;
+  const qty = +it.qty||0;
+  const needMoney = price * qty;
+  
+  const hasSpecific = availQty > 0;
+  const hasMoney = availMoney > 0;
+  
+  // ❌ ما عنده لا نوع ولا مبلغ حر
+  if(!hasSpecific && !hasMoney){
+    return toast('❌ الزبون ما عنده إيداع من نوع "'+t.name+'" ولا مبلغ حر',true);
+  }
+  
+  // ⚠️ عنده مبلغ حر بس مو كافي
+  if(!hasSpecific && hasMoney && needMoney > availMoney){
+    if(!confirm('⚠️ نوع "'+t.name+'" غير موجود بالإيداع!\n\nالمبلغ الحر المتاح: '+money(availMoney)+' د.ع\nالمطلوب: '+money(needMoney)+' د.ع\n\nمتابعة؟')){return;}
+  }
+  
+  // ⚠️ عنده نوع بس الكمية مو كافية
+  if(hasSpecific && availQty < qty){
+    if(!confirm('⚠️ نوع "'+t.name+'" الكمية غير كافية!\n\nالمتاح: '+money(availQty)+' كيس\nالمطلوب: '+money(qty)+' كيس\n\nمتابعة؟')){return;}
+  }
 }
+}
+
 let d=nowISO();
 const dtInput=document.getElementById('sDateTime');
 if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(parsed.getTime())){d=parsed.toISOString();}}catch(e){}}
@@ -2576,14 +2604,12 @@ if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(pa
 let saleTotal=0;
 const saleItems=[];
 
-// ✅ نجمع الكميات حسب النوع
 const qtyByType={};
 validItems.forEach(it=>{
 if(!qtyByType[it.typeId]) qtyByType[it.typeId]=0;
 qtyByType[it.typeId]+=(+it.qty||0);
 });
 
-// ✅ ننقص المخزون ونزيد المباع مرة وحدة لكل نوع
 Object.keys(qtyByType).forEach(typeId=>{
 const t=db.flourTypes.find(x=>x.id===typeId);
 if(!t) return;
@@ -2685,14 +2711,12 @@ save();renderAll();
 toast('تمت الإضافة ✅ '+fmtShort(d));
 }
 
-// ✅ delFlourType — يحذف التعديل اليدوي من الخريطة
 function delFlourType(id){
 if(!confirm('تأكيد الحذف؟'))return;
 _matchedFlourIds.clear();
 const t=db.flourTypes.find(x=>x.id===id);
 if(t){
   const tC=_cleanType(t.name);
-  // ✅ احذف التعديل اليدوي
   if(db._manualOverrides) delete db._manualOverrides[tC];
   const otherDups=db.flourTypes.filter(x=>x.id!==id && _cleanType(x.name)===tC);
   otherDups.forEach(x=>markDeleted('flourTypes',x.id));
@@ -2704,7 +2728,6 @@ if(t){
 save();renderAll();
 }
 
-// ✅ editFlourType — يحفظ التعديل اليدوي بمكانين (على النوع + في _manualOverrides)
 function editFlourType(id){
 const t=db.flourTypes.find(x=>x.id===id);if(!t)return;
 const nnI=prompt('🌾 اسم النوع:',t.name);if(nnI===null)return;const nn=nnI.trim();if(!nn)return toast('اكتب الاسم',true);
@@ -2721,7 +2744,6 @@ db.payments.forEach(p=>{if(p.typeName===t.name)p.typeName=nn;});
 db.reservations.forEach(r=>{if(r.typeName===t.name)r.typeName=nn;});
 (db.customerPrices||[]).forEach(c=>{c.prices.forEach(p=>{if(p.typeName===t.name)p.typeName=nn;});});
 (db.exchanges||[]).forEach(e=>{(e.returnItems||[]).forEach(it=>{if(it.typeName===t.name)it.typeName=nn;});(e.swapItems||[]).forEach(it=>{if(it.typeName===t.name)it.typeName=nn;});});
-// ✅ احذف التعديل اليدوي القديم
 if(db._manualOverrides) delete db._manualOverrides[_cleanType(t.name)];
 }
 const now = nowISO();
@@ -2731,7 +2753,6 @@ t._manualQty = nQty;
 t._manualOriginal = nAdd;
 if(!t._visibleFrom) t._visibleFrom = now;
 
-// ✅ خزنه بمكان آمن — ما يضيع
 if(!db._manualOverrides) db._manualOverrides = {};
 db._manualOverrides[_cleanType(nn)] = {
   original: nAdd,
@@ -3068,12 +3089,23 @@ if(nm==='دين'){newItems.forEach(it=>{db.debts.push({id:uid(),person:nb,amount
 save();renderAll();toast('✅');
 }
 
+// ✅ ✅ ✅ delSale — معدّلة: ترجع الكمية فوراً
 function delSale(id){
 if(!confirm('حذف هذه العملية؟'))return;
+// ✅ منع السحابة من الكتابة فوق التعديل
+db._pendingUpload = true;
 const s=db.sales.find(x=>x.id===id);
 if(s){
 const items=s.items||[{typeName:s.typeName,qty:s.qty}];
-items.forEach(it=>{const t=db.flourTypes.find(x=>x.name===it.typeName);if(t){t.qty+=it.qty;t.totalSold=Math.max(0,(t.totalSold||0)-it.qty);t._editedAt=Date.now();}});
+// ✅ نرجّع الكميات للمخزون
+items.forEach(it=>{
+const t=db.flourTypes.find(x=>x.name===it.typeName);
+if(t){
+  t.qty=(+t.qty||0) + (+it.qty||0);
+  t.totalSold=Math.max(0,(+t.totalSold||0) - (+it.qty||0));
+  t._editedAt=Date.now();
+}
+});
 if(s.method==='واصل'){
 const withdrawals = db.deposits.filter(x=>x.isWithdrawal && x.saleId===s.id);
 withdrawals.forEach(w=>{
@@ -3097,7 +3129,11 @@ if(b){b.totalQty=Math.max(0,(b.totalQty||0)-(s.qty||0));b.totalAmount=Math.max(0
 }
 markDeleted('sales',id);
 db.sales=db.sales.filter(x=>x.id!==id);
-save();renderAll();toast('تم');
+save();
+// ✅ تحديث فوري للمخزون
+renderFlour();
+renderAll();
+toast('✅ تم الحذف — الكمية رجعت للمخزون');
 }
 
 function editPersonDepositBalance(p){
@@ -3226,7 +3262,6 @@ _skipNextMerge=true;
 save();renderHome();toast('✅');
 }
 
-// ✅ addDeposit — الخصم يوزّع على المبلغ الحر والأنواع
 function addDeposit(){
 const p=document.getElementById('dPerson').value.trim();
 const carrier=document.getElementById('dCarrier')?document.getElementById('dCarrier').value.trim():'';
@@ -3248,14 +3283,12 @@ return toast('اكتب مبلغ أو كمية',true);
 }
 const bC = _cleanPerson(p);
 
-// ✅ نطبّق الخصم على المبلغ الحر أولاً
 if(remainingDiscount>0 && freeAmount>0){
   const applied=Math.min(freeAmount, remainingDiscount);
   freeAmount -= applied;
   remainingDiscount -= applied;
 }
 
-// ✅ إضافة المبلغ الحر
 if(freeAmount>0){
 let freeDep = db.deposits.find(x => _cleanPerson(x.person) === bC && (!x.typeName || x.typeName === '') && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && !!x.legacy === !!isLegacy);
 if(freeDep){
@@ -3267,7 +3300,6 @@ db.deposits.push({id:uid(),person:p,carrier:carrier,amount:freeAmount,originalAm
 }
 }
 
-// ✅ إضافة الأنواع مع توزيع الخصم المتبقي
 validItems.forEach(it=>{
 const t=db.flourTypes.find(x=>x.id===it.typeId);
 if(!t)return;
@@ -3275,7 +3307,6 @@ const qty=+it.qty||0;
 const price=+it.price||0;
 let total=qty*price;
 
-// ✅ نطبّق باقي الخصم على الأنواع
 if(remainingDiscount>0 && total>0){
   const applied=Math.min(total, remainingDiscount);
   total -= applied;
@@ -4929,4 +4960,4 @@ if(s && a.find(x=>x.username===s)){
 })();
 </script>
 </body>
-  </html>
+                                                                                                </html>
