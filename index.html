@@ -4,29 +4,121 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>حسابات الطحين</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/png" href="https://iili.io/nWRmzy7.png">
+<link rel="apple-touch-icon" href="https://iili.io/nWRmzy7.png">
+<meta name="theme-color" content="#D2691E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="حسابات الطحين">
+<meta name="mobile-web-app-capable" content="yes">
 <style>
 *{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Arial,sans-serif}
 html,body,*{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important}
-body{margin:0;background:#f0f2f5;color:#222}
-header{background:linear-gradient(135deg,#8B4513,#D2691E);color:#fff;padding:12px 15px;box-shadow:0 2px 8px rgba(0,0,0,.2);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
-header h1{margin:0;font-size:16px}
-header .user-info{display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap}
-header .user-info .avatar{width:30px;height:30px;border-radius:50%;background:#fff;color:#8B4513;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px}
-header .admin-badge{background:#f39c12;color:#fff;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:bold}
-.tabs{display:flex;flex-wrap:wrap;gap:4px;padding:8px;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.1);position:sticky;top:0;z-index:10}
-.tab{padding:7px 10px;border:none;background:#f5ede3;color:#8B4513;border-radius:7px;cursor:pointer;font-size:12px;font-weight:bold}
-.tab.active{background:#D2691E;color:#fff}
-.page{display:none;padding:12px;max-width:1100px;margin:0 auto}
+body{margin:0;background:#fdf8ee;color:#222;padding-bottom:90px}
+
+/* ===== الهيدر بصورة الحنطة ===== */
+header{
+  position:relative;
+  background:#8B4513 url('https://iili.io/nVmzXrx.png') center/cover no-repeat;
+  padding:18px 15px 22px;
+  border-radius:0 0 22px 22px;
+  overflow:hidden;
+  box-shadow:0 4px 15px rgba(139,69,19,.25);
+}
+header::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(139,69,19,0.75),rgba(210,105,30,0.55))}
+header > *{position:relative;z-index:2}
+header h1{margin:0;color:#fff;font-size:17px;text-shadow:0 2px 6px rgba(0,0,0,.5)}
+header .sub{color:#FFD700;font-size:11px;margin-top:3px;font-weight:bold;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+header .top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+header .user-info{display:flex;align-items:center;gap:8px;font-size:11px;flex-wrap:wrap;color:#fff}
+header .avatar{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.95);color:#8B4513;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+header .admin-badge{background:#f39c12;color:#fff;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:bold;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+header .sync{background:#27ae60;color:#fff;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:bold}
+header button{padding:6px 10px;font-size:11px;border:none;border-radius:6px;color:#fff;font-weight:bold;font-family:inherit;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.btn-blue{background:#3498db}
+.btn-gray{background:#95a5a6}
+
+/* ===== زر الإشعارات ===== */
+.bell-wrap{position:relative;display:inline-block}
+.bell-btn{background:rgba(255,255,255,0.2);width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;padding:0}
+.bell-btn:active{transform:scale(0.92);background:rgba(255,255,255,0.3)}
+.bell-badge{position:absolute;top:-4px;right:-4px;background:#e74c3c;color:#fff;min-width:18px;height:18px;border-radius:10px;font-size:10px;font-weight:bold;display:none;align-items:center;justify-content:center;padding:0 4px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.bell-badge.show{display:flex}
+
+/* ===== نافذة الإشعارات ===== */
+.notif-panel{position:fixed;top:0;right:-100%;bottom:0;width:90%;max-width:420px;background:#fffdf9;z-index:9999;box-shadow:-8px 0 30px rgba(0,0,0,.3);transition:right 0.3s ease;display:flex;flex-direction:column}
+.notif-panel.show{right:0}
+.notif-head{background:linear-gradient(135deg,#8B4513,#D2691E);color:#fff;padding:16px 18px;display:flex;justify-content:space-between;align-items:center}
+.notif-head h3{margin:0;font-size:16px}
+.notif-head .close-btn{background:rgba(255,255,255,0.2);border:none;color:#fff;width:34px;height:34px;border-radius:50%;font-size:18px;cursor:pointer;font-family:inherit}
+.notif-body{flex:1;overflow-y:auto;padding:12px}
+.notif-empty{text-align:center;color:#b8a89a;padding:40px 20px;font-style:italic;font-size:14px}
+.notif-item{background:#fffdf9;border:1px solid #f0e0d0;border-radius:14px;padding:12px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;box-shadow:0 2px 8px rgba(139,69,19,.06);position:relative}
+.notif-item.unread{background:#fff8e6;border-color:#f39c12;box-shadow:0 3px 12px rgba(243,156,18,.2)}
+.notif-item.unread::before{content:"";position:absolute;top:12px;right:8px;width:8px;height:8px;border-radius:50%;background:#e74c3c}
+.notif-icon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.ni-login{background:linear-gradient(135deg,#4aa3e0,#2980b9);color:#fff}
+.ni-register{background:linear-gradient(135deg,#3ec76f,#27ae60);color:#fff}
+.ni-logout{background:linear-gradient(135deg,#95a5a6,#7f8c8d);color:#fff}
+.notif-info{flex:1;min-width:0}
+.notif-title{font-size:13px;font-weight:bold;color:#8B4513;margin-bottom:4px;line-height:1.3}
+.notif-name{color:#222}
+.notif-id{font-size:11px;color:#3498db;font-weight:bold;margin-bottom:4px;direction:ltr;text-align:right}
+.notif-meta{font-size:10px;color:#888;line-height:1.6}
+.notif-meta span{display:inline-block;margin-left:8px}
+.notif-type-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:9px;font-weight:bold;color:#fff;margin-right:4px}
+.nt-login{background:#2980b9}
+.nt-register{background:#27ae60}
+.nt-logout{background:#95a5a6}
+.notif-actions{display:flex;gap:6px;margin-top:8px}
+.notif-actions button{padding:5px 10px;font-size:11px;border-radius:6px;border:none;cursor:pointer;font-family:inherit;font-weight:bold}
+.notif-actions .btn-mark{background:#f0f0f0;color:#666}
+.notif-actions .btn-del{background:#e74c3c;color:#fff}
+.notif-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;opacity:0;pointer-events:none;transition:opacity 0.3s}
+.notif-overlay.show{opacity:1;pointer-events:auto}
+
+/* ===== التبويبات ===== */
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px;background:#fdf8ee;position:sticky;top:0;z-index:10}
+.tab{background:#fffdf9;border:2px solid #f0e0d0;border-radius:14px;padding:10px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:inherit;box-shadow:0 2px 8px rgba(139,69,19,.08);transition:all 0.15s;font-size:11px;font-weight:bold;color:#8B5A2B}
+.tab:active{background:#faf0e6;border-color:#D2691E;transform:scale(0.97)}
+.tab .tb-icon{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#D2A56D,#B8860B);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 6px rgba(184,134,11,.3);border:2px solid rgba(255,255,255,0.5)}
+.tab.active{border-color:#D2691E;background:#fdf5e0}
+.tab.active .tb-icon{background:linear-gradient(135deg,#D2691E,#8B4513)}
+
+/* ===== الحاوية ===== */
+.page{display:none;padding:0 12px;max-width:1100px;margin:0 auto}
 .page.active{display:block}
-.card{background:#fff;border-radius:12px;padding:13px;margin-bottom:12px;box-shadow:0 2px 8px rgba(139,69,19,.08);border:1px solid #f5ede3}
-.card h2{margin:0 0 10px;font-size:16px;color:#8B4513;border-bottom:2px solid #f5ede3;padding-bottom:7px}
+
+/* ===== البطاقات ===== */
+.card{background:#fffdf9;border-radius:12px;padding:13px;margin-bottom:12px;box-shadow:0 2px 8px rgba(139,69,19,.08);border:1px solid #f0e0d0}
+.card h2{margin:0 0 10px;font-size:15px;color:#8B4513;border-bottom:2px solid #f5ede3;padding-bottom:7px}
 .card.admin-card h2{color:#f39c12}
+
+/* ===== صندوق المبلغ ===== */
+.money-box{background:linear-gradient(135deg,#B8860B,#D2A56D,#8B5A2B);color:#fff;padding:22px 18px;border-radius:16px;text-align:center;margin:0 0 12px;position:relative;overflow:hidden;box-shadow:0 6px 20px rgba(139,90,43,.3);border:2px solid rgba(255,215,0,0.4)}
+.money-box::before{content:"🌾";position:absolute;left:-10px;top:-15px;font-size:80px;opacity:.12}
+.money-box::after{content:"🌾";position:absolute;right:-10px;bottom:-20px;font-size:90px;opacity:.12}
+.money-box .label{font-size:13px;font-weight:bold;position:relative;z-index:2;text-shadow:0 1px 4px rgba(0,0,0,.3)}
+.money-box .value{font-size:34px;font-weight:bold;margin-top:8px;position:relative;z-index:2;text-shadow:0 2px 8px rgba(0,0,0,.35)}
+.money-box .note{font-size:11px;margin-top:8px;opacity:.95;position:relative;z-index:2;background:rgba(0,0,0,.15);padding:6px 10px;border-radius:10px;display:inline-block}
+
+/* ===== 3 أزرار رئيسية ===== */
+.main-nav{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.main-nav button{background:#fffdf9;border:2px solid #f0e0d0;border-radius:14px;padding:14px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;font-family:inherit;box-shadow:0 2px 8px rgba(139,69,19,.08);transition:all 0.15s}
+.main-nav button:active{background:#faf0e6;border-color:#D2691E;transform:scale(0.97)}
+.main-nav .mn-icon{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#D2A56D,#B8860B);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 3px 10px rgba(184,134,11,.35);border:2px solid rgba(255,255,255,0.5)}
+.main-nav .mn-label{font-size:11px;font-weight:bold;color:#8B5A2B;text-align:center;line-height:1.3}
+
+/* ===== الحقول ===== */
 .row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px;align-items:center}
 .row>*{flex:1;min-width:100px}
 input,select{padding:10px 12px;border:2px solid #f0e0d0;border-radius:9px;font-size:13px;width:100%;background:#fffdf9;color:#333;font-family:inherit}
 input:focus,select:focus{outline:none;border-color:#D2691E;background:#fff;box-shadow:0 0 0 4px rgba(210,105,30,.15)}
 input:read-only{background:#faf5ee;color:#8B4513;font-weight:bold}
 select{cursor:pointer;-webkit-appearance:none;appearance:none;padding-left:30px}
+
+/* ===== الأزرار ===== */
 button{padding:9px 14px;border:none;border-radius:8px;background:#D2691E;color:#fff;cursor:pointer;font-size:12px;font-weight:bold;font-family:inherit}
 button:hover{background:#8B4513}
 button.danger{background:#e74c3c}
@@ -36,31 +128,85 @@ button.purple{background:#9b59b6}
 button.gray{background:#95a5a6}
 button.gold{background:#f39c12}
 button.small{padding:5px 9px;font-size:11px}
+
+/* ===== الجداول ===== */
 table{width:100%;border-collapse:collapse;font-size:12px}
 th,td{padding:7px;text-align:right;border-bottom:1px solid #f5ede3}
 th{background:#fff8e6;color:#8B4513;font-weight:bold;font-size:11px}
-.money-box{background:linear-gradient(135deg,#D2691E,#8B4513);color:#fff;padding:20px;border-radius:14px;text-align:center;margin:12px 0}
-.money-box .label{font-size:13px;font-weight:bold}
-.money-box .value{font-size:32px;font-weight:bold;margin-top:6px}
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
-.stat{background:#faf0e6;padding:11px;border-radius:10px;text-align:center;border-right:4px solid #D2691E}
-.stat .lbl{font-size:11px;color:#8B4513;font-weight:bold}
-.stat .val{font-size:18px;font-weight:bold;margin-top:4px;color:#333}
-.stat.green{border-color:#27ae60}.stat.green .lbl{color:#27ae60}
-.stat.red{border-color:#c0392b}.stat.red .lbl{color:#c0392b}
-.stat.blue{border-color:#2980b9}.stat.blue .lbl{color:#2980b9}
-.stat.purple{border-color:#8e44ad}.stat.purple .lbl{color:#8e44ad}
-.stat.gold{border-color:#f39c12}.stat.gold .lbl{color:#f39c12}
-.pay-methods{display:flex;gap:6px;flex-wrap:wrap}
-.pay-methods button{flex:1;background:#e8e0d5;color:#666;min-width:60px;font-weight:bold;border:2px solid transparent}
-.pay-methods button.active[data-m="نقد"]{background:#27ae60;color:#fff}
-.pay-methods button.active[data-m="دين"]{background:#e74c3c;color:#fff}
-.pay-methods button.active[data-m="واصل"]{background:#3498db;color:#fff}
-.pay-methods button.active[data-m="هدية"]{background:#9b59b6;color:#fff}
-.empty{text-align:center;color:#b8a89a;padding:22px;font-style:italic;font-size:13px}
+
+/* ===== الإحصائيات الجديدة ===== */
+.stats-wrapper{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat-card{background:#fffdf9;border:2px solid #f0e0d0;border-radius:16px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:8px;box-shadow:0 2px 10px rgba(139,69,19,.08);position:relative;overflow:hidden}
+.stat-card .sc-icon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 3px 10px rgba(0,0,0,.15);border:2px solid rgba(255,255,255,0.6);position:relative;z-index:2}
+.stat-card .sc-label{font-size:11px;font-weight:bold;text-align:center;line-height:1.3;position:relative;z-index:2}
+.stat-card .sc-value{font-size:20px;font-weight:bold;position:relative;z-index:2;margin-top:2px}
+.stat-card::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at top left,rgba(255,255,255,0.4),transparent 70%);pointer-events:none}
+.sc-blue{background:linear-gradient(135deg,#e8f2fd,#d0e4fa);border-color:#b8d8f5}
+.sc-blue .sc-icon{background:linear-gradient(135deg,#4aa3e0,#2980b9);color:#fff}
+.sc-blue .sc-label{color:#2980b9}
+.sc-blue .sc-value{color:#1a5276}
+.sc-green{background:linear-gradient(135deg,#e8f9ee,#d0f0dc);border-color:#b8e5c8}
+.sc-green .sc-icon{background:linear-gradient(135deg,#3ec76f,#27ae60);color:#fff}
+.sc-green .sc-label{color:#1e8449}
+.sc-green .sc-value{color:#145a32}
+.sc-red{background:linear-gradient(135deg,#fdeaea,#fad4d4);border-color:#f5b8b8}
+.sc-red .sc-icon{background:linear-gradient(135deg,#f06262,#c0392b);color:#fff}
+.sc-red .sc-label{color:#c0392b}
+.sc-red .sc-value{color:#7b241c}
+.sc-pink{background:linear-gradient(135deg,#fde8f0,#fad0e0);border-color:#f5b8d0}
+.sc-pink .sc-icon{background:linear-gradient(135deg,#ec407a,#c2185b);color:#fff}
+.sc-pink .sc-label{color:#c2185b}
+.sc-pink .sc-value{color:#7a1440}
+.sc-gold{background:linear-gradient(135deg,#fdf5e0,#f8e6b8);border-color:#f0d48a}
+.sc-gold .sc-icon{background:linear-gradient(135deg,#f5b041,#D68910);color:#fff}
+.sc-gold .sc-label{color:#B8860B}
+.sc-gold .sc-value{color:#7d5b00}
+.sc-purple{background:linear-gradient(135deg,#f0e8fd,#e0d0f5);border-color:#d8b8f5}
+.sc-purple .sc-icon{background:linear-gradient(135deg,#a569bd,#8e44ad);color:#fff}
+.sc-purple .sc-label{color:#8e44ad}
+.sc-purple .sc-value{color:#5b2c6f}
+
+/* ===== الشريط السفلي ===== */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fffdf9;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:8px 0;border-top:2px solid #f0e0d0;box-shadow:0 -4px 15px rgba(139,69,19,.12);z-index:50}
+.bottom-nav button{background:transparent;border:none;color:#B8860B;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:inherit;cursor:pointer;font-size:10px;font-weight:bold;padding:4px}
+.bottom-nav button.active{color:#D2691E}
+.bottom-nav button .bn-icon{font-size:22px}
+
+/* ===== الافتتاحية ===== */
+#splashScreen{position:fixed;inset:0;background:#8B4513 url('https://iili.io/nVmzXrx.png') center/cover no-repeat;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:99999;animation:spFade 0.6s ease}
+#splashScreen::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(139,69,19,0.45),rgba(210,105,30,0.25))}
+#splashScreen .splash-inner{position:relative;z-index:2;text-align:center;padding:25px 35px;background:rgba(255,255,255,0.15);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:2px solid rgba(255,255,255,0.35);border-radius:20px;box-shadow:0 15px 45px rgba(0,0,0,0.4);animation:spZoom 0.9s ease}
+#splashScreen .splash-icon{font-size:55px;margin-bottom:10px}
+#splashScreen .splash-title{color:#fff;font-size:26px;font-weight:bold;margin-bottom:6px;text-shadow:0 3px 10px rgba(0,0,0,0.7)}
+#splashScreen .splash-sub{color:#FFD700;font-size:15px;font-weight:bold;margin-bottom:10px;text-shadow:0 2px 6px rgba(0,0,0,0.6)}
+#splashScreen .splash-desc{color:rgba(255,255,255,0.95);font-size:12px;line-height:1.8;text-shadow:0 1px 4px rgba(0,0,0,0.5)}
+#splashScreen .splash-bar{width:180px;height:5px;background:rgba(255,255,255,0.25);border-radius:10px;overflow:hidden;margin:22px auto 0}
+#splashScreen .splash-bar div{height:100%;width:0;background:linear-gradient(90deg,#FFD700,#FFA500);border-radius:10px;animation:spLoad 4s ease-in-out forwards}
+@keyframes spLoad{0%{width:0%}50%{width:65%}100%{width:100%}}
+@keyframes spFade{from{opacity:0}to{opacity:1}}
+@keyframes spZoom{from{transform:scale(0.85);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* ===== شاشة الدخول ===== */
+.auth-screen{position:fixed;inset:0;background:linear-gradient(135deg,#8B4513,#D2691E);display:flex;align-items:center;justify-content:center;padding:20px;z-index:1000;overflow-y:auto}
+.auth-box{background:#fff;border-radius:20px;padding:30px 24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.35);margin:auto}
+.auth-box h1{margin:0 0 6px;color:#8B4513;font-size:24px;text-align:center}
+.auth-box .sub{text-align:center;color:#888;font-size:13px;margin-bottom:22px}
+.auth-box .field{margin-bottom:12px}
+.auth-box .field label{display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:bold}
+.auth-box .btn-main{width:100%;padding:13px;font-size:15px;background:#D2691E;margin-top:8px}
+.auth-box .switch-link{text-align:center;margin-top:16px;font-size:13px;color:#666}
+.auth-box .switch-link a{color:#D2691E;font-weight:bold;cursor:pointer;text-decoration:underline}
+.auth-error{background:#fef5f4;color:#c0392b;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px;display:none;border-right:3px solid #e74c3c}
+.auth-error.show{display:block}
+.hidden{display:none!important}
+.app-wrap{display:none}
+.app-wrap.show{display:block}
+
+/* ===== عناصر مساعدة ===== */
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#27ae60;color:#fff;padding:12px 24px;border-radius:25px;opacity:0;transition:.3s;pointer-events:none;z-index:99999;font-weight:bold;font-size:13px;max-width:90%;text-align:center}
 .toast.err{background:#e74c3c}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(-5px)}
+.empty{text-align:center;color:#b8a89a;padding:22px;font-style:italic;font-size:13px}
 .badge{display:inline-block;padding:3px 9px;border-radius:11px;font-size:10px;font-weight:bold;color:#fff}
 .b-نقد{background:#27ae60}.b-دين{background:#e74c3c}.b-واصل{background:#3498db}.b-هدية{background:#9b59b6}
 .b-استرجاع{background:#9b59b6}.b-تبديل{background:#e67e22}.b-فرق{background:#f39c12}.b-خصم{background:#e74c3c}
@@ -85,24 +231,6 @@ th{background:#fff8e6;color:#8B4513;font-weight:bold;font-size:11px}
 .rsv-table-head{background:linear-gradient(135deg,#f39c12,#e67e22);color:#fff;padding:8px 12px;font-weight:bold;font-size:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
 .rsv-table-head .total{background:rgba(255,255,255,0.25);padding:3px 10px;border-radius:12px;font-size:11px}
 .rsv-table-body{padding:8px}
-.auth-screen{position:fixed;inset:0;background:linear-gradient(135deg,#8B4513,#D2691E);display:flex;align-items:center;justify-content:center;padding:20px;z-index:1000;overflow-y:auto}
-.auth-box{background:#fff;border-radius:20px;padding:30px 24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.35);margin:auto}
-.auth-box h1{margin:0 0 6px;color:#8B4513;font-size:24px;text-align:center}
-.auth-box .sub{text-align:center;color:#888;font-size:13px;margin-bottom:22px}
-.auth-box .field{margin-bottom:12px}
-.auth-box .field label{display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:bold}
-.auth-box .btn-main{width:100%;padding:13px;font-size:15px;background:#D2691E;margin-top:8px}
-.auth-box .switch-link{text-align:center;margin-top:16px;font-size:13px;color:#666}
-.auth-box .switch-link a{color:#D2691E;font-weight:bold;cursor:pointer;text-decoration:underline}
-.auth-error{background:#fef5f4;color:#c0392b;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px;display:none;border-right:3px solid #e74c3c}
-.auth-error.show{display:block}
-.hidden{display:none!important}
-.app-wrap{display:none}
-.app-wrap.show{display:block}
-.account-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid #f0e0d0;border-radius:10px;margin-bottom:7px;background:#fffdf9;flex-wrap:wrap;gap:6px}
-.account-item.current{background:#fff8e6;border-color:#D2691E}
-.account-item .avatar-sm{width:34px;height:34px;border-radius:50%;background:#D2691E;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px}
-.account-item .info{flex:1;margin-right:10px;min-width:120px}
 .admin-only{display:none}
 body.is-admin .admin-only{display:block}
 .pass-wrap{position:relative;display:flex;align-items:center}
@@ -155,7 +283,6 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 .sync-notification.err{background:linear-gradient(135deg,#e74c3c,#c0392b)}
 .sync-notification.ok{background:linear-gradient(135deg,#27ae60,#229954)}
 
-/* ✅ جدول الإيداعات الموحد */
 .deposit-table-card{background:#fff8e6;border:2px solid #f39c12;padding:12px;border-radius:12px;margin-bottom:12px}
 .deposit-table-card .card-header{text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #f39c12}
 .deposit-table-card .card-header .title{font-size:15px;font-weight:bold;color:#8B4513;margin-bottom:6px}
@@ -164,9 +291,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 .deposit-table th{background:#f39c12;color:#fff;font-weight:bold;padding:6px 3px;text-align:center;border-bottom:2px solid #e67e22;font-size:9px;white-space:nowrap}
 .deposit-table td{padding:6px 3px;text-align:center;border-bottom:1px solid #f5ede3;font-size:10px;white-space:nowrap}
 .deposit-table tr.deposit-row{background:#fffdf9}
-.deposit-table tr.deposit-row:hover{background:#fff8e6}
 .deposit-table tr.finished{background:#f5f5f5;opacity:.7}
-.deposit-table tr.finished td{color:#95a5a6}
 .deposit-table tr.legacy-row{background:#fff8e6}
 .deposit-table .num{color:#888;font-weight:bold;width:22px}
 .deposit-table .name{color:#8B4513;font-weight:bold;text-align:right}
@@ -184,53 +309,15 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 
 @media print{*,*::before,*::after{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important}body.printing-overlay > *{display:none !important;visibility:hidden !important}body.printing-overlay #reportOverlay{display:block !important;visibility:visible !important;position:static !important;inset:auto !important;background:#fff !important;padding:0 !important;margin:0 !important;overflow:visible !important;z-index:auto !important;box-shadow:none !important;width:100% !important}body.printing-overlay #reportOverlay *{visibility:visible !important}body.printing-overlay #reportOverlay > div:first-child{display:none !important}body.printing-overlay #reportOverlayContent{display:block !important;padding:6px !important;margin:0 !important;background:#fff !important}body.printing-overlay #reportOverlayContent img{max-width:100% !important;height:auto !important;display:block !important;page-break-inside:avoid !important;margin:0 auto 6px auto !important}body.printing-overlay #reportOverlayContent table{width:100% !important;border-collapse:collapse !important;page-break-inside:auto !important}body.printing-overlay #reportOverlayContent tr{page-break-inside:avoid !important}body.printing-overlay .buyer-body,body.printing-overlay .arch-body{display:block !important}body.printing-overlay #reportOverlay button,body.printing-overlay #reportOverlay .dots-menu,body.printing-overlay #reportOverlay .dots-btn,body.printing-overlay #reportOverlay .dots-dropdown,body.printing-overlay #reportOverlay .dots-backdrop{display:none !important}@page{margin:8mm;size:A4 portrait}}
 
-/* ✅ جداول متجاوبة على الجوال */
 @media (max-width: 600px){
-  /* جدول المطابقة */
-  #reportArea table,
-  #flourList table {
-    font-size: 9px !important;
-    width: 100% !important;
-    table-layout: auto !important;
-  }
-  #reportArea table th,
-  #reportArea table td,
-  #flourList table th,
-  #flourList table td {
-    font-size: 9px !important;
-    padding: 3px 2px !important;
-    white-space: nowrap !important;
-    word-break: keep-all !important;
-  }
-  
-  /* ✅ إخفاء عمود الناقل فقط في المطابقة */
-  #reportArea table th:nth-child(6),
-  #reportArea table td:nth-child(6) {
-    display: none !important;
-  }
-  
-  #reportArea,
-  #flourList {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-  }
-  #reportOverlayContent img {
-    max-width: 100% !important;
-    height: auto !important;
-    display: block !important;
-  }
-  #reportArea .card {
-    padding: 6px !important;
-  }
-  #reportArea .card h2 {
-    font-size: 12px !important;
-  }
-  .badge {
-    font-size: 8px !important;
-    padding: 2px 5px !important;
-  }
-  
-  /* ✅ إخفاء عمود التاريخ فقط في الإيداعات */
+  #reportArea table,#flourList table{font-size:9px !important;width:100% !important;table-layout:auto !important}
+  #reportArea table th,#reportArea table td,#flourList table th,#flourList table td{font-size:9px !important;padding:3px 2px !important;white-space:nowrap !important;word-break:keep-all !important}
+  #reportArea table th:nth-child(6),#reportArea table td:nth-child(6){display:none !important}
+  #reportArea,#flourList{overflow-x:auto !important;-webkit-overflow-scrolling:touch !important}
+  #reportOverlayContent img{max-width:100% !important;height:auto !important;display:block !important}
+  #reportArea .card{padding:6px !important}
+  #reportArea .card h2{font-size:12px !important}
+  .badge{font-size:8px !important;padding:2px 5px !important}
   .deposit-table .hide-mobile{display:none !important}
   .deposit-table th,.deposit-table td{font-size:9px !important;padding:5px 2px !important}
   .deposit-table th{font-size:8px !important}
@@ -241,77 +328,138 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script><div id="splashScreen" style="position:fixed;inset:0;background:linear-gradient(135deg,#D2691E,#8B4513);display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:99999;transition:opacity 0.6s;">
-<div style="text-align:center;padding:20px">
-<div style="color:#fff;font-size:22px;font-weight:bold;margin-bottom:8px">🌾 حسابات الطحين</div>
-<div style="color:#FFD700;font-size:15px;margin-bottom:8px;font-weight:bold">أهلاً وسهلاً بك 🌟</div>
-<div style="color:rgba(255,255,255,0.95);font-size:12px;margin-bottom:25px;line-height:1.9">برنامجك المتكامل لإدارة<br>المبيعات والديون والحسابات</div>
-<div style="width:180px;height:5px;background:rgba(255,255,255,0.2);border-radius:10px;overflow:hidden;margin:0 auto">
-<div style="height:100%;background:linear-gradient(90deg,#FFD700,#FFA500);border-radius:10px;animation:spLoad 2.5s ease-in-out forwards"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><!-- ============ الافتتاحية ============ -->
+<div id="splashScreen">
+<div class="splash-inner">
+<div class="splash-icon">🌾</div>
+<div class="splash-title">حسابات الطحين</div>
+<div class="splash-sub">أهلاً وسهلاً بك 🌟</div>
+<div class="splash-desc">برنامجك المتكامل لإدارة<br>المبيعات والديون والحسابات</div>
+<div class="splash-bar"><div></div></div>
 </div>
 </div>
-<style>@keyframes spLoad{0%{width:0%}50%{width:65%}100%{width:100%}}</style>
-</div>
-<script>setTimeout(function(){const sp=document.getElementById('splashScreen');if(sp){sp.style.opacity='0';setTimeout(()=>sp.remove(),600)}},2800);</script>
+<script>setTimeout(function(){var sp=document.getElementById('splashScreen');if(sp){sp.style.transition='opacity 0.6s';sp.style.opacity='0';setTimeout(function(){sp.remove()},600)}},4000);</script>
 
+<!-- ============ شاشة الدخول / التسجيل ============ -->
 <div class="auth-screen" id="authScreen">
 <div class="auth-box">
 <h1>🌾 حسابات الطحين</h1>
 <div class="sub" id="authSub">سجّل دخولك للمتابعة</div>
 <div class="auth-error" id="authError"></div>
+
+<!-- نموذج الدخول -->
 <div id="loginForm">
-<div class="field"><label>📱 رقم الهاتف</label><input id="loginUser" type="tel" placeholder="07XX XXX XXXX"></div>
+<div class="field"><label>📱 البريد الإلكتروني أو رقم الهاتف</label><input id="loginUser" type="text" placeholder="example@gmail.com أو 07XX XXX XXXX"></div>
 <div class="field"><label>🔒 كلمة المرور</label><div class="pass-wrap"><input id="loginPass" type="password" placeholder="كلمة المرور"><button type="button" class="eye-btn" onclick="togglePass('loginPass', this)">👁️</button></div></div>
 <button class="btn-main" onclick="doLogin()">🔓 تسجيل الدخول</button>
+<div style="text-align:center;margin-top:10px;font-size:13px">
+<a onclick="forgotPassword()" style="color:#D2691E;font-weight:bold;cursor:pointer;text-decoration:underline">🔑 نسيت كلمة المرور؟</a>
+</div>
 <div class="switch-link">ما عندك حساب؟ <a onclick="showRegister()">إنشاء حساب</a></div>
 </div>
+
+<!-- نموذج التسجيل -->
 <div id="registerForm" class="hidden">
-<div class="field"><label>📱 رقم الهاتف</label><input id="regUser" type="tel" placeholder="07XX XXX XXXX"></div>
+
+<div id="adminRegMode" class="hidden">
+<div class="field"><label>📱 رقم الهاتف (المدير)</label><input id="regUserAdmin" type="tel" placeholder="07XX XXX XXXX"></div>
+<div class="field"><label>🔒 كلمة المرور</label><div class="pass-wrap"><input id="regPassAdmin" type="password" placeholder="كلمة المرور"><button type="button" class="eye-btn" onclick="togglePass('regPassAdmin', this)">👁️</button></div></div>
+<div class="field"><label>🔒 تأكيد كلمة المرور</label><div class="pass-wrap"><input id="regPassAdmin2" type="password" placeholder="أعد كتابتها"><button type="button" class="eye-btn" onclick="togglePass('regPassAdmin2', this)">👁️</button></div></div>
+<button class="btn-main" onclick="doRegisterAdmin()">✅ إنشاء حساب المدير</button>
+</div>
+
+<div id="userRegMode">
+<div class="field"><label>👤 الاسم الكامل (ثنائي أو ثلاثي)</label><input id="regName" type="text" placeholder="مثال: علي محمد أحمد"></div>
+<div class="field"><label>📅 تاريخ الميلاد</label><input id="regBirth" type="date"></div>
+<div class="field"><label>📱 رقم الهاتف (اختياري)</label><input id="regUser" type="tel" placeholder="07XX XXX XXXX"></div>
+<div class="field"><label>📧 أو البريد الإلكتروني (اختياري)</label><input id="regEmail" type="email" placeholder="example@gmail.com"></div>
 <div class="field"><label>🔒 كلمة المرور</label><div class="pass-wrap"><input id="regPass" type="password" placeholder="كلمة المرور"><button type="button" class="eye-btn" onclick="togglePass('regPass', this)">👁️</button></div></div>
 <div class="field"><label>🔒 تأكيد كلمة المرور</label><div class="pass-wrap"><input id="regPass2" type="password" placeholder="أعد كتابتها"><button type="button" class="eye-btn" onclick="togglePass('regPass2', this)">👁️</button></div></div>
+<div class="field"><label>🔐 سؤال الأمان</label><input id="regQuestion" type="text" placeholder="مثال: ما اسم مدرستك الابتدائية؟"></div>
+<div class="field"><label>💡 الجواب</label><input id="regAnswer" type="text" placeholder="الجواب"></div>
 <button class="btn-main" onclick="doRegister()">✅ إنشاء الحساب</button>
+</div>
+
 <div class="switch-link">عندك حساب؟ <a onclick="showLogin()">تسجيل الدخول</a></div>
 </div>
+
 </div>
 </div>
 
+<!-- ============ التطبيق ============ -->
 <div class="app-wrap" id="appWrap">
+
+<!-- الهيدر الجديد -->
 <header>
+<div class="top-row">
+<div>
 <h1>🌾 حسابات الطحين</h1>
+<div class="sub">إدارة سهلة .. حسابات أدق</div>
+</div>
 <div class="user-info">
+<div class="bell-wrap admin-only">
+<button class="bell-btn" onclick="openNotif()">🔔</button>
+<span class="bell-badge" id="notifBadge">0</span>
+</div>
 <div class="avatar" id="headerAvatar">A</div>
 <span id="headerUser">—</span>
 <span class="admin-badge" id="headerBadge" style="display:none">👑 مدير</span>
-<span id="syncIndicator" style="background:#7f8c8d;color:#fff;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:bold">☁️ جاري الاتصال...</span>
-<button class="small blue" onclick="recalculateAll()">🔄 تحديث الكل</button>
-<button class="small gray" onclick="doLogout()">🚪 خروج</button>
+<span class="sync" id="syncIndicator">☁️ جاري الاتصال...</span>
+</div>
+</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn-blue" onclick="recalculateAll()">🔄 تحديث الكل</button>
+<button class="btn-gray" onclick="doLogout()">🚪 خروج</button>
 </div>
 </header>
 
+<!-- التبويبات الجديدة (8 أزرار) -->
 <div class="tabs">
-<button class="tab active" data-page="home">🏠 الرئيسية</button>
-<button class="tab" data-page="flour">🌾 الطحين</button>
-<button class="tab" data-page="sell">🛒 البيع</button>
-<button class="tab" data-page="buyers">👥 المشترين</button>
-<button class="tab" data-page="prices">🏷️ أسعار الزبائن</button>
-<button class="tab" data-page="debt">📋 المطلوبين</button>
-<button class="tab" data-page="deposit">💰 الإيداع</button>
-<button class="tab" data-page="pay">✅ التسديد</button>
-<button class="tab" data-page="expense">💸 الصرفيات</button>
-<button class="tab" data-page="report">📊 المطابقة</button>
-<button class="tab" data-page="archive">📦 الأرشيف</button>
-<button class="tab" data-page="exchange">🔄 استرجاع وتبديل</button>
-<button class="tab" data-page="settings">⚙️ الإعدادات</button>
+<button class="tab" data-page="sell"><div class="tb-icon">🛒</div><div>البيع</div></button>
+<button class="tab" data-page="prices"><div class="tb-icon">🏷️</div><div>أسعار الزبائن</div></button>
+<button class="tab" data-page="debt"><div class="tb-icon">📋</div><div>المطلوبين</div></button>
+<button class="tab" data-page="deposit"><div class="tb-icon">💰</div><div>الإيداع</div></button>
+<button class="tab" data-page="pay"><div class="tb-icon">✅</div><div>التسديد</div></button>
+<button class="tab" data-page="expense"><div class="tb-icon">💸</div><div>الصرفيات</div></button>
+<button class="tab" data-page="report"><div class="tb-icon">📊</div><div>المطابقة</div></button>
+<button class="tab" data-page="exchange"><div class="tb-icon">🔄</div><div>استرجاع وتبديل</div></button>
 </div>
 
+<!-- ===== الصفحة الرئيسية ===== -->
 <div class="page active" id="page-home">
-<div class="card"><h2>💵 إضافة مبلغ للصندوق</h2>
+
+<div class="money-box">
+<div class="label">👁️ المبلغ الإجمالي (الصندوق)</div>
+<div class="value" id="cashbox">0</div>
+<div class="note">💰 نقد + تسديدات + صافي الإيداعات + إضافات − صرفيات</div>
+</div>
+
+<div class="main-nav">
+<button onclick="gotoPage('buyers')">
+<div class="mn-icon">👥</div>
+<div class="mn-label">المشترين</div>
+</button>
+<button onclick="gotoPage('flour')">
+<div class="mn-icon">📦</div>
+<div class="mn-label">المخزن / أنواع الطحين</div>
+</button>
+<button onclick="gotoPage('report')">
+<div class="mn-icon">📅</div>
+<div class="mn-label">المطابقة</div>
+</button>
+</div>
+
+<div class="card">
+<h2>💵 إضافة مبلغ للصندوق</h2>
 <div class="row"><input id="caAmount" type="number" placeholder="المبلغ" min="0"><input id="caNote" placeholder="الوصف (اختياري)"></div>
 <div class="row"><button onclick="addCashAmount()" class="ok" style="width:100%">➕ إضافة مبلغ</button></div>
 </div>
-<div class="money-box"><div class="label">💰 المبلغ الإجمالي (الصندوق)</div><div class="value" id="cashbox">0</div><div style="font-size:11px;margin-top:5px;opacity:.9">نقد + تسديدات + صافي الإيداعات + إضافات − صرفيات</div></div>
-<div class="card"><h2>📊 الإحصائيات</h2><div class="stat-grid" id="stats"></div></div>
+
+<div class="card"><h2>📊 الإحصائيات</h2><div id="stats"></div></div>
+
 <div class="card"><h2>🕐 آخر العمليات</h2><div id="recent"></div></div>
+
 <div class="card" style="background:#fffbf0;border:1px solid #f39c12;padding:10px">
 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
 <div style="font-size:12px;color:#8B4513;font-weight:bold">💰 تعديل الصندوق:</div>
@@ -319,8 +467,10 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 <div id="cashboxOffsetInfo" style="margin-top:8px;font-size:11px;color:#888;text-align:center;line-height:1.7"></div>
 </div>
+
 </div>
 
+<!-- ===== صفحة الطحين ===== -->
 <div class="page" id="page-flour">
 <div class="card"><h2>➕ إضافة نوع طحين / حمولة جديدة</h2>
 <div class="row"><input id="ftName" placeholder="اسم النوع"><input id="ftQty" type="number" placeholder="الكمية" min="0"><button onclick="addFlourType()" style="max-width:140px">➕ إضافة</button></div>
@@ -336,6 +486,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 </div>
 
+<!-- ===== صفحة البيع ===== -->
 <div class="page" id="page-sell">
 <div class="card"><h2>🛒 عملية بيع جديدة</h2>
 <div class="row"><input id="sBuyer" placeholder="اسم المشتري" list="buyersList"><datalist id="buyersList"></datalist></div>
@@ -348,11 +499,11 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="row"><button onclick="addSaleItem()" class="blue" style="width:100%">➕ إضافة نوع آخر (++)</button></div>
 <div class="row"><input id="sDiscount" type="number" placeholder="🏷️ خصم (اختياري)" min="0" style="background:#f0f9f2;border-color:#27ae60" oninput="updateSaleGrandTotal()"><input id="sRemaining" type="number" placeholder="💰 الباقي الكلي" min="0" style="background:#fff3e0;border-color:#f39c12"></div>
 <div class="row"><div style="flex:0 0 100%;font-size:12px;color:#666">طريقة الدفع:</div>
-<div class="pay-methods" style="flex:1">
-<button data-m="نقد" class="active" onclick="setMethod('نقد')">💵 نقد</button>
-<button data-m="دين" onclick="setMethod('دين')">📝 دين</button>
-<button data-m="واصل" onclick="setMethod('واصل')">📦 واصل</button>
-<button data-m="هدية" onclick="setMethod('هدية')">🎁 هدية</button>
+<div class="pay-methods" style="flex:1;display:flex;gap:6px;flex-wrap:wrap">
+<button data-m="نقد" class="active" onclick="setMethod('نقد')" style="flex:1;background:#27ae60;color:#fff;font-weight:bold;padding:9px 6px;border-radius:8px">💵 نقد</button>
+<button data-m="دين" onclick="setMethod('دين')" style="flex:1;background:#e8e0d5;color:#666;font-weight:bold;padding:9px 6px;border-radius:8px">📝 دين</button>
+<button data-m="واصل" onclick="setMethod('واصل')" style="flex:1;background:#e8e0d5;color:#666;font-weight:bold;padding:9px 6px;border-radius:8px">📦 واصل</button>
+<button data-m="هدية" onclick="setMethod('هدية')" style="flex:1;background:#e8e0d5;color:#666;font-weight:bold;padding:9px 6px;border-radius:8px">🎁 هدية</button>
 </div></div>
 <div style="text-align:center;font-size:15px;font-weight:bold;color:#8B4513;margin:10px 0;padding:8px;background:#faf0e6;border-radius:8px">الإجمالي الكلي: <span id="saleGrandTotal">0</span> د.ع</div>
 <button onclick="doSale()" style="width:100%;padding:12px;font-size:15px">✔️ تسجيل البيع</button>
@@ -361,8 +512,10 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="card"><h2>📋 سجل المبيعات</h2><div id="salesList"></div></div>
 </div>
 
+<!-- ===== صفحة المشترين ===== -->
 <div class="page" id="page-buyers"><div class="card"><h2>👥 قائمة المشترين والمودعين</h2><div id="buyersList2"></div></div></div>
 
+<!-- ===== أسعار الزبائن ===== -->
 <div class="page" id="page-prices">
 <div class="card"><h2>🏷️ إضافة / تعديل أسعار زبون</h2>
 <div class="row"><input id="cpPerson" placeholder="اسم الزبون" list="cpBuyersList"><datalist id="cpBuyersList"></datalist></div>
@@ -375,6 +528,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 </div>
 
+<!-- ===== المطلوبين ===== -->
 <div class="page" id="page-debt">
 <div class="card"><h2>➕ إضافة دين يدوي</h2>
 <div class="row"><input id="mdPerson" placeholder="اسم الشخص"><input id="mdAmount" type="number" placeholder="المبلغ" min="0"><button onclick="addManualDebt()" style="max-width:120px">➕ إضافة</button></div>
@@ -389,6 +543,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 </div>
 
+<!-- ===== الإيداع ===== -->
 <div class="page" id="page-deposit">
 <div class="card"><h2>💰 إيداع جديد</h2>
 <div class="row"><input id="dPerson" placeholder="اسم الشخص" list="depBuyersList"><datalist id="depBuyersList"></datalist></div>
@@ -427,6 +582,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="card"><h2>📋 سجل الإيداعات</h2><div id="depositList"></div></div>
 </div>
 
+<!-- ===== التسديد ===== -->
 <div class="page" id="page-pay">
 <div class="card"><h2>✅ تسديد دين</h2>
 <div class="row"><input id="pPerson" placeholder="اسم الزبون"></div>
@@ -442,6 +598,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="card"><h2>📋 سجل التسديدات</h2><div id="payList"></div></div>
 </div>
 
+<!-- ===== الصرفيات ===== -->
 <div class="page" id="page-expense">
 <div class="card"><h2>💸 إضافة صرفية</h2>
 <div class="row"><input id="eDesc" placeholder="الوصف"><input id="eAmount" type="number" placeholder="المبلغ" min="0"><button onclick="addExpense()" style="max-width:120px">➕ إضافة</button></div>
@@ -449,6 +606,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="card"><h2>📋 سجل الصرفيات</h2><div id="expenseList"></div></div>
 </div>
 
+<!-- ===== المطابقة ===== -->
 <div class="page" id="page-report">
 <div class="card"><h2>📊 مطابقة نهاية اليوم</h2>
 <div class="row no-print">
@@ -460,6 +618,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 </div>
 
+<!-- ===== الأرشيف ===== -->
 <div class="page" id="page-archive">
 <div class="card">
 <h2>📦 الأرشيف</h2>
@@ -476,6 +635,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 </div>
 
+<!-- ===== استرجاع وتبديل ===== -->
 <div class="page" id="page-exchange">
 <div class="card"><h2>🔄 عملية استرجاع وتبديل جديدة</h2>
 <div class="row"><input id="exPerson" placeholder="اسم الزبون" list="exBuyersList"><datalist id="exBuyersList"></datalist></div>
@@ -510,9 +670,9 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 <div id="exPayMethodsWrap">
 <div style="flex:0 0 100%;font-size:12px;color:#666;margin-bottom:6px">طريقة دفع الفرق:</div>
-<div class="pay-methods">
-<button data-em="نقد" class="active" onclick="setExMethod('نقد')">💵 نقد (للصندوق)</button>
-<button data-em="دين" onclick="setExMethod('دين')">📝 دين (للمطلوبين)</button>
+<div class="pay-methods" style="display:flex;gap:6px">
+<button data-em="نقد" class="active" onclick="setExMethod('نقد')" style="flex:1;background:#27ae60;color:#fff;font-weight:bold;padding:9px;border-radius:8px">💵 نقد (للصندوق)</button>
+<button data-em="دين" onclick="setExMethod('دين')" style="flex:1;background:#e8e0d5;color:#666;font-weight:bold;padding:9px;border-radius:8px">📝 دين (للمطلوبين)</button>
 </div>
 </div>
 <button onclick="doExchange()" style="width:100%;padding:12px;font-size:15px;margin-top:10px;background:#9b59b6">🔄 تسجيل العملية</button>
@@ -521,13 +681,23 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="card"><h2>📋 سجل عمليات الاسترجاع والتبديل</h2><div id="exchangesList"></div></div>
 </div>
 
+<!-- ===== الإعدادات ===== -->
 <div class="page" id="page-settings">
+
 <div class="card"><h2>👤 معلومات الحساب</h2>
 <div style="display:flex;align-items:center;gap:12px">
 <div style="width:50px;height:50px;border-radius:50%;background:#D2691E;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:22px" id="settingsAvatar">A</div>
 <div><div style="font-size:18px;font-weight:bold" id="settingsUser">—</div><div style="font-size:12px;color:#888" id="settingsSince">—</div><div id="settingsRole" style="margin-top:5px"></div></div>
 </div>
 </div>
+
+<!-- ✏️ كارد تعديل الاسم الجديد -->
+<div class="card" style="background:#fffbf0;border:2px solid #f39c12">
+<h2>✏️ تعديل اسمي</h2>
+<div class="row"><input id="myName" type="text" placeholder="اسمك الكامل (ثنائي أو ثلاثي)"></div>
+<button onclick="updateMyName()" class="ok" style="width:100%">💾 حفظ الاسم</button>
+</div>
+
 <div class="card"><h2>☁️ المزامنة السحابية</h2>
 <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:8px">
 <span id="syncStatusBig" style="background:#7f8c8d;color:#fff;padding:5px 12px;border-radius:15px;font-size:12px;font-weight:bold">☁️ جاري الاتصال...</span>
@@ -539,32 +709,64 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="row"><button onclick="sendMyData()" class="blue" style="width:100%;padding:12px;font-size:14px">📤 إرسال بياناتي</button></div>
 <div class="row"><button onclick="receiveFromCloud()" class="purple" style="width:100%;padding:12px;font-size:14px">📥 استقبال من السحابة</button></div>
 </div>
+
 <div class="card"><h2>🔒 تغيير كلمة المرور</h2>
 <div class="row"><div class="pass-wrap" style="flex:1"><input id="oldPass" type="password" placeholder="الحالية"><button type="button" class="eye-btn" onclick="togglePass('oldPass', this)">👁️</button></div></div>
 <div class="row"><div class="pass-wrap" style="flex:1"><input id="newPass" type="password" placeholder="الجديدة"><button type="button" class="eye-btn" onclick="togglePass('newPass', this)">👁️</button></div><div class="pass-wrap" style="flex:1"><input id="newPass2" type="password" placeholder="تأكيد"><button type="button" class="eye-btn" onclick="togglePass('newPass2', this)">👁️</button></div></div>
 <button onclick="changePassword()" class="ok">💾 حفظ</button>
 </div>
+
 <div class="card"><h2>➕ إضافة حساب جديد</h2>
 <div class="row"><input id="newAccUser" type="tel" placeholder="رقم الهاتف"></div>
 <div class="row"><div class="pass-wrap" style="flex:1"><input id="newAccPass" type="password" placeholder="كلمة المرور"><button type="button" class="eye-btn" onclick="togglePass('newAccPass', this)">👁️</button></div><div class="pass-wrap" style="flex:1"><input id="newAccPass2" type="password" placeholder="تأكيد"><button type="button" class="eye-btn" onclick="togglePass('newAccPass2', this)">👁️</button></div></div>
 <div class="row admin-only"><label style="display:flex;align-items:center;gap:6px;font-size:13px;min-width:auto"><input type="checkbox" id="newAccAdmin" style="width:auto;min-width:auto"> 👑 اجعله مدير</label></div>
 <button onclick="addNewAccount()">➕ إنشاء الحساب</button>
 </div>
+
 <div class="card admin-card admin-only"><h2>👑 لوحة المدير</h2><div id="adminPanel"></div></div>
+
 <div class="card"><h2>👥 الحسابات المسجلة</h2><div id="accountsList"></div></div>
+
 <div class="card"><h2>💾 النسخ الاحتياطي</h2>
 <div class="row"><button onclick="exportData()" class="blue">📤 تصدير</button><button onclick="document.getElementById('importFile').click()" class="purple">📥 استيراد</button><input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)"></div>
 </div>
+
 <div class="card"><h2>🚪 تسجيل الخروج</h2><button onclick="doLogout()" class="gray" style="width:100%;padding:12px;font-size:15px">🚪 تسجيل الخروج</button></div>
+
 <div class="card"><h2>⚠️ منطقة الخطر</h2>
 <div class="row"><button onclick="clearAll()" class="danger">🗑️ حذف كل بيانات هذا الحساب</button><button onclick="deleteAccount()" class="danger">❌ حذف الحساب نهائياً</button></div>
 </div>
-</div>
 
 </div>
 
+</div>
+
+<!-- ============ الشريط السفلي ============ -->
+<div class="bottom-nav" id="bottomNav">
+<button class="active" data-page="home" onclick="gotoPage('home')"><span class="bn-icon">🏠</span><span>الرئيسية</span></button>
+<button data-page="archive" onclick="gotoPage('archive')"><span class="bn-icon">📦</span><span>الأرشيف</span></button>
+<button data-page="notif" class="admin-only" onclick="openNotif()"><span class="bn-icon">🔔</span><span>الإشعارات</span></button>
+<button data-page="settings" onclick="gotoPage('settings')"><span class="bn-icon">⚙️</span><span>الإعدادات</span></button>
+</div>
+
+<!-- ============ Toast + Sync Notification ============ -->
 <div class="toast" id="toast"></div>
-<div class="sync-notification" id="syncNotification"></div><script>// ✅ إعدادات التحديث التلقائي
+<div class="sync-notification" id="syncNotification"></div>
+
+<!-- ============ نافذة الإشعارات ============ -->
+<div class="notif-overlay" id="notifOverlay" onclick="closeNotif()"></div>
+<div class="notif-panel" id="notifPanel">
+<div class="notif-head">
+<h3>🔔 الإشعارات</h3>
+<div style="display:flex;gap:8px">
+<button class="close-btn" onclick="markAllRead()" style="font-size:12px;width:auto;padding:0 10px;border-radius:8px">✓✓</button>
+<button class="close-btn" onclick="clearAllNotif()" style="font-size:14px">🗑️</button>
+<button class="close-btn" onclick="closeNotif()">✕</button>
+</div>
+</div>
+<div class="notif-body" id="notifBody"></div>
+</div><script>
+// ===== التحديث التلقائي =====
 const APP_VERSION = "1.1";
 const APP_UPDATE_URL = "https://aliyuoohoogoogl-cmyk.github.io/flour/latest.json";
 
@@ -675,6 +877,8 @@ const cloudDB=firebase.firestore();
 try{if(cloudDB.enablePersistence){cloudDB.enablePersistence({synchronizeTabs:true}).then(()=>{console.log('✅ Offline persistence');}).catch(err=>{console.warn('Persistence:',err.code);});}}catch(e){}
 cloudAccountsRef=cloudDB.collection('accounts');
 cloudDataRef=cloudDB.collection('userdata');
+// ✅ تهيئة Firebase Auth
+try{ window._auth = firebase.auth(); }catch(e){ console.warn('Auth init:', e); }
 cloudEnabled=true;
 console.log('✅ Firebase متصل');
 setSyncStatus('ok','☁️ متزامن');
@@ -708,10 +912,24 @@ function hash(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i
 function getAccounts(){try{return JSON.parse(localStorage.getItem(ACC_KEY))||[];}catch(e){return[];}}
 function saveAccounts(a){localStorage.setItem(ACC_KEY,JSON.stringify(a));saveAccountsCloud(a);}
 
-function emptyDB(){return{flourTypes:[],sales:[],debts:[],deposits:[],payments:[],expenses:[],archive:[],buyers:[],reservations:[],cashAdditions:[],customerPrices:[],exchanges:[],_lastSaved:0,_needsSync:false,_permanentCarry:0,_cashboxOffset:0,_deleted:{}};}
+function emptyDB(){return{flourTypes:[],sales:[],debts:[],deposits:[],payments:[],expenses:[],archive:[],buyers:[],reservations:[],cashAdditions:[],customerPrices:[],exchanges:[],_notifications:[],_lastSaved:0,_needsSync:false,_permanentCarry:0,_cashboxOffset:0,_deleted:{}};}
 
 function showError(m){const e=document.getElementById('authError');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000);}
-function showRegister(){document.getElementById('loginForm').classList.add('hidden');document.getElementById('registerForm').classList.remove('hidden');document.getElementById('authSub').textContent='أنشئ حساب جديد';}
+
+function showRegister(){
+document.getElementById('loginForm').classList.add('hidden');
+document.getElementById('registerForm').classList.remove('hidden');
+document.getElementById('authSub').textContent='أنشئ حساب جديد';
+const isFirst = getAccounts().length === 0;
+if(isFirst){
+  document.getElementById('adminRegMode').classList.remove('hidden');
+  document.getElementById('userRegMode').classList.add('hidden');
+}else{
+  document.getElementById('adminRegMode').classList.add('hidden');
+  document.getElementById('userRegMode').classList.remove('hidden');
+}
+}
+
 function showLogin(){document.getElementById('registerForm').classList.add('hidden');document.getElementById('loginForm').classList.remove('hidden');document.getElementById('authSub').textContent='سجّل دخولك للمتابعة';}
 function normalizePhone(p){return p.replace(/[\s\-\(\)]/g,'');}
 function isValidPhone(p){return/^[0-9]{7,15}$/.test(p);}
@@ -737,6 +955,7 @@ if(!d) return;
 if(!d.cashAdditions) d.cashAdditions=[];
 if(!d.customerPrices) d.customerPrices=[];
 if(!d.exchanges) d.exchanges=[];
+if(!d._notifications) d._notifications=[];
 if(!d._deleted) d._deleted={};
 if(d._permanentCarry === undefined) d._permanentCarry=0;
 if(d._cashboxOffset === undefined) d._cashboxOffset=0;
@@ -748,7 +967,6 @@ if(dep._usedMoney === undefined) dep._usedMoney=0;
 });
 }
 
-// ✅ _applyCloudDB — معدّل: حذف فلتر الأرشيف
 function _applyCloudDB(cloudDb){
 if(!cloudDb) return false;
 const _localBackup = db;
@@ -756,7 +974,6 @@ try{
 _fixDBFields(cloudDb);
 const _beforeSnapshot = JSON.stringify(db);
 
-// ✅ الأحدث يفوز — استبدال كامل (بدون فلتر أرشيف)
 const localTime = +db._lastSaved || 0;
 const cloudTime = +cloudDb._lastSaved || 0;
 
@@ -845,59 +1062,357 @@ console.warn('startRealtimeListener error:',e);
 }
 }
 
-function stopRealtimeListener(){if(cloudUnsubscribe){try{cloudUnsubscribe();}catch(e){}cloudUnsubscribe=null;console.log('🛑 تم إيقاف الاستماع');}}async function doRegister(){
-const u=normalizePhone(document.getElementById('regUser').value.trim());
-const p=document.getElementById('regPass').value;
-const p2=document.getElementById('regPass2').value;
+function stopRealtimeListener(){if(cloudUnsubscribe){try{cloudUnsubscribe();}catch(e){}cloudUnsubscribe=null;console.log('🛑 تم إيقاف الاستماع');}}
+
+// ✅ إضافة إشعار للمدير
+function _addNotification(type, fullName, identifier){
+if(!db) return;
+if(!db._notifications) db._notifications=[];
+db._notifications.unshift({
+id: uid(),
+type: type,
+fullName: fullName,
+identifier: identifier,
+device: _deviceId,
+deviceInfo: (navigator.userAgent||'').substring(0,80),
+date: nowISO(),
+read: false,
+_editedAt: Date.now()
+});
+if(db._notifications.length > 100) db._notifications = db._notifications.slice(0, 100);
+if(currentUser) save();
+_updateNotifBadge();
+}
+
+function _updateNotifBadge(){
+const badge=document.getElementById('notifBadge');
+if(!badge) return;
+if(!db || !db._notifications){badge.classList.remove('show');return;}
+const unread=db._notifications.filter(n=>!n.read).length;
+if(unread>0){badge.textContent=unread>99?'99+':unread;badge.classList.add('show');}
+else{badge.classList.remove('show');}
+}
+
+function openNotif(){
+const panel=document.getElementById('notifPanel');
+const overlay=document.getElementById('notifOverlay');
+if(!panel||!overlay) return;
+renderNotifications();
+panel.classList.add('show');
+overlay.classList.add('show');
+}
+function closeNotif(){
+const panel=document.getElementById('notifPanel');
+const overlay=document.getElementById('notifOverlay');
+if(panel) panel.classList.remove('show');
+if(overlay) overlay.classList.remove('show');
+}
+
+function renderNotifications(){
+const body=document.getElementById('notifBody');
+if(!body) return;
+if(!db || !db._notifications || !db._notifications.length){
+body.innerHTML='<div class="notif-empty">📭 لا توجد إشعارات</div>';
+return;
+}
+const icons={login:'🔓',register:'🆕',logout:'🚪'};
+const iconClass={login:'ni-login',register:'ni-register',logout:'ni-logout'};
+const typeName={login:'دخول',register:'حساب جديد',logout:'خروج'};
+const typeClass={login:'nt-login',register:'nt-register',logout:'nt-logout'};
+let h='';
+db._notifications.forEach(n=>{
+const icon=icons[n.type]||'🔔';
+const ic=iconClass[n.type]||'ni-login';
+const tn=typeName[n.type]||n.type;
+const tc=typeClass[n.type]||'nt-login';
+h+=`<div class="notif-item${n.read?'':' unread'}" data-nid="${n.id}">
+<div class="notif-icon ${ic}">${icon}</div>
+<div class="notif-info">
+<div class="notif-title"><span class="notif-type-badge ${tc}">${tn}</span><span class="notif-name">${n.fullName||'—'}</span></div>
+<div class="notif-id">${n.identifier||''}</div>
+<div class="notif-meta">
+<span>📅 ${fmt(n.date)}</span><br>
+<span>📱 ${(n.deviceInfo||n.device||'').substring(0,40)}</span>
+</div>
+<div class="notif-actions">
+<button class="btn-mark" onclick="markNotifRead('${n.id}')">✓ مقروء</button>
+<button class="btn-del" onclick="delNotif('${n.id}')">🗑️</button>
+</div>
+</div>
+</div>`;
+});
+body.innerHTML=h;
+}
+
+function markNotifRead(id){
+if(!db||!db._notifications) return;
+const n=db._notifications.find(x=>x.id===id);
+if(!n) return;
+n.read=true;n._editedAt=Date.now();
+save();
+renderNotifications();
+_updateNotifBadge();
+}
+
+function delNotif(id){
+if(!db||!db._notifications) return;
+if(!confirm('حذف هذا الإشعار؟')) return;
+markDeleted('notifications', id);
+db._notifications=db._notifications.filter(x=>x.id!==id);
+save();
+renderNotifications();
+_updateNotifBadge();
+}
+
+function markAllRead(){
+if(!db||!db._notifications) return;
+db._notifications.forEach(n=>{n.read=true;});
+save();
+renderNotifications();
+_updateNotifBadge();
+}
+
+function clearAllNotif(){
+if(!db||!db._notifications) return;
+if(!confirm('حذف كل الإشعارات؟')) return;
+db._notifications.forEach(n=>markDeleted('notifications',n.id));
+db._notifications=[];
+save();
+renderNotifications();
+_updateNotifBadge();
+}
+</script><script>
+// ===== إنشاء حساب المدير الأول =====
+async function doRegisterAdmin(){
+const u=normalizePhone(document.getElementById('regUserAdmin').value.trim());
+const p=document.getElementById('regPassAdmin').value;
+const p2=document.getElementById('regPassAdmin2').value;
 if(!u)return showError('اكتب رقم الهاتف');
-if(!isValidPhone(u))return showError('رقم الهاتف غير صحيح');
+if(!/^07[0-9]{9}$/.test(u))return showError('رقم الهاتف لازم يبدأ بـ 07 ويكون 11 رقم');
 if(!p)return showError('اكتب كلمة المرور');
-if(p.length<4)return showError('كلمة المرور 4 أحرف على الأقل');
+if(p.length<6)return showError('كلمة المرور 6 أحرف على الأقل');
 if(p!==p2)return showError('كلمتا المرور غير متطابقتين');
 const accs=getAccounts();
 if(accs.find(a=>a.username===u))return showError('الرقم موجود مسبقاً');
-const isFirst=accs.length===0;
-accs.push({username:u,password:hash(p),role:isFirst?'admin':'user',createdAt:new Date().toISOString()});
+accs.push({username:u,password:hash(p),role:'admin',fullName:'المدير',createdAt:new Date().toISOString()});
 localStorage.setItem(ACC_KEY,JSON.stringify(accs));
 if(cloudEnabled && cloudAccountsRef){try{cloudAccountsRef.doc('shared').set({list:accs,updatedAt:Date.now()}).catch(e=>console.warn(e));}catch(e){}}
-document.getElementById('regUser').value='';document.getElementById('regPass').value='';document.getElementById('regPass2').value='';
-toast('تم إنشاء الحساب ✅');
+document.getElementById('regUserAdmin').value='';
+document.getElementById('regPassAdmin').value='';
+document.getElementById('regPassAdmin2').value='';
+toast('تم إنشاء حساب المدير ✅');
 showLogin();
-document.getElementById('loginUser').value=u;document.getElementById('loginPass').value=p;
+document.getElementById('loginUser').value=u;
+document.getElementById('loginPass').value=p;
 }
 
-async function doLogin(){
-const u=normalizePhone(document.getElementById('loginUser').value.trim());
-const p=document.getElementById('loginPass').value;
-if(!u)return showError('اكتب رقم الهاتف');
+// ===== إنشاء حساب مستخدم جديد =====
+async function doRegister(){
+const name=document.getElementById('regName').value.trim();
+const birth=document.getElementById('regBirth').value;
+const phone=normalizePhone(document.getElementById('regUser').value.trim());
+const email=document.getElementById('regEmail').value.trim();
+const p=document.getElementById('regPass').value;
+const p2=document.getElementById('regPass2').value;
+const question=document.getElementById('regQuestion').value.trim();
+const answer=document.getElementById('regAnswer').value.trim();
+
+// التحقق من الاسم
+if(!name)return showError('اكتب اسمك الكامل');
+const parts=name.split(/\s+/).filter(x=>x.length>0);
+if(parts.length<2)return showError('الاسم لازم ثنائي على الأقل');
+if(parts.length>3)return showError('الاسم لازم ما يزيد عن ثلاثي');
+
+// التحقق من المواليد
+if(!birth)return showError('اكتب تاريخ ميلادك');
+const bd=new Date(birth);
+if(isNaN(bd.getTime()))return showError('تاريخ الميلاد غير صحيح');
+const age=(Date.now()-bd.getTime())/(365.25*24*60*60*1000);
+if(age<10||age>120)return showError('تاريخ الميلاد غير صحيح');
+
+// التحقق من وسيلة الاتصال
+if(!phone && !email)return showError('اكتب رقم هاتفك أو بريدك الإلكتروني');
+if(phone && !/^07[0-9]{9}$/.test(phone))return showError('رقم الهاتف لازم يبدأ بـ 07 ويكون 11 رقم');
+if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return showError('البريد الإلكتروني غير صحيح');
+
+// كلمة المرور
 if(!p)return showError('اكتب كلمة المرور');
+if(p.length<6)return showError('كلمة المرور 6 أحرف على الأقل');
+if(p!==p2)return showError('كلمتا المرور غير متطابقتين');
+
+// التحقق من عدم التكرار
 const accs=getAccounts();
-let acc=accs.find(a=>a.username===u&&a.password===hash(p));
-if(!acc && cloudEnabled && cloudAccountsRef){
+if(phone && accs.find(a=>a.username===phone))return showError('الرقم موجود مسبقاً');
+if(email && accs.find(a=>a.email===email))return showError('البريد مستخدم مسبقاً');
+
+// التحقق من السؤال والجواب
+const needsQA = phone && !email;
+if(needsQA){
+  if(!question)return showError('سؤال الأمان إلزامي عند التسجيل برقم هاتف');
+  if(!answer)return showError('اكتب جواب سؤال الأمان');
+}
+
+// ===== إنشاء الحساب =====
+let firebaseUser = null;
+
+if(email){
+  if(!window._auth) return showError('❌ Firebase غير جاهز، حاول بعد لحظات');
+  try{
+    const cred = await window._auth.createUserWithEmailAndPassword(email, p);
+    firebaseUser = cred.user;
+    try{ await firebaseUser.updateProfile({displayName: name}); }catch(e){}
+    try{ await firebaseUser.sendEmailVerification(); }catch(e){console.warn('verify email:', e);}
+  }catch(err){
+    console.warn('Firebase register err:', err.code);
+    if(err.code === 'auth/email-already-in-use') return showError('البريد مستخدم مسبقاً');
+    if(err.code === 'auth/invalid-email') return showError('البريد الإلكتروني غير صحيح');
+    if(err.code === 'auth/weak-password') return showError('كلمة المرور ضعيفة');
+    return showError('فشل إنشاء الحساب، حاول مرة ثانية');
+  }
+}
+
+const newUser = {
+  username: phone || email,
+  phone: phone || '',
+  email: email || '',
+  password: email ? 'firebase' : hash(p),
+  role: 'user',
+  fullName: name,
+  birth: birth,
+  question: question || '',
+  answer: answer ? hash(answer.toLowerCase()) : '',
+  firebaseUid: firebaseUser ? firebaseUser.uid : '',
+  createdAt: new Date().toISOString()
+};
+
+accs.push(newUser);
+localStorage.setItem(ACC_KEY, JSON.stringify(accs));
+if(cloudEnabled && cloudAccountsRef){
+  try{ cloudAccountsRef.doc('shared').set({list:accs,updatedAt:Date.now()}).catch(e=>console.warn(e)); }catch(e){}
+}
+
+// تنظيف الحقول
+['regName','regBirth','regUser','regEmail','regPass','regPass2','regQuestion','regAnswer'].forEach(id=>{
+  const e=document.getElementById(id); if(e) e.value='';
+});
+
+toast(email ? '✅ تم إنشاء الحساب — تحقق من بريدك' : '✅ تم إنشاء الحساب');
+showLogin();
+document.getElementById('loginUser').value = email || phone;
+}
+
+// ===== نسيت كلمة المرور =====
+async function forgotPassword(){
+const email = prompt('📧 اكتب بريدك الإلكتروني:');
+if(!email) return;
+if(!email.includes('@')) return toast('❌ اكتب بريد إلكتروني صحيح', true);
+if(!window._auth) return toast('❌ Firebase غير جاهز', true);
 try{
-const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('TIMEOUT')),2500));
-const fetchP=cloudAccountsRef.doc('shared').get();
-const d=await Promise.race([fetchP,timeout]);
-if(d.exists&&d.data()&&Array.isArray(d.data().list)){
-const cloudAccs=d.data().list;
-const merged=[...accs];
-cloudAccs.forEach(x=>{if(!merged.find(y=>y.username===x.username))merged.push(x)});
-localStorage.setItem(ACC_KEY,JSON.stringify(merged));
-acc=merged.find(a=>a.username===u&&a.password===hash(p));
+  await window._auth.sendPasswordResetEmail(email);
+  toast('✅ تم إرسال رابط إعادة التعيين لبريدك');
+}catch(err){
+  console.warn('forgot err:', err.code);
+  if(err.code === 'auth/user-not-found') return toast('❌ البريد غير مسجل', true);
+  if(err.code === 'auth/invalid-email') return toast('❌ البريد غير صحيح', true);
+  toast('❌ فشل الإرسال، حاول مرة ثانية', true);
 }
-}catch(e){}
 }
-if(!acc){return showError('الرقم أو كلمة المرور غلط');}
-localStorage.setItem(CUR_KEY,u);
-currentUser=u;currentAccount=acc;
-try{await loadUserData();}catch(e){db=emptyDB();}
+
+// ===== تسجيل الدخول =====
+async function doLogin(){
+const login=document.getElementById('loginUser').value.trim();
+const p=document.getElementById('loginPass').value;
+if(!login)return showError('اكتب البريد الإلكتروني أو رقم الهاتف');
+if(!p)return showError('اكتب كلمة المرور');
+
+// إذا كان بريد إلكتروني → Firebase Auth
+if(login.includes('@')){
+  if(!window._auth)return showError('❌ Firebase غير جاهز، حاول بعد لحظات');
+  try{
+    const cred = await window._auth.signInWithEmailAndPassword(login, p);
+    const accs = getAccounts();
+    let acc = accs.find(a => a.email === login);
+    if(!acc){
+      const fbUser = cred.user;
+      acc = {
+        username: login,
+        email: login,
+        password: 'firebase',
+        role: 'user',
+        fullName: fbUser.displayName || 'مستخدم',
+        createdAt: new Date().toISOString()
+      };
+      accs.push(acc);
+      saveAccounts(accs);
+    }
+    localStorage.setItem(CUR_KEY, acc.username);
+    currentUser = acc.username;
+    currentAccount = acc;
+    try{ await loadUserData(); }catch(e){ db = emptyDB(); }
+    _addNotification('login', acc.fullName || login, login);
+    showApp();
+    document.getElementById('loginPass').value='';
+    toast('أهلاً بك 👋');
+    return;
+  }catch(err){
+    console.warn('Firebase login err:', err.code);
+    if(err.code === 'auth/user-not-found') return showError('البريد غير مسجل');
+    if(err.code === 'auth/wrong-password') return showError('كلمة المرور غلط');
+    if(err.code === 'auth/invalid-credential') return showError('البريد أو كلمة المرور غلط');
+    if(err.code === 'auth/too-many-requests') return showError('محاولات كثيرة، حاول بعد دقائق');
+    return showError('البريد أو كلمة المرور غلط');
+  }
+}
+
+// رقم هاتف → النظام القديم
+const u = normalizePhone(login);
+const accs = getAccounts();
+let acc = accs.find(a => a.username === u && a.password === hash(p));
+
+if(!acc && cloudEnabled && cloudAccountsRef){
+  try{
+    const timeout = new Promise((_,rej) => setTimeout(()=>rej(new Error('TIMEOUT')), 2500));
+    const fetchP = cloudAccountsRef.doc('shared').get();
+    const d = await Promise.race([fetchP, timeout]);
+    if(d.exists && d.data() && Array.isArray(d.data().list)){
+      const cloudAccs = d.data().list;
+      const merged = [...accs];
+      cloudAccs.forEach(x => { if(!merged.find(y=>y.username===x.username)) merged.push(x); });
+      localStorage.setItem(ACC_KEY, JSON.stringify(merged));
+      acc = merged.find(a => a.username===u && a.password===hash(p));
+    }
+  }catch(e){}
+}
+if(!acc) return showError('الرقم أو كلمة المرور غلط');
+
+// ✅ إصلاح تلقائي: إذا ما عند الحساب role → خليه user
+if(!acc.role){
+  acc.role = 'user';
+  const accsFix = getAccounts();
+  const idx = accsFix.findIndex(a => a.username === acc.username);
+  if(idx !== -1){
+    accsFix[idx].role = 'user';
+    saveAccounts(accsFix);
+  }
+}
+
+localStorage.setItem(CUR_KEY, u);
+currentUser = u;
+currentAccount = acc;
+try{ await loadUserData(); }catch(e){ db = emptyDB(); }
+_addNotification('login', acc.fullName || u, u);
 showApp();
 document.getElementById('loginPass').value='';
 toast('أهلاً بك 👋');
 }
 
+// ===== تسجيل الخروج =====
 function doLogout(){
 if(!confirm('تسجيل الخروج؟'))return;
+try{
+  if(currentAccount) _addNotification('logout', currentAccount.fullName || currentUser, currentUser);
+}catch(e){}
+try{ if(window._auth && currentAccount && currentAccount.email) window._auth.signOut(); }catch(e){}
 stopRealtimeListener();
 _lastCloudState=null;
 localStorage.removeItem(CUR_KEY);
@@ -908,25 +1423,43 @@ document.getElementById('authScreen').classList.remove('hidden');
 showLogin();
 }
 
+// ===== عرض التطبيق =====
 function showApp(){
 document.getElementById('authScreen').classList.add('hidden');
 document.getElementById('appWrap').classList.add('show');
-document.getElementById('headerUser').textContent=currentUser;
-document.getElementById('headerAvatar').textContent=currentUser.charAt(0);
-document.getElementById('settingsUser').textContent=currentUser;
-document.getElementById('settingsAvatar').textContent=currentUser.charAt(0);
+const displayName=(currentAccount && currentAccount.fullName)?currentAccount.fullName:currentUser;
+document.getElementById('headerUser').textContent=displayName;
+document.getElementById('headerAvatar').textContent=displayName.charAt(0);
+document.getElementById('settingsUser').textContent=displayName;
+document.getElementById('settingsAvatar').textContent=displayName.charAt(0);
 if(currentAccount)document.getElementById('settingsSince').textContent='منذ: '+fmt(currentAccount.createdAt);
 const badge=document.getElementById('headerBadge');
 const roleEl=document.getElementById('settingsRole');
+
+// ✅ إخفاء/إظهار الإشعارات حسب الدور
+const bellWrap=document.querySelector('.bell-wrap');
+const notifBtn=document.querySelector('.bottom-nav button[data-page="notif"]');
+
 if(isAdmin()){
 badge.style.display='inline-block';
 document.body.classList.add('is-admin');
 roleEl.innerHTML='<span class="admin-badge">👑 مدير النظام</span>';
+if(bellWrap) bellWrap.style.display='inline-block';
+if(notifBtn) notifBtn.style.display='flex';
 }else{
 badge.style.display='none';
 document.body.classList.remove('is-admin');
 roleEl.innerHTML='<span style="background:#95a5a6;color:#fff;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:bold">👤 مستخدم</span>';
+if(bellWrap) bellWrap.style.display='none';
+if(notifBtn) notifBtn.style.display='none';
 }
+
+// ✅ تعبئة الاسم الحالي في كارد التعديل
+const myNameInput=document.getElementById('myName');
+if(myNameInput && currentAccount && currentAccount.fullName){
+  myNameInput.value=currentAccount.fullName;
+}
+
 _saleItems=[];
 _exReturnItems=[];
 _exSwapItems=[];
@@ -937,9 +1470,11 @@ renderSettings();
 renderSaleItems();
 renderExItems();
 renderDepositTypes();
+_updateNotifBadge();
 startRealtimeListener();
 }
 
+// ===== تحميل بيانات المستخدم =====
 async function loadUserData(){
 const key = DATA_PREFIX+currentUser;
 let localDb = null;
@@ -968,7 +1503,6 @@ if(doc.data().updatedAt && doc.data().updatedAt.toMillis) _lastCloudServerTime =
 console.warn('cloud fetch err:', e);
 setSyncStatus('err','⚠️ غير متزامن');
 }
-// ✅ الأحدث يفوز
 if(cloudDb && localDb){
   const cloudTime = +cloudDb._lastSaved || 0;
   const localTime = +localDb._lastSaved || 0;
@@ -1008,7 +1542,7 @@ if(cloudDb && localDb){
 }
 }
 
-// ✅ save — تعديل: رفع فوري بدون دمج
+// ===== حفظ =====
 function save(){
 if(!currentUser) return;
 const now = Date.now();
@@ -1025,7 +1559,6 @@ setSyncStatus('loading','⏳ جاري الرفع...');
 
 if(cloudEnabled && cloudDataRef && navigator.onLine){
   db._needsSync = false;
-  // ✅ رفع فوري (بدون دمج)
   cloudDataRef.doc(currentUser).set({
     data: JSON.parse(JSON.stringify(db)),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1045,6 +1578,7 @@ if(cloudEnabled && cloudDataRef && navigator.onLine){
 }
 }
 
+// ===== مزامنة تلقائية عند الاتصال =====
 async function autoSyncOnConnect(){
 if(!currentUser || !cloudEnabled || !cloudDataRef) return;
 if(!navigator.onLine) return;
@@ -1142,7 +1676,9 @@ toast('✅ تم استقبال بيانات السحابة');
 toast('ما موجود بيانات',true);
 }
 }catch(e){console.error(e);toast('❌ فشل',true);}
-}function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+}
+</script><script>
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function nowISO(){return new Date().toISOString();}
 function fmt(dt){if(!dt)return '-';const d=new Date(dt);const p=n=>String(n).padStart(2,'0');const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];const dn=days[d.getDay()];let h=d.getHours();const ap=h>=12?'م':'ص';h=h%12;if(h===0)h=12;return`${dn} ${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${h}:${p(d.getMinutes())} ${ap}`;}
 function fmtShort(dt){if(!dt)return '-';const d=new Date(dt);const p=n=>String(n).padStart(2,'0');const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];const dn=days[d.getDay()];let h=d.getHours();const ap=h>=12?'م':'ص';h=h%12;if(h===0)h=12;return`${dn} ${p(d.getDate())}/${p(d.getMonth()+1)} ${h}:${p(d.getMinutes())} ${ap}`;}
@@ -1200,7 +1736,7 @@ let total = 0;
 (db.deposits||[]).forEach(d=>{
 if(d.isWithdrawal||d.isCarry||d.cashPayment) return;
 if(_cleanPerson(d.person)!==bC) return;
-if(_cleanType(d.typeName||'') !== '') return; // ✅ الحر فقط
+if(_cleanType(d.typeName||'') !== '') return;
 const origAmt = +d.originalAmount || +d.amount || 0;
 const usedAmt = +d._usedMoney || 0;
 const remAmt = Math.max(0, origAmt - usedAmt);
@@ -1437,17 +1973,15 @@ if(key==='typeId'&&val){
 const buyer=document.getElementById('sBuyer').value.trim();
 const t=db.flourTypes.find(x=>x.id===val);
 if(t&&buyer&&!it.price){
-  // ✅ التعديل 1: السعر التلقائي فقط من إيداع نفس النوع (specific)
   const dep = (db.deposits||[]).find(d=>
     _cleanPerson(d.person)===_cleanPerson(buyer) &&
     _cleanType(d.typeName)===_cleanType(t.name) &&
-    d.typeName && d.typeName !== '' && // ← نوع محدد فقط
+    d.typeName && d.typeName !== '' &&
     !d.isWithdrawal && !d._finished && !d.cashPayment && !d.isCarry &&
     (+d.unitPrice||0) > 0 &&
     ((+d.originalQty||+d.qty||0) - (+d._usedQty||0)) > 0
   );
   if(dep) it.price = +dep.unitPrice;
-  // ✅ إذا مو موجود — نترك السعر فاضي (المستخدم يكتبه)
   if(!it.price){
     const c=(db.customerPrices||[]).find(x=>x.name===buyer);
     if(c){const pp=c.prices.find(x=>x.typeName===t.name);if(pp)it.price=pp.price;}
@@ -1517,7 +2051,9 @@ updateMultiDepSum();
 }
 function removeDepositItem(id){if(_depositItems.length===1){_depositItems=[{id:uid(),typeId:'',qty:'',price:''}];}else{_depositItems=_depositItems.filter(x=>x.id!==id);}renderDepositTypes();}
 function addDepositTypeRow(){_depositItems.push({id:uid(),typeId:'',qty:'',price:''});renderDepositTypes();}
-function updateMultiDepSum(){const sum=_depositItems.reduce((a,it)=>a+((+it.qty||0)*(+it.price||0)),0);const el=document.getElementById('multiDepSum');if(el)el.textContent=money(sum)+' د.ع';}function recordBuyer(b,items,m,d,car,total){
+function updateMultiDepSum(){const sum=_depositItems.reduce((a,it)=>a+((+it.qty||0)*(+it.price||0)),0);const el=document.getElementById('multiDepSum');if(el)el.textContent=money(sum)+' د.ع';}
+</script><script>
+function recordBuyer(b,items,m,d,car,total){
 let x=db.buyers.find(y=>y.name===b);
 const tq=items.reduce((a,i)=>a+(+i.qty||0),0);
 const trans={date:d,items:items.map(i=>({typeName:i.typeName,qty:i.qty,price:i.unitPrice,total:i.total})),method:m,carrier:car,total};
@@ -2068,226 +2604,8 @@ function delRsv(id){if(!confirm('حذف؟'))return;markDeleted('reservations',id
 function delCashAmount(id){if(!confirm('حذف؟'))return;markDeleted('cashAdditions',id);db.cashAdditions=db.cashAdditions.filter(x=>x.id!==id);save();renderAll();toast('تم');}
 function delExpense(id){if(!confirm('حذف؟'))return;markDeleted('expenses',id);db.expenses=db.expenses.filter(x=>x.id!==id);save();renderAll();}
 function delRecent(t,id){if(t==='sale')return delSale(id);if(t==='deposit')return delDeposit(id);if(t==='payment')return delPayment(id);if(t==='expense')return delExpense(id);if(t==='cash')return delCashAmount(id);if(t==='exchange')return delExchange(id);}
-
-function addDeposit(){
-const p=document.getElementById('dPerson').value.trim();
-const carrier=document.getElementById('dCarrier')?document.getElementById('dCarrier').value.trim():'';
-const freeAmount=+document.getElementById('dAmount').value||0;
-const rem=+document.getElementById('dRemaining').value||0;
-const isLegacy=document.getElementById('dLegacy')&&document.getElementById('dLegacy').checked;
-if(!p)return toast('اكتب اسم الشخص',true);
-const flourNames = new Set((db.flourTypes||[]).map(t => _cleanType(t.name)));
-if(flourNames.has(_cleanPerson(p)) || flourNames.has(_cleanType(p)))return toast('❌ هذا اسم نوع طحين، وليس اسم شخص',true);
-let d=nowISO();
-const dtInput=document.getElementById('dDateTime');
-if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(parsed.getTime())){d=parsed.toISOString();}}catch(e){}}
-const validItems=_depositItems.filter(it=>it.typeId&&(+it.qty>0));
-if(freeAmount<=0 && validItems.length===0 && rem<=0){
-return toast('اكتب مبلغ أو كمية',true);
-}
-const bC = _cleanPerson(p);
-if(freeAmount>0){
-let freeDep = db.deposits.find(x => _cleanPerson(x.person) === bC && (!x.typeName || x.typeName === '') && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && !!x.legacy === !!isLegacy);
-if(freeDep){
-freeDep.amount = (+freeDep.amount || 0) + freeAmount;
-freeDep.originalAmount = (+freeDep.originalAmount || 0) + freeAmount;
-freeDep._editedAt = Date.now();
-} else {
-db.deposits.push({id:uid(),person:p,carrier:carrier,amount:freeAmount,originalAmount:freeAmount,typeName:'',qty:0,originalQty:0,unitPrice:0,totalPrice:0,date:d,legacy:isLegacy,note:'💵 مبلغ حر',_usedQty:0,_usedMoney:0,_editedAt:Date.now()});
-}
-}
-validItems.forEach(it=>{
-const t=db.flourTypes.find(x=>x.id===it.typeId);
-if(!t)return;
-const qty=+it.qty||0;
-const price=+it.price||0;
-const total=qty*price;
-const tC = _cleanType(t.name);
-let dep = db.deposits.find(x => _cleanPerson(x.person) === bC && _cleanType(x.typeName) === tC && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && x.originalQty !== undefined && !!x.legacy === !!isLegacy);
-if(dep){
-dep.originalQty = (+dep.originalQty || 0) + qty;
-dep.qty = (+dep.qty || 0) + qty;
-if(total > 0){
-dep.originalAmount = (+dep.originalAmount || 0) + total;
-dep.amount = (+dep.amount || 0) + total;
-}
-if(price > 0) dep.unitPrice = price;
-dep._editedAt = Date.now();
-} else {
-db.deposits.push({id:uid(),person:p,carrier:carrier,amount:total,originalAmount:total,typeName:t.name,qty:qty,originalQty:qty,unitPrice:price,totalPrice:total,date:d,legacy:isLegacy,note:total>0?'💰+🌾':'📦 كمية فقط',_usedQty:0,_usedMoney:0,_editedAt:Date.now()});
-}
-let r=db.reservations.find(x=>_cleanPerson(x.person)===bC&&_cleanType(x.typeName)===tC&&(x.totalQty-x.usedQty)>0);
-if(r){r.totalQty+=qty;r.lastDate=d;r._editedAt=Date.now();}
-else db.reservations.push({id:uid(),person:p,typeName:t.name,totalQty:qty,usedQty:0,date:d,lastDate:d,_editedAt:Date.now()});
-});
-if(rem>0){db.debts.push({id:uid(),person:p,amount:rem,typeName:'(الباقي من إيداع)',qty:0,date:d,manual:true,fromDeposit:true,_editedAt:Date.now()});}
-if(document.getElementById('dLegacy'))document.getElementById('dLegacy').checked=false;
-save();renderAll();
-document.getElementById('dPerson').value='';
-if(document.getElementById('dCarrier'))document.getElementById('dCarrier').value='';
-document.getElementById('dAmount').value='';
-document.getElementById('dRemaining').value='';
-if(document.getElementById('dDateTime'))document.getElementById('dDateTime').value='';
-_depositItems=[{id:uid(),typeId:'',qty:'',price:''}];
-renderDepositTypes();
-toast('تم الإيداع ✅'+(rem>0?' — الباقي للديون':''));
-}
-
-// ✅ renderDeposit — التصميم القديم (بطاقات)
-function renderDeposit(){
-const bal=document.getElementById('depositBalances');
-const _plSet=new Set([...db.deposits.filter(d=>!d._finished&&!d.isWithdrawal&&!d.isCarry&&!d.cashPayment).map(d=>d.person),...db.reservations.map(r=>r.person)]);
-const pl=[..._plSet];
-if(!pl.length)bal.innerHTML='<div class="empty">لا توجد إيداعات</div>';
-else{
-let h='';
-pl.forEach(p=>{
-const liveDeps = db.deposits.filter(d=>_cleanPerson(d.person)===_cleanPerson(p) && !d.isWithdrawal && !d.isCarry && !d.cashPayment && !d._finished);
-if(!liveDeps.length) return;
-
-let totalMoney = 0;
-let totalQty = 0;
-liveDeps.forEach(d=>{
-const origQty = +d.originalQty || +d.qty || 0;
-const origAmt = +d.originalAmount || +d.amount || 0;
-const usedQty = +d._usedQty || 0;
-const usedAmt = +d._usedMoney || 0;
-totalQty += Math.max(0, origQty - usedQty);
-totalMoney += Math.max(0, origAmt - usedAmt);
-});
-const isFinished = (totalMoney <= 0 && totalQty <= 0);
-
-h+=`<div class="buyer-group" style="${isFinished?'opacity:0.7':''}"><div class="buyer-head" onclick="toggleBuyer('depP_${p.replace(/[^a-zA-Z0-9]/g,'')}')"><div class="name">👤 <b>${p}</b> <span style="font-size:11px;color:#888">(${liveDeps.length} إيداع)</span></div><div style="display:flex;gap:6px;flex-wrap:wrap">${totalMoney>0?`<span class="total" style="background:#27ae60">💰 ${money(totalMoney)}</span>`:''}${totalQty>0?`<span class="total" style="background:#2980b9">📦 ${money(totalQty)} كيس</span>`:''}<button class="blue small" onclick="event.stopPropagation();editPersonDepositBalance('${p.replace(/'/g,"\\'")}')">✏️</button><button class="danger small" onclick="event.stopPropagation();delPersonDeposits('${p.replace(/'/g,"\\'")}')">🗑️</button></div></div><div class="buyer-body open" id="depP_${p.replace(/[^a-zA-Z0-9]/g,'')}">`;
-
-h+=`<table style="font-size:11px;margin:6px"><tr><th>النوع</th><th>📦 الأصلي</th><th>📦 المستخدم</th><th>📦 المتبقي</th><th>💰 الأصلي</th><th>💰 المستخدم</th><th>💰 المتبقي</th><th>💵 السعر</th><th>📅 التاريخ</th><th>الحالة</th><th></th></tr>`;
-liveDeps.forEach(dep=>{
-const dType = dep.typeName || '— مبلغ حر —';
-const origQty = +dep.originalQty || +dep.qty || 0;
-const origAmt = +dep.originalAmount || +dep.amount || 0;
-const usedQty = +dep._usedQty || 0;
-const usedAmt = +dep._usedMoney || 0;
-const remQty = Math.max(0, origQty - usedQty);
-const remAmt = Math.max(0, origAmt - usedAmt);
-const depFinished = (remQty <= 0 && remAmt <= 0);
-
-let qtyCells = '';
-let moneyCells = '';
-if(origQty > 0){
-qtyCells = `<td style="color:#2980b9;font-weight:bold">${money(origQty)}</td><td style="color:#e67e22;font-weight:bold">${money(usedQty)}</td><td style="color:${remQty<=0?'#8b0000':'#c0392b'};font-weight:bold">${remQty<=0?'<span style="background:#8b0000;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px">انتهى</span>':money(remQty)}</td>`;
-} else {
-qtyCells = `<td style="color:#ccc">—</td><td style="color:#ccc">—</td><td style="color:#ccc">—</td>`;
-}
-if(origAmt > 0){
-moneyCells = `<td style="color:#2980b9;font-weight:bold">${money(origAmt)}</td><td style="color:#e67e22;font-weight:bold">${money(usedAmt)}</td><td style="color:${remAmt<=0?'#8b0000':'#c0392b'};font-weight:bold">${remAmt<=0?'<span style="background:#8b0000;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px">انتهى</span>':money(remAmt)}</td>`;
-} else {
-moneyCells = `<td style="color:#ccc">—</td><td style="color:#ccc">—</td><td style="color:#ccc">—</td>`;
-}
-h+=`<tr${depFinished?' style="background:#f5f5f5;opacity:0.7"':''}>
-<td><b>${dType}</b>${dep.legacy?' <span style="background:#f39c12;color:#fff;padding:1px 6px;border-radius:6px;font-size:9px">📜 قديم</span>':''}</td>
-${qtyCells}
-${moneyCells}
-<td style="color:#8B4513;font-weight:bold">${dep.unitPrice?money(dep.unitPrice):'—'}</td>
-<td style="font-size:10px;color:#666">${fmtShort(dep.date)}</td>
-<td>${depFinished?'<span style="background:#95a5a6;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">انتهى</span>':'<span style="background:#27ae60;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">مفعّل</span>'}</td>
-<td style="white-space:nowrap"><button class="blue small" onclick="editDeposit('${dep.id}')">✏️</button> <button class="gold small" onclick="editDateTime('deposit','${dep.id}')">⏰</button> <button class="danger small" onclick="delDeposit('${dep.id}')">🗑️</button></td>
-</tr>`;
-});
-h+=`</table></div></div>`;
-});
-bal.innerHTML=h;
-}
-renderReservations();
-const el=document.getElementById('depositList');
-if(!db.deposits.length){el.innerHTML='<div class="empty">لا يوجد سجل</div>';return;}
-
-// ✅ حذف الإيداعات المنتهية من السجل
-const groups={};
-db.deposits.forEach(d=>{
-  if(d._finished === true && !d.isWithdrawal) return;
-  if(!groups[d.person])groups[d.person]=[];
-  groups[d.person].push(d);
-});
-Object.keys(groups).forEach(person=>{
-  const hasActive = groups[person].some(d => !d._finished || d.isWithdrawal);
-  if(!hasActive) delete groups[person];
-});
-
-let h2='';let idx=0;
-Object.keys(groups).forEach(person=>{
-const items=[...groups[person]].sort((a,b)=>b.date.localeCompare(a.date));
-const posItems=items.filter(d=>!d.isWithdrawal&&((+d.amount>0)||(+d.qty>0)));
-const tIn=posItems.reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount||0),0);
-const tInQty=posItems.reduce((a,d)=>a+(+d.originalQty!==undefined?+d.originalQty:+d.qty||0),0);
-h2+=`<div class="buyer-group"><div class="buyer-head" onclick="toggleBuyer('dep_${idx}')"><div class="name">👤 <b>${person}</b><br><span style="font-size:11px;color:#888">${items.length} حركة</span></div><div style="display:flex;gap:6px;flex-wrap:wrap">${tIn>0?`<span class="total" style="background:#27ae60">إيداع: ${money(tIn)}</span>`:''}${tInQty>0?`<span class="total" style="background:#2980b9">كمية: ${money(tInQty)}</span>`:''}</div></div><div class="buyer-body open" id="dep_${idx}"><table><tr><th>التاريخ</th><th>الناقل 🚛</th><th>المبلغ</th><th>النوع</th><th>الكمية</th><th>سعر المفرد</th><th>ملاحظة</th><th></th></tr>`;
-items.forEach(d=>{
-const isWithdrawal=d.isWithdrawal||+d.amount<0||+d.qty<0;
-h2+=`<tr${isWithdrawal?' style="background:#fff5f5"':''}><td style="font-size:11px">${fmt(d.date)}${d.legacy?' <span style="background:#f39c12;color:#fff;padding:1px 6px;border-radius:6px;font-size:9px">📜 قديم</span>':''}</td><td style="font-size:11px;color:#666">${d.carrier||'—'}</td><td style="color:${+d.amount>0?'#27ae60':'#c0392b'};font-weight:bold">${money(d.amount)}</td><td>${d.typeName||'-'}</td><td>${d.qty!==undefined?money(d.qty):'-'}</td><td>${d.unitPrice?money(d.unitPrice):'-'}</td><td style="font-size:10px">${d.note||''}</td><td>${isWithdrawal?'<span style="background:#c0392b;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">واصل</span>':'<button class="blue small" onclick="editDeposit(\''+d.id+'\')">✏️</button> <button class="gold small" onclick="editDateTime(\'deposit\',\''+d.id+'\')">⏰</button> <button class="danger small" onclick="delDeposit(\''+d.id+'\')">🗑️</button>'}</td></tr>`;
-});
-h2+=`</table></div></div>`;idx++;
-});
-el.innerHTML=h2;
-}
-
-function delPersonDeposits(p){
-if(!confirm('حذف كل إيداعات "'+p+'"؟'))return;
-db.deposits.filter(d=>d.person===p).forEach(d=>markDeleted('deposits',d.id));
-db.reservations.filter(r=>r.person===p).forEach(r=>markDeleted('reservations',r.id));
-db.deposits=db.deposits.filter(d=>d.person!==p);db.reservations=db.reservations.filter(r=>r.person!==p);
-save();renderAll();toast('تم');
-}
-
-function renderReservations(){
-const rv=document.getElementById('rsvList');
-if(!rv)return;
-if(!db.reservations.length){rv.innerHTML='<div class="empty">لا توجد طلبات</div>';return;}
-const groups={};
-db.reservations.forEach(r=>{if(!groups[r.person])groups[r.person]=[];groups[r.person].push(r);});
-let h='';
-Object.keys(groups).forEach(person=>{
-const items=groups[person];
-const totalRem=items.reduce((a,r)=>a+Math.max(0,(r.totalQty||0)-(r.usedQty||0)),0);
-const isFinished=totalRem<=0;
-h+=`<div class="rsv-table" style="${isFinished?'opacity:0.75':''}"><div class="rsv-table-head"><div>👤 ${person}</div><div class="total">📦 ${items.length} نوع — الباقي: ${money(totalRem)} كيس</div></div><div class="rsv-table-body"><table style="font-size:12px"><tr><th>النوع</th><th>الأصلية</th><th>الباقية</th><th>الحالة</th><th></th></tr>`;
-items.forEach(r=>{
-const rem=Math.max(0,(r.totalQty||0)-(r.usedQty||0));
-const fin=rem<=0;
-h+=`<tr${fin?' style="background:#f5f5f5;opacity:0.7"':''}><td><b>${r.typeName}</b></td><td style="color:#2980b9;font-weight:bold">${money(r.totalQty)}</td><td style="color:${fin?'#888':'#c0392b'};font-weight:bold;font-size:14px">${money(rem)} كيس</td><td>${fin?'<span style="background:#95a5a6;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">انتهى</span>':'<span style="background:#27ae60;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">مفعّل</span>'}</td><td style="white-space:nowrap"><button class="blue small" onclick="editRsv('${r.id}')">✏️</button> <button class="danger small" onclick="delRsv('${r.id}')">🗑️</button></td></tr>`;
-});
-h+=`</table></div></div>`;
-});
-rv.innerHTML=h;
-}
-
-function addPayment(){
-const p=document.getElementById('pPerson').value.trim();
-const tn=document.getElementById('pType').value.trim();
-const q=+document.getElementById('pQty').value||0;
-const a=+document.getElementById('pAmount').value;
-const det=document.getElementById('pDetails')?document.getElementById('pDetails').value.trim():'';
-if(!p)return toast('اكتب اسم الزبون',true);
-if(!a||a<=0)return toast('اكتب المبلغ',true);
-let d=nowISO();
-const dtInput=document.getElementById('pDateTime');
-if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(parsed.getTime())){d=parsed.toISOString();}}catch(e){}}
-db.payments.push({id:uid(),person:p,amount:a,typeName:tn||'',qty:q,details:det,date:d,_editedAt:Date.now()});
-save();renderAll();
-document.getElementById('pPerson').value='';document.getElementById('pType').value='';document.getElementById('pQty').value='';document.getElementById('pAmount').value='';
-if(document.getElementById('pDetails'))document.getElementById('pDetails').value='';
-if(document.getElementById('pDateTime'))document.getElementById('pDateTime').value='';
-toast('تم التسديد ✅');
-}
-
-function renderPay(){
-const el=document.getElementById('payList');
-if(!db.payments.length){el.innerHTML='<div class="empty">لا توجد تسديدات</div>';return;}
-let h=`<table><tr><th>التاريخ</th><th>الاسم</th><th>النوع</th><th>الكمية</th><th>المبلغ</th><th>التفاصيل</th><th>المتبقي</th><th></th></tr>`;
-[...db.payments].reverse().forEach(p=>{h+=`<tr><td style="font-size:11px">${fmt(p.date)}</td><td><b>${p.person}</b></td><td>${p.typeName||'—'}</td><td>${p.qty?money(p.qty)+' كيس':'—'}</td><td style="color:#27ae60;font-weight:bold">${money(p.amount)}</td><td style="font-size:11px;color:#666">${p.details||'—'}</td><td style="color:#c0392b">${money(debtBalance(p.person))}</td><td><button class="blue small" onclick="editPayment('${p.id}')">✏️</button> <button class="gold small" onclick="editDateTime('payment','${p.id}')">⏰</button> <button class="danger small" onclick="delPayment('${p.id}')">🗑️</button></td></tr>`;});
-el.innerHTML=h+'</table>';
-}
-
-function addExpense(){const d=document.getElementById('eDesc').value.trim();const a=+document.getElementById('eAmount').value;if(!d)return toast('اكتب الوصف',true);if(!a||a<=0)return toast('اكتب المبلغ',true);db.expenses.push({id:uid(),desc:d,amount:a,date:nowISO(),_editedAt:Date.now()});save();renderAll();document.getElementById('eDesc').value='';document.getElementById('eAmount').value='';toast('✅');}
-function renderExpense(){const el=document.getElementById('expenseList');if(!db.expenses.length){el.innerHTML='<div class="empty">لا توجد صرفيات</div>';return;}let h=`<table><tr><th>التاريخ</th><th>الوصف</th><th>المبلغ</th><th></th></tr>`;[...db.expenses].reverse().forEach(e=>{h+=`<tr><td style="font-size:11px">${fmt(e.date)}</td><td>${e.desc}</td><td style="color:#c0392b;font-weight:bold">${money(e.amount)}</td><td><button class="blue small" onclick="editExpense('${e.id}')">✏️</button> <button class="gold small" onclick="editDateTime('expense','${e.id}')">⏰</button> <button class="danger small" onclick="delExpense('${e.id}')">🗑️</button></td></tr>`;});el.innerHTML=h+'</table>';}
-function addCashAmount(){if(!db.cashAdditions)db.cashAdditions=[];const a=+document.getElementById('caAmount').value;const n=document.getElementById('caNote').value.trim();if(!a||a<=0)return toast('اكتب المبلغ',true);db.cashAdditions.push({id:uid(),amount:a,note:n,date:nowISO(),_editedAt:Date.now()});save();renderAll();document.getElementById('caAmount').value='';document.getElementById('caNote').value='';toast('✅');}function editDateTime(type,id){
+</script><script>
+function editDateTime(type,id){
 let coll=null;
 if(type==='payment')coll=db.payments;
 else if(type==='expense')coll=db.expenses;
@@ -2423,7 +2741,7 @@ editDeposit(deps[idx].id);
 
 let _lastCashboxValue=0;
 
-// ✅ renderHome — معدّل: إضافة بطاقة البايت في الإحصائيات
+// ✅ renderHome — معدّل: إحصائيات جديدة + بطاقة البايت
 function renderHome(){
 var _archT=getArchiveTime();
 let reportTotal=0;
@@ -2465,8 +2783,45 @@ if(Math.abs(off) > 0.01){const sign=off > 0 ? '+' : '';offInfo.innerHTML=carryIn
 else{offInfo.innerHTML=carryInfo;}
 }
 
-// ✅ الإحصائيات مع بطاقة البايت
-document.getElementById('stats').innerHTML=`<div class="stat green" style="grid-column:span 2"><div class="lbl">📋 مجموع السجل</div><div class="val" style="font-size:22px">${money(reportTotal)}</div></div><div class="stat blue"><div class="lbl">🏦 البايت (رصيد مرحّل)</div><div class="val">${money(carryBalance)}</div></div><div class="stat red"><div class="lbl">ديون متبقية</div><div class="val">${money(td)}</div></div><div class="stat green"><div class="lbl">التسديدات</div><div class="val">${money(tp)}</div></div><div class="stat gold"><div class="lbl">إضافات صندوق</div><div class="val">${money(caTotal)}</div></div><div class="stat red"><div class="lbl">الصرفيات</div><div class="val">${money(te)}</div></div><div class="stat purple"><div class="lbl">هدايا (كيس)</div><div class="val">${money(gs)}</div></div>`;
+// ✅ الإحصائيات الجديدة
+document.getElementById('stats').innerHTML=`
+<div class="stats-wrapper">
+<div class="stat-card sc-green" style="grid-column:span 2">
+<div class="sc-icon">📋</div>
+<div class="sc-label">مجموع السجل</div>
+<div class="sc-value">${money(reportTotal)}</div>
+</div>
+<div class="stat-card sc-blue">
+<div class="sc-icon">🏦</div>
+<div class="sc-label">البايت (رصيد مرحّل)</div>
+<div class="sc-value">${money(carryBalance)}</div>
+</div>
+<div class="stat-card sc-red">
+<div class="sc-icon">💳</div>
+<div class="sc-label">ديون متبقية</div>
+<div class="sc-value">${money(td)}</div>
+</div>
+<div class="stat-card sc-green">
+<div class="sc-icon">✅</div>
+<div class="sc-label">التسديدات</div>
+<div class="sc-value">${money(tp)}</div>
+</div>
+<div class="stat-card sc-gold">
+<div class="sc-icon">💰</div>
+<div class="sc-label">إضافات صندوق</div>
+<div class="sc-value">${money(caTotal)}</div>
+</div>
+<div class="stat-card sc-pink">
+<div class="sc-icon">💸</div>
+<div class="sc-label">الصرفيات</div>
+<div class="sc-value">${money(te)}</div>
+</div>
+<div class="stat-card sc-purple">
+<div class="sc-icon">🎁</div>
+<div class="sc-label">هدايا (كيس)</div>
+<div class="sc-value">${money(gs)}</div>
+</div>
+</div>`;
 
 const lastArchTime2=db.archive&&db.archive.length?new Date(db.archive[0].archivedAt).getTime():0;
 const all=[...db.sales.map(s=>({date:s.date,type:'sale',id:s.id,isCarry:false,txt:`${s.method==='هدية'?'🎁':'🛒'} (${s.items?s.items.map(i=>i.typeName+' × '+money(i.qty)).join(' + '):s.typeName+' × '+money(s.qty)}) لـ ${s.buyer} = ${s.method==='واصل'?'—':money(s.total)} (${s.method})`})),...db.deposits.filter(d=>!d._archived&&!d._finished&&!d.isCarry).map(d=>({date:d.date,type:'deposit',id:d.id,isCarry:false,txt:`${d.isWithdrawal?'🔄 استقطاع':(+d.amount>0?'💰 إيداع':'📤')} ${d.person} = ${money(Math.abs(d.amount))}`})),...db.payments.map(p=>({date:p.date,type:'payment',id:p.id,isCarry:false,txt:`✅ تسديد ${p.person} = ${money(p.amount)}`})),...db.expenses.map(e=>({date:e.date,type:'expense',id:e.id,isCarry:false,txt:`💸 ${e.desc} = ${money(e.amount)}`})),...(db.cashAdditions||[]).map(c=>({date:c.date,type:'cash',id:c.id,isCarry:!!c.isCarry,txt:`💵 ${c.note?'('+c.note+')':''} = ${money(c.amount)}`})),...(db.exchanges||[]).map(e=>({date:e.date,type:'exchange',id:e.id,isCarry:false,txt:`🔄 ${e.returnItems&&e.returnItems.length&&e.swapItems&&e.swapItems.length?'تبديل':'استرجاع'} ${e.buyer} = ${e.diff!==0?money(e.diff)+' فرق':'بدون فرق'}`}))]
@@ -2499,162 +2854,225 @@ _skipNextMerge=true;
 save();renderHome();toast('✅');
 }
 
-function computeWasselBalances(deps){
-deps = deps || db.deposits;
-const events=[...deps].sort((a,b)=>a.date.localeCompare(b.date));
-const state={};const hasQtyDep={};const hasMoneyDepPerson={};const result={};
-events.forEach(d=>{
-const typeKey=d.person + '|' + (d.typeName || '');
-if(!state[typeKey]) state[typeKey]={qty:0, money:0};
-const q=(d.originalQty !== undefined ? d.originalQty : (d.qty || 0));
-const m=(d.originalAmount !== undefined ? d.originalAmount : (d.amount || 0));
-if(q > 0) hasQtyDep[typeKey]=true;
-if(m > 0) hasMoneyDepPerson[d.person]=true;
-state[typeKey].qty += q;state[typeKey].money += m;
-if(d.isWithdrawal && d.saleId){
-const key=d.saleId + '|' + (d.typeName || '');
-if(!result[key]){result[key]={qty: null,money: null,hasQtyDeposit: !!hasQtyDep[typeKey],hasMoneyDeposit: !!hasMoneyDepPerson[d.person]};}
-if(d.remQtyAfter !== undefined && d.remQtyAfter !== null) result[key].qty=d.remQtyAfter;
-if(d.remMoneyAfter !== undefined && d.remMoneyAfter !== null) result[key].money=d.remMoneyAfter;
-if(result[key].qty === null && result[key].money === null){result[key].qty=Math.max(0, state[typeKey].qty);result[key].money=Math.max(0, state[typeKey].money);}
+function addDeposit(){
+const p=document.getElementById('dPerson').value.trim();
+const carrier=document.getElementById('dCarrier')?document.getElementById('dCarrier').value.trim():'';
+const freeAmount=+document.getElementById('dAmount').value||0;
+const rem=+document.getElementById('dRemaining').value||0;
+const isLegacy=document.getElementById('dLegacy')&&document.getElementById('dLegacy').checked;
+if(!p)return toast('اكتب اسم الشخص',true);
+const flourNames = new Set((db.flourTypes||[]).map(t => _cleanType(t.name)));
+if(flourNames.has(_cleanPerson(p)) || flourNames.has(_cleanType(p)))return toast('❌ هذا اسم نوع طحين، وليس اسم شخص',true);
+let d=nowISO();
+const dtInput=document.getElementById('dDateTime');
+if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(parsed.getTime())){d=parsed.toISOString();}}catch(e){}}
+const validItems=_depositItems.filter(it=>it.typeId&&(+it.qty>0));
+if(freeAmount<=0 && validItems.length===0 && rem<=0){
+return toast('اكتب مبلغ أو كمية',true);
 }
+const bC = _cleanPerson(p);
+if(freeAmount>0){
+let freeDep = db.deposits.find(x => _cleanPerson(x.person) === bC && (!x.typeName || x.typeName === '') && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && !!x.legacy === !!isLegacy);
+if(freeDep){
+freeDep.amount = (+freeDep.amount || 0) + freeAmount;
+freeDep.originalAmount = (+freeDep.originalAmount || 0) + freeAmount;
+freeDep._editedAt = Date.now();
+} else {
+db.deposits.push({id:uid(),person:p,carrier:carrier,amount:freeAmount,originalAmount:freeAmount,typeName:'',qty:0,originalQty:0,unitPrice:0,totalPrice:0,date:d,legacy:isLegacy,note:'💵 مبلغ حر',_usedQty:0,_usedMoney:0,_editedAt:Date.now()});
+}
+}
+validItems.forEach(it=>{
+const t=db.flourTypes.find(x=>x.id===it.typeId);
+if(!t)return;
+const qty=+it.qty||0;
+const price=+it.price||0;
+const total=qty*price;
+const tC = _cleanType(t.name);
+let dep = db.deposits.find(x => _cleanPerson(x.person) === bC && _cleanType(x.typeName) === tC && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && x.originalQty !== undefined && !!x.legacy === !!isLegacy);
+if(dep){
+dep.originalQty = (+dep.originalQty || 0) + qty;
+dep.qty = (+dep.qty || 0) + qty;
+if(total > 0){
+dep.originalAmount = (+dep.originalAmount || 0) + total;
+dep.amount = (+dep.amount || 0) + total;
+}
+if(price > 0) dep.unitPrice = price;
+dep._editedAt = Date.now();
+} else {
+db.deposits.push({id:uid(),person:p,carrier:carrier,amount:total,originalAmount:total,typeName:t.name,qty:qty,originalQty:qty,unitPrice:price,totalPrice:total,date:d,legacy:isLegacy,note:total>0?'💰+🌾':'📦 كمية فقط',_usedQty:0,_usedMoney:0,_editedAt:Date.now()});
+}
+let r=db.reservations.find(x=>_cleanPerson(x.person)===bC&&_cleanType(x.typeName)===tC&&(x.totalQty-x.usedQty)>0);
+if(r){r.totalQty+=qty;r.lastDate=d;r._editedAt=Date.now();}
+else db.reservations.push({id:uid(),person:p,typeName:t.name,totalQty:qty,usedQty:0,date:d,lastDate:d,_editedAt:Date.now()});
 });
-return result;
+if(rem>0){db.debts.push({id:uid(),person:p,amount:rem,typeName:'(الباقي من إيداع)',qty:0,date:d,manual:true,fromDeposit:true,_editedAt:Date.now()});}
+if(document.getElementById('dLegacy'))document.getElementById('dLegacy').checked=false;
+save();renderAll();
+document.getElementById('dPerson').value='';
+if(document.getElementById('dCarrier'))document.getElementById('dCarrier').value='';
+document.getElementById('dAmount').value='';
+document.getElementById('dRemaining').value='';
+if(document.getElementById('dDateTime'))document.getElementById('dDateTime').value='';
+_depositItems=[{id:uid(),typeId:'',qty:'',price:''}];
+renderDepositTypes();
+toast('تم الإيداع ✅'+(rem>0?' — الباقي للديون':''));
 }
 
-function getSaleRemaining(buyer,typeName,saleDate,saleId){
-const sale=(db.sales||[]).find(s=>s.id===saleId);
-if(sale && sale.remByType && sale.remByType[typeName]){const rb=sale.remByType[typeName];return {mode: rb.mode || (rb.hasQtyDeposit ? 'qty' : 'money'),qty: (rb.qty!==null&&rb.qty!==undefined)?rb.qty:null,money: (rb.money!==null&&rb.money!==undefined)?rb.money:0,hasQtyDeposit: !!rb.hasQtyDeposit,hasMoneyDeposit: !!rb.hasMoneyDeposit};}
-const item=(sale&&sale.items)?sale.items.find(i=>i.typeName===typeName):null;
-if(item){return {mode:'qty',qty: item.remQty!==null&&item.remQty!==undefined?item.remQty:null,money: item.remMoney!==null&&item.remMoney!==undefined?item.remMoney:0,hasQtyDeposit: item.remQty>0,hasMoneyDeposit: item.remMoney>0};}
-return {mode:'qty',qty:null,money:0,hasQtyDeposit:false,hasMoneyDeposit:false};
+function renderDeposit(){
+const bal=document.getElementById('depositBalances');
+const _plSet=new Set([...db.deposits.filter(d=>!d._finished&&!d.isWithdrawal&&!d.isCarry&&!d.cashPayment).map(d=>d.person),...db.reservations.map(r=>r.person)]);
+const pl=[..._plSet];
+if(!pl.length)bal.innerHTML='<div class="empty">لا توجد إيداعات</div>';
+else{
+let h='';
+pl.forEach(p=>{
+const liveDeps = db.deposits.filter(d=>_cleanPerson(d.person)===_cleanPerson(p) && !d.isWithdrawal && !d.isCarry && !d.cashPayment && !d._finished);
+if(!liveDeps.length) return;
+
+let totalMoney = 0;
+let totalQty = 0;
+liveDeps.forEach(d=>{
+const origQty = +d.originalQty || +d.qty || 0;
+const origAmt = +d.originalAmount || +d.amount || 0;
+const usedQty = +d._usedQty || 0;
+const usedAmt = +d._usedMoney || 0;
+totalQty += Math.max(0, origQty - usedQty);
+totalMoney += Math.max(0, origAmt - usedAmt);
+});
+const isFinished = (totalMoney <= 0 && totalQty <= 0);
+
+h+=`<div class="buyer-group" style="${isFinished?'opacity:0.7':''}"><div class="buyer-head" onclick="toggleBuyer('depP_${p.replace(/[^a-zA-Z0-9]/g,'')}')"><div class="name">👤 <b>${p}</b> <span style="font-size:11px;color:#888">(${liveDeps.length} إيداع)</span></div><div style="display:flex;gap:6px;flex-wrap:wrap">${totalMoney>0?`<span class="total" style="background:#27ae60">💰 ${money(totalMoney)}</span>`:''}${totalQty>0?`<span class="total" style="background:#2980b9">📦 ${money(totalQty)} كيس</span>`:''}<button class="blue small" onclick="event.stopPropagation();editPersonDepositBalance('${p.replace(/'/g,"\\'")}')">✏️</button><button class="danger small" onclick="event.stopPropagation();delPersonDeposits('${p.replace(/'/g,"\\'")}')">🗑️</button></div></div><div class="buyer-body open" id="depP_${p.replace(/[^a-zA-Z0-9]/g,'')}">`;
+
+h+=`<table style="font-size:11px;margin:6px"><tr><th>النوع</th><th>📦 الأصلي</th><th>📦 المستخدم</th><th>📦 المتبقي</th><th>💰 الأصلي</th><th>💰 المستخدم</th><th>💰 المتبقي</th><th>💵 السعر</th><th>📅 التاريخ</th><th>الحالة</th><th></th></tr>`;
+liveDeps.forEach(dep=>{
+const dType = dep.typeName || '— مبلغ حر —';
+const origQty = +dep.originalQty || +dep.qty || 0;
+const origAmt = +dep.originalAmount || +dep.amount || 0;
+const usedQty = +dep._usedQty || 0;
+const usedAmt = +dep._usedMoney || 0;
+const remQty = Math.max(0, origQty - usedQty);
+const remAmt = Math.max(0, origAmt - usedAmt);
+const depFinished = (remQty <= 0 && remAmt <= 0);
+
+let qtyCells = '';
+let moneyCells = '';
+if(origQty > 0){
+qtyCells = `<td style="color:#2980b9;font-weight:bold">${money(origQty)}</td><td style="color:#e67e22;font-weight:bold">${money(usedQty)}</td><td style="color:${remQty<=0?'#8b0000':'#c0392b'};font-weight:bold">${remQty<=0?'<span style="background:#8b0000;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px">انتهى</span>':money(remQty)}</td>`;
+} else {
+qtyCells = `<td style="color:#ccc">—</td><td style="color:#ccc">—</td><td style="color:#ccc">—</td>`;
+}
+if(origAmt > 0){
+moneyCells = `<td style="color:#2980b9;font-weight:bold">${money(origAmt)}</td><td style="color:#e67e22;font-weight:bold">${money(usedAmt)}</td><td style="color:${remAmt<=0?'#8b0000':'#c0392b'};font-weight:bold">${remAmt<=0?'<span style="background:#8b0000;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px">انتهى</span>':money(remAmt)}</td>`;
+} else {
+moneyCells = `<td style="color:#ccc">—</td><td style="color:#ccc">—</td><td style="color:#ccc">—</td>`;
+}
+h+=`<tr${depFinished?' style="background:#f5f5f5;opacity:0.7"':''}>
+<td><b>${dType}</b>${dep.legacy?' <span style="background:#f39c12;color:#fff;padding:1px 6px;border-radius:6px;font-size:9px">📜 قديم</span>':''}</td>
+${qtyCells}
+${moneyCells}
+<td style="color:#8B4513;font-weight:bold">${dep.unitPrice?money(dep.unitPrice):'—'}</td>
+<td style="font-size:10px;color:#666">${fmtShort(dep.date)}</td>
+<td>${depFinished?'<span style="background:#95a5a6;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">انتهى</span>':'<span style="background:#27ae60;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">مفعّل</span>'}</td>
+<td style="white-space:nowrap"><button class="blue small" onclick="editDeposit('${dep.id}')">✏️</button> <button class="gold small" onclick="editDateTime('deposit','${dep.id}')">⏰</button> <button class="danger small" onclick="delDeposit('${dep.id}')">🗑️</button></td>
+</tr>`;
+});
+h+=`</table></div></div>`;
+});
+bal.innerHTML=h;
+}
+renderReservations();
+const el=document.getElementById('depositList');
+if(!db.deposits.length){el.innerHTML='<div class="empty">لا يوجد سجل</div>';return;}
+
+const groups={};
+db.deposits.forEach(d=>{
+  if(d._finished === true && !d.isWithdrawal) return;
+  if(!groups[d.person])groups[d.person]=[];
+  groups[d.person].push(d);
+});
+Object.keys(groups).forEach(person=>{
+  const hasActive = groups[person].some(d => !d._finished || d.isWithdrawal);
+  if(!hasActive) delete groups[person];
+});
+
+let h2='';let idx=0;
+Object.keys(groups).forEach(person=>{
+const items=[...groups[person]].sort((a,b)=>b.date.localeCompare(a.date));
+const posItems=items.filter(d=>!d.isWithdrawal&&((+d.amount>0)||(+d.qty>0)));
+const tIn=posItems.reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount||0),0);
+const tInQty=posItems.reduce((a,d)=>a+(+d.originalQty!==undefined?+d.originalQty:+d.qty||0),0);
+h2+=`<div class="buyer-group"><div class="buyer-head" onclick="toggleBuyer('dep_${idx}')"><div class="name">👤 <b>${person}</b><br><span style="font-size:11px;color:#888">${items.length} حركة</span></div><div style="display:flex;gap:6px;flex-wrap:wrap">${tIn>0?`<span class="total" style="background:#27ae60">إيداع: ${money(tIn)}</span>`:''}${tInQty>0?`<span class="total" style="background:#2980b9">كمية: ${money(tInQty)}</span>`:''}</div></div><div class="buyer-body open" id="dep_${idx}"><table><tr><th>التاريخ</th><th>الناقل 🚛</th><th>المبلغ</th><th>النوع</th><th>الكمية</th><th>سعر المفرد</th><th>ملاحظة</th><th></th></tr>`;
+items.forEach(d=>{
+const isWithdrawal=d.isWithdrawal||+d.amount<0||+d.qty<0;
+h2+=`<tr${isWithdrawal?' style="background:#fff5f5"':''}><td style="font-size:11px">${fmt(d.date)}${d.legacy?' <span style="background:#f39c12;color:#fff;padding:1px 6px;border-radius:6px;font-size:9px">📜 قديم</span>':''}</td><td style="font-size:11px;color:#666">${d.carrier||'—'}</td><td style="color:${+d.amount>0?'#27ae60':'#c0392b'};font-weight:bold">${money(d.amount)}</td><td>${d.typeName||'-'}</td><td>${d.qty!==undefined?money(d.qty):'-'}</td><td>${d.unitPrice?money(d.unitPrice):'-'}</td><td style="font-size:10px">${d.note||''}</td><td>${isWithdrawal?'<span style="background:#c0392b;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">واصل</span>':'<button class="blue small" onclick="editDeposit(\''+d.id+'\')">✏️</button> <button class="gold small" onclick="editDateTime(\'deposit\',\''+d.id+'\')">⏰</button> <button class="danger small" onclick="delDeposit(\''+d.id+'\')">🗑️</button>'}</td></tr>`;
+});
+h2+=`</table></div></div>`;idx++;
+});
+el.innerHTML=h2;
 }
 
-let _finalCashbox=0;let _finalTotal=0;let _finalExpenses=0;
+function delPersonDeposits(p){
+if(!confirm('حذف كل إيداعات "'+p+'"؟'))return;
+db.deposits.filter(d=>d.person===p).forEach(d=>markDeleted('deposits',d.id));
+db.reservations.filter(r=>r.person===p).forEach(r=>markDeleted('reservations',r.id));
+db.deposits=db.deposits.filter(d=>d.person!==p);db.reservations=db.reservations.filter(r=>r.person!==p);
+save();renderAll();toast('تم');
+}
 
-function renderReport(){
-var _archT=getArchiveTime();
-const wasselBals=computeWasselBalances();
-const rows=[];
-db.sales.forEach(s=>{
-const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
-const grossTotal=s.grossTotal||items.reduce((a,i)=>a+(i.total||0),0);
-const disc=s.discount||0;
-items.forEach(it=>{
-const ratio=grossTotal>0?(it.total/grossTotal):0;
-const itemDisc=disc*ratio;
-const discountedTotal=Math.max(0,it.total-itemDisc);
-const discountedUnitPrice=it.qty>0?Math.round((discountedTotal/it.qty)*100)/100:0;
-let rB=null;
-if(s.method==='واصل'){const wKey=s.id + '|' + it.typeName;if(wasselBals[wKey]) rB=wasselBals[wKey];else rB=getSaleRemaining(s.buyer, it.typeName, s.date, s.id);}
-if(s.method==='واصل' && s.remByType && s.remByType[it.typeName]){
-const rb = s.remByType[it.typeName];
-rB = {mode: rb.mode, qty: rb.qty, money: rb.money, hasQtyDeposit: rb.hasQtyDeposit, hasMoneyDeposit: rb.hasMoneyDeposit};
+function renderReservations(){
+const rv=document.getElementById('rsvList');
+if(!rv)return;
+if(!db.reservations.length){rv.innerHTML='<div class="empty">لا توجد طلبات</div>';return;}
+const groups={};
+db.reservations.forEach(r=>{if(!groups[r.person])groups[r.person]=[];groups[r.person].push(r);});
+let h='';
+Object.keys(groups).forEach(person=>{
+const items=groups[person];
+const totalRem=items.reduce((a,r)=>a+Math.max(0,(r.totalQty||0)-(r.usedQty||0)),0);
+const isFinished=totalRem<=0;
+h+=`<div class="rsv-table" style="${isFinished?'opacity:0.75':''}"><div class="rsv-table-head"><div>👤 ${person}</div><div class="total">📦 ${items.length} نوع — الباقي: ${money(totalRem)} كيس</div></div><div class="rsv-table-body"><table style="font-size:12px"><tr><th>النوع</th><th>الأصلية</th><th>الباقية</th><th>الحالة</th><th></th></tr>`;
+items.forEach(r=>{
+const rem=Math.max(0,(r.totalQty||0)-(r.usedQty||0));
+const fin=rem<=0;
+h+=`<tr${fin?' style="background:#f5f5f5;opacity:0.7"':''}><td><b>${r.typeName}</b></td><td style="color:#2980b9;font-weight:bold">${money(r.totalQty)}</td><td style="color:${fin?'#888':'#c0392b'};font-weight:bold;font-size:14px">${money(rem)} كيس</td><td>${fin?'<span style="background:#95a5a6;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">انتهى</span>':'<span style="background:#27ae60;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">مفعّل</span>'}</td><td style="white-space:nowrap"><button class="blue small" onclick="editRsv('${r.id}')">✏️</button> <button class="danger small" onclick="delRsv('${r.id}')">🗑️</button></td></tr>`;
+});
+h+=`</table></div></div>`;
+});
+rv.innerHTML=h;
 }
-let paidAmount=discountedTotal;
-let remAfterPaid=0;
-if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;remAfterPaid=debtPart;paidAmount=Math.max(0, discountedTotal - debtPart);}
-else if(s.method==='واصل'){paidAmount=0;remAfterPaid=rB ? (rB.money>0 ? rB.money : 0) : 0;}
-else if(s.method==='هدية'){paidAmount=0;remAfterPaid=0;}
-rows.push({date:s.date,type:it.typeName,qty:it.qty,unitPrice:discountedUnitPrice,buyer:s.buyer,carrier:s.carrier||'—',amount:paidAmount,displayAmount:paidAmount,method:s.method,remQty:rB?rB.qty:(it.remQty!==undefined?it.remQty:null),remMoney:rB?rB.money:(it.remMoney!==undefined?it.remMoney:remAfterPaid),hasQtyDeposit:rB?rB.hasQtyDeposit:(it.remQty>0),hasMoneyDeposit:rB?rB.hasMoneyDeposit:(remAfterPaid>0)});
-});
-});
-db.payments.forEach(p=>{rows.push({date:p.date,type:p.typeName||'—',qty:p.qty||'',unitPrice:'',buyer:p.person,carrier:'—',amount:p.amount,displayAmount:p.amount,method:'تسديد',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
-db.debts.filter(d=>d.manual && !d.fromSale && !d.fromDeposit && !d.fromExchange).forEach(d=>{
-rows.push({date:d.date,type:d.typeName||'دين يدوي',qty:'',unitPrice:d.amount,buyer:d.person,carrier:'—',amount:0,displayAmount:0,method:'دين يدوي',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});
-});
-db.deposits.filter(d=>{if(!(+d.amount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).forEach(d=>{rows.push({date:d.date,type:d.typeName||'💵 مبلغ حر',qty:d.originalQty||d.qty||'',unitPrice:d.unitPrice||'',buyer:d.person,carrier:d.carrier||'—',amount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,displayAmount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,method:'إيداع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
-(db.cashAdditions||[]).filter(c=>!c.isCarry&&!c.fromExchange).forEach(c=>{rows.push({date:c.date,type:'—',qty:'',unitPrice:'',buyer:c.note||'إضافة صندوق',carrier:'—',amount:c.amount,displayAmount:c.amount,method:'إضافات',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
-(db.exchanges||[]).forEach(e=>{
-(e.returnItems||[]).forEach(ri=>{rows.push({date:e.date,type:ri.typeName,qty:ri.qty,unitPrice:ri.unitPrice||0,buyer:e.buyer,carrier:e.carrier||'—',amount:0,displayAmount:0,method:'استرجاع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
-(e.swapItems||[]).forEach(si=>{rows.push({date:e.date,type:si.typeName,qty:si.qty,unitPrice:si.unitPrice||0,buyer:e.buyer,carrier:e.carrier||'—',amount:0,displayAmount:0,method:'تبديل',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
-if(e.diff!==0){rows.push({date:e.date,type:'—',qty:'',unitPrice:'',buyer:e.buyer,carrier:'—',amount:0,displayAmount:0,method:'فرق',diffValue:e.diff,diffMethod:e.method,remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});}
-});
-rows.sort((a,b)=>a.date.localeCompare(b.date));
-const totalSales=rows.filter(r=>r.method!=='استرجاع'&&r.method!=='تبديل'&&r.method!=='فرق'&&r.method!=='دين يدوي').reduce((a,r)=>a+r.amount,0)
-+ (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-const dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
-let _carryAmount=0;let _carryDate='';
-if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carryAmount=+db._permanentCarry || 0;_carryDate=db._lastArchiveAt || nowISO();}
-let h=`<div class="card" style="background:#fff8e6;border:2px solid #f39c12;padding:12px">`;
-h+=`<div style="text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #f39c12">`;
-h+=`<div style="font-size:15px;font-weight:bold;color:#8B4513;margin-bottom:6px">🛒 سجل البيع</div>`;
-h+=`<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px">`;
-h+=`<div><b>📅:</b> ${fmt(nowISO())}</div><div><b>📆:</b> ${dayNames[new Date().getDay()]}</div></div></div>`;
-h+=`<table style="font-size:11px"><tr><th>#</th><th>النوع</th><th>العدد</th><th>📦 باقي كيس</th><th>المشتري</th><th>الناقل 🚛</th><th>سعر المفرد</th><th>المبلغ</th><th>💰 باقي فلوس</th><th>الدفع</th><th class="time-cell">الوقت</th></tr>`;
-if(_carryAmount > 0){h+=`<tr style="background:#fff3e0;font-weight:bold;border-bottom:2px solid #f39c12"><td style="text-align:center;color:#f39c12;font-size:14px">🏦</td><td colspan="6" style="color:#8B4513;font-size:12px">💰 رصيد البايت (${fmtShort(_carryDate)})</td><td style="color:#c0392b;font-size:13px;font-weight:bold">${money(_carryAmount)}</td><td colspan="3"></td></tr>`;}
-if(rows.length){
-rows.forEach((r,rowIdx)=>{
-let badgeHtml;
-if(['نقد','دين','واصل','هدية'].includes(r.method)){badgeHtml=`<span class="badge b-${r.method}">${r.method}</span>`;}
-else if(r.method==='تسديد'){badgeHtml=`<span style="background:#27ae60;color:#fff;padding:3px 9px;border-radius:11px;font-size:10px;font-weight:bold">✅ تسديد</span>`;}
-else if(r.method==='إيداع'){badgeHtml=`<span style="background:#3498db;color:#fff;padding:3px 9px;border-radius:11px;font-size:10px;font-weight:bold">💰 إيداع</span>`;}
-else if(r.method==='إضافات'){badgeHtml=`<span style="background:#f39c12;color:#fff;padding:3px 9px;border-radius:11px;font-size:10px;font-weight:bold">💵 إضافات</span>`;}
-else if(r.method==='استرجاع'){badgeHtml=`<span class="badge b-استرجاع">↩️ استرجاع</span>`;}
-else if(r.method==='تبديل'){badgeHtml=`<span class="badge b-تبديل">🔄 تبديل</span>`;}
-else if(r.method==='فرق'){badgeHtml=`<span class="badge b-فرق">💱 فرق استرجاع/تبديل</span>`;}
-else if(r.method==='دين يدوي'){badgeHtml=`<span class="badge b-دين">📝 دين يدوي</span>`;}
-else{badgeHtml=`<span>${r.method}</span>`;}
-let _amtShow;
-if(r.method==='فرق'){
-const isNeg = r.diffValue < 0;
-_amtShow = (isNeg ? '-' : '+') + money(Math.abs(r.diffValue)) + (r.diffValue>0?' ('+(r.diffMethod==='دين'?'دين':'نقد')+')':' (صرفيات)');
+
+function addPayment(){
+const p=document.getElementById('pPerson').value.trim();
+const tn=document.getElementById('pType').value.trim();
+const q=+document.getElementById('pQty').value||0;
+const a=+document.getElementById('pAmount').value;
+const det=document.getElementById('pDetails')?document.getElementById('pDetails').value.trim():'';
+if(!p)return toast('اكتب اسم الزبون',true);
+if(!a||a<=0)return toast('اكتب المبلغ',true);
+let d=nowISO();
+const dtInput=document.getElementById('pDateTime');
+if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(parsed.getTime())){d=parsed.toISOString();}}catch(e){}}
+db.payments.push({id:uid(),person:p,amount:a,typeName:tn||'',qty:q,details:det,date:d,_editedAt:Date.now()});
+save();renderAll();
+document.getElementById('pPerson').value='';document.getElementById('pType').value='';document.getElementById('pQty').value='';document.getElementById('pAmount').value='';
+if(document.getElementById('pDetails'))document.getElementById('pDetails').value='';
+if(document.getElementById('pDateTime'))document.getElementById('pDateTime').value='';
+toast('تم التسديد ✅');
 }
-else if(r.method==='استرجاع'||r.method==='تبديل'){_amtShow='—';}
-else if(r.method==='واصل'){_amtShow='<span style="color:#ccc">—</span>';}
-else if(r.method==='دين يدوي'){_amtShow='<span style="color:#c0392b;font-weight:bold">'+money(r.unitPrice)+'</span>';}
-else if(r.displayAmount!==undefined){_amtShow=money(r.displayAmount);}
-else{_amtShow=money(r.amount);}
-let _remQtyShow='—';
-if(r.remQty!==null && r.remQty!==undefined){if(r.remQty<=0){_remQtyShow='<span style="color:#8b0000;font-weight:bold">انتهى</span>';}else{_remQtyShow='<span style="color:#c0392b;font-weight:bold">'+money(r.remQty)+'</span>';}}
-let _remMoneyShow='—';
-if(r.remMoney!==null && r.remMoney!==undefined){if(r.remMoney<=0){_remMoneyShow=r.hasMoneyDeposit ? '<span style="color:#8b0000;font-weight:bold">انتهى</span>' : '—';}else{_remMoneyShow='<span style="color:#c0392b;font-weight:bold">'+money(r.remMoney)+'</span>';}}
-h+=`<tr><td style="text-align:center;font-weight:bold;color:#888">${rowIdx+1}</td><td>${r.type}</td><td style="color:#2980b9;font-weight:bold">${r.qty?money(r.qty):'—'}</td><td>${_remQtyShow}</td><td>${r.buyer}</td><td style="font-size:10px">${r.carrier}</td><td style="color:#27ae60;font-weight:bold">${r.unitPrice?money(r.unitPrice):'—'}</td><td style="color:#8B4513;font-weight:bold">${_amtShow}</td><td>${_remMoneyShow}</td><td>${badgeHtml}</td><td class="time-cell">${fmtTime(r.date)}</td></tr>`;
-});
-h+=`<tr style="background:#faf0e6;font-weight:bold"><td colspan="7" style="text-align:center">المجموع</td><td style="color:#8B4513;font-size:14px">${money(totalSales + _carryAmount)}</td><td colspan="3"></td></tr>`;
-}else{
-h+=`<tr><td colspan="11" style="text-align:center;color:#888;padding:12px">لا توجد حركات</td></tr>`;
-if(_carryAmount > 0){h+=`<tr style="background:#faf0e6;font-weight:bold"><td colspan="7" style="text-align:center">المجموع</td><td style="color:#8B4513;font-size:14px">${money(_carryAmount)}</td><td colspan="3"></td></tr>`;}
+
+function renderPay(){
+const el=document.getElementById('payList');
+if(!db.payments.length){el.innerHTML='<div class="empty">لا توجد تسديدات</div>';return;}
+let h=`<table><tr><th>التاريخ</th><th>الاسم</th><th>النوع</th><th>الكمية</th><th>المبلغ</th><th>التفاصيل</th><th>المتبقي</th><th></th></tr>`;
+[...db.payments].reverse().forEach(p=>{h+=`<tr><td style="font-size:11px">${fmt(p.date)}</td><td><b>${p.person}</b></td><td>${p.typeName||'—'}</td><td>${p.qty?money(p.qty)+' كيس':'—'}</td><td style="color:#27ae60;font-weight:bold">${money(p.amount)}</td><td style="font-size:11px;color:#666">${p.details||'—'}</td><td style="color:#c0392b">${money(debtBalance(p.person))}</td><td><button class="blue small" onclick="editPayment('${p.id}')">✏️</button> <button class="gold small" onclick="editDateTime('payment','${p.id}')">⏰</button> <button class="danger small" onclick="delPayment('${p.id}')">🗑️</button></td></tr>`;});
+el.innerHTML=h+'</table>';
 }
-h+=`</table></div>`;
-const expRows=[...db.expenses].sort((a,b)=>a.date.localeCompare(b.date));
-if(expRows.length){
-const totalExp=expRows.reduce((a,e)=>a+e.amount,0);
-h+=`<div class="card" style="background:#fff5f5;border:2px solid #c0392b;margin-top:10px;padding:10px"><div style="text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:2px dashed #c0392b"><b style="color:#c0392b;font-size:14px">💸 الصرفيات</b></div>`;
-h+=`<table style="font-size:11px"><tr><th>الوصف</th><th>المبلغ</th><th class="time-cell">الوقت</th></tr>`;
-expRows.forEach(e=>{
-const isExchange = e.fromExchange;
-h+=`<tr${isExchange?' style="background:#fff3e0"':''}><td>${e.desc}${isExchange?' <span style="background:#f39c12;color:#fff;padding:1px 6px;border-radius:6px;font-size:9px">💱</span>':''}</td><td style="color:#c0392b;font-weight:bold">${money(e.amount)}</td><td class="time-cell">${fmtTime(e.date)}</td></tr>`;
-});
-h+=`<tr style="background:#ffe5e5;font-weight:bold"><td style="text-align:center">المجموع</td><td style="color:#c0392b">${money(totalExp)}</td><td></td></tr></table></div>`;
-}
-let _reportTotal=0;
-db.sales.forEach(s=>{
-const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
-const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0);
-const disc=s.discount||0;
-items.forEach(it=>{
-const ratio=grossTotal>0?(it.total/grossTotal):0;
-const discountedTotal=Math.max(0,it.total-disc*ratio);
-let paid=discountedTotal;
-if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);}
-else if(s.method==='واصل'){paid=0;}
-else if(s.method==='هدية'){paid=0;}
-_reportTotal += paid;
-});
-});
-_reportTotal += db.payments.reduce((a,p)=>a+p.amount,0);
-_reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-_reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.amount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
-_reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
-const _te=db.expenses.reduce((a,e)=>a+e.amount,0);
-let _carry=0;
-if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carry=+db._permanentCarry || 0;}
-_finalTotal=_reportTotal + _carry;
-_finalExpenses=_te;
-_finalCashbox=_finalTotal - _finalExpenses + (db._cashboxOffset || 0);
-document.getElementById('reportArea').innerHTML=h;
-}async function viewReport(){
+
+function addExpense(){const d=document.getElementById('eDesc').value.trim();const a=+document.getElementById('eAmount').value;if(!d)return toast('اكتب الوصف',true);if(!a||a<=0)return toast('اكتب المبلغ',true);db.expenses.push({id:uid(),desc:d,amount:a,date:nowISO(),_editedAt:Date.now()});save();renderAll();document.getElementById('eDesc').value='';document.getElementById('eAmount').value='';toast('✅');}
+function renderExpense(){const el=document.getElementById('expenseList');if(!db.expenses.length){el.innerHTML='<div class="empty">لا توجد صرفيات</div>';return;}let h=`<table><tr><th>التاريخ</th><th>الوصف</th><th>المبلغ</th><th></th></tr>`;[...db.expenses].reverse().forEach(e=>{h+=`<tr><td style="font-size:11px">${fmt(e.date)}</td><td>${e.desc}</td><td style="color:#c0392b;font-weight:bold">${money(e.amount)}</td><td><button class="blue small" onclick="editExpense('${e.id}')">✏️</button> <button class="gold small" onclick="editDateTime('expense','${e.id}')">⏰</button> <button class="danger small" onclick="delExpense('${e.id}')">🗑️</button></td></tr>`;});el.innerHTML=h+'</table>';}
+function addCashAmount(){if(!db.cashAdditions)db.cashAdditions=[];const a=+document.getElementById('caAmount').value;const n=document.getElementById('caNote').value.trim();if(!a||a<=0)return toast('اكتب المبلغ',true);db.cashAdditions.push({id:uid(),amount:a,note:n,date:nowISO(),_editedAt:Date.now()});save();renderAll();document.getElementById('caAmount').value='';document.getElementById('caNote').value='';toast('✅');}
+</script><script>
+async function viewReport(){
 window._printRowLimit=25;window._autoFontSize=false;
 const c=document.getElementById('reportArea').innerHTML;
 if(!c||c.includes('لا توجد بيانات')){toast('لا توجد بيانات',true);return;}
@@ -2710,7 +3128,6 @@ openOverlay('🌾 أنواع الطحين — '+fmtShort(nowISO()),c,'#D2691E');
 
 function viewDebt(){const c=document.getElementById('debtList').innerHTML;if(!c||c.trim()===''||c.includes('لا توجد ديون')){toast('لا توجد ديون',true);return;}_currentViewHTML=c;currentReportImages=[];_finalCashbox=0;_finalTotal=0;_finalExpenses=0;openOverlay('📋 المطلوبين',c,'#c0392b');}
 
-// ✅ viewDepositBalances — الجدول الموحّد
 function viewDepositBalances(){
 if(!db.deposits.length){toast('لا توجد إيداعات',true);return;}
 const _plSet=new Set([...db.deposits.filter(d=>!d._finished&&!d.isWithdrawal&&!d.isCarry&&!d.cashPayment).map(d=>d.person),...db.reservations.map(r=>r.person)]);
@@ -3004,7 +3421,7 @@ setTimeout(async ()=>{
   }
 }, 1500);
 }
-
+</script><script>
 function renderArchive(){
 const el=document.getElementById('archiveList');
 const emp=document.getElementById('archEmpty');
@@ -3244,7 +3661,9 @@ _finalExpenses=_te2;
 _finalCashbox=a.cashboxAtArchive!==undefined?a.cashboxAtArchive:(_finalTotal-_finalExpenses);
 _currentViewHTML=c;currentReportImages=[];
 openOverlay('📦 أرشيف '+(a.dateArabic||fmt(a.archivedAt)),c,'#8e44ad');
-}function renderExItems(){
+}
+</script><script>
+function renderExItems(){
 const retWrap=document.getElementById('exReturnItemsWrap');
 const swpWrap=document.getElementById('exSwapItemsWrap');
 if(!retWrap||!swpWrap)return;
@@ -3437,12 +3856,31 @@ function saveCustomerPrices(){const buyer=document.getElementById('cpPerson').va
 function renderCustomerPrices(){const cpB=document.getElementById('cpBuyersList');if(cpB)cpB.innerHTML=(db.customerPrices||[]).map(c=>`<option value="${c.name}">`).join('');buildPriceTable();const nameInp=document.getElementById('cpPerson');if(nameInp&&!nameInp._cpBound){nameInp._cpBound=true;nameInp.oninput=function(){buildPriceTable();};}const el=document.getElementById('customerPricesList');if(!db.customerPrices||!db.customerPrices.length){el.innerHTML='<div class="empty">لا توجد أسعار خاصة</div>';return;}let h='';let idx=0;db.customerPrices.forEach(c=>{h+=`<div class="buyer-group"><div class="buyer-head" onclick="toggleBuyer('cp_${idx}')"><div class="name">🏷️ <b>${c.name}</b> (${c.prices.length} نوع)</div><div style="display:flex;gap:6px"><button class="blue small" onclick="event.stopPropagation();loadCustomerForEdit('${c.name.replace(/'/g,"\\'")}')">✏️</button><button class="danger small" onclick="event.stopPropagation();delCustomerPrices('${c.id}')">🗑️</button></div></div><div class="buyer-body open" id="cp_${idx}"><table><tr><th>النوع</th><th>السعر الخاص</th><th>آخر تحديث</th><th></th></tr>`;c.prices.forEach(pp=>{h+=`<tr><td><b>${pp.typeName}</b></td><td style="color:#27ae60;font-weight:bold;font-size:14px">${money(pp.price)}</td><td style="font-size:11px;color:#888">${fmtShort(pp.updatedAt)}</td><td><button class="danger small" onclick="delCustomerPrice('${c.id}','${pp.typeName.replace(/'/g,"\\'")}')">🗑️</button></td></tr>`;});h+='</table></div></div>';idx++;});el.innerHTML=h;}
 function loadCustomerForEdit(name){document.getElementById('cpPerson').value=name;buildPriceTable();window.scrollTo({top:0,behavior:'smooth'});document.getElementById('cpPerson').focus();toast('عدّل ثم 💾');}
 function delCustomerPrice(cid,typeName){if(!confirm('حذف سعر "'+typeName+'"؟'))return;const c=db.customerPrices.find(x=>x.id===cid);if(!c)return;c.prices=c.prices.filter(x=>x.typeName!==typeName);c._editedAt=Date.now();if(!c.prices.length){markDeleted('customerPrices',cid);db.customerPrices=db.customerPrices.filter(x=>x.id!==cid);}save();renderCustomerPrices();renderSaleItems();renderExItems();toast('تم');}
-function delCustomerPrices(cid){if(!confirm('حذف كل أسعار هذا الزبون؟'))return;markDeleted('customerPrices',cid);db.customerPrices=db.customerPrices.filter(x=>x.id!==cid);save();renderCustomerPrices();renderSaleItems();renderExItems();toast('تم');}function renderSettings(){renderAccountsList();renderAdminPanel();}
-function renderAccountsList(){const el=document.getElementById('accountsList');const a=getAccounts();let h='';a.forEach(x=>{const c=x.username===currentUser;const ad=x.role==='admin';h+=`<div class="account-item ${c?'current':''}"><div class="avatar-sm">${x.username.charAt(0)}</div><div class="info"><b>${x.username} ${c?'✓':''} ${ad?'👑':''}</b><small>${c?'الحساب الحالي':'منذ '+fmt(x.createdAt)}</small></div><div class="actions">${!c?`<button class="small blue" onclick="switchAccount('${x.username}')">🔁 تبديل</button>`:''}${!c&&isAdmin()?`<button class="small danger" onclick="delAccountByName('${x.username}')">🗑️</button>`:''}</div></div>`;});el.innerHTML=h;}
-function renderAdminPanel(){if(!isAdmin())return;const el=document.getElementById('adminPanel');const a=getAccounts();let h=`<table><tr><th>الرقم</th><th>الدور</th><th>إجراءات</th></tr>`;a.forEach(x=>{const m=x.username===currentUser;h+=`<tr><td><b>${x.username}</b> ${m?'(أنت)':''}</td><td>${x.role==='admin'?'👑 مدير':'👤 مستخدم'}</td><td>${!m?`<button class="small blue" onclick="resetPassword('${x.username}')">🔑</button>`:''}${!m?`<button class="small danger" onclick="delAccountByName('${x.username}')">🗑️</button>`:''}</td></tr>`;});h+=`</table>`;el.innerHTML=h;}
-function resetPassword(u){if(!isAdmin())return toast('غير مصرح',true);const np=prompt('كلمة مرور جديدة:');if(!np||np.length<4)return;const a=getAccounts();const x=a.find(y=>y.username===u);if(x){x.password=hash(np);saveAccounts(a);toast('تم ✅');}}
-function changePassword(){const op=document.getElementById('oldPass').value;const np=document.getElementById('newPass').value;const np2=document.getElementById('newPass2').value;const a=getAccounts();const ac=a.find(x=>x.username===currentUser);if(!ac)return;if(ac.password!==hash(op))return toast('كلمة المرور الحالية غلط',true);if(!np||np.length<4)return toast('4 أحرف على الأقل',true);if(np!==np2)return toast('غير متطابقتين',true);ac.password=hash(np);saveAccounts(a);currentAccount=ac;document.getElementById('oldPass').value='';document.getElementById('newPass').value='';document.getElementById('newPass2').value='';toast('تم ✅');}
-function addNewAccount(){const u=normalizePhone(document.getElementById('newAccUser').value.trim());const p=document.getElementById('newAccPass').value;const p2=document.getElementById('newAccPass2').value;const ad=isAdmin()&&document.getElementById('newAccAdmin').checked;if(!u)return toast('اكتب الرقم',true);if(!isValidPhone(u))return toast('رقم غير صحيح',true);if(!p||p.length<4)return toast('4 أحرف على الأقل',true);if(p!==p2)return toast('غير متطابقتين',true);const a=getAccounts();if(a.find(x=>x.username===u))return toast('موجود',true);a.push({username:u,password:hash(p),role:ad?'admin':'user',createdAt:new Date().toISOString()});saveAccounts(a);document.getElementById('newAccUser').value='';document.getElementById('newAccPass').value='';document.getElementById('newAccPass2').value='';document.getElementById('newAccAdmin').checked=false;renderAccountsList();renderAdminPanel();toast('تم ✅');}
+function delCustomerPrices(cid){if(!confirm('حذف كل أسعار هذا الزبون؟'))return;markDeleted('customerPrices',cid);db.customerPrices=db.customerPrices.filter(x=>x.id!==cid);save();renderCustomerPrices();renderSaleItems();renderExItems();toast('تم');}
+</script><script>
+// ===== دالة تعديل اسمي =====
+function updateMyName(){
+const n=document.getElementById('myName').value.trim();
+if(!n)return toast('اكتب الاسم',true);
+const parts=n.split(/\s+/).filter(x=>x.length>0);
+if(parts.length<2)return toast('الاسم لازم ثنائي على الأقل',true);
+if(parts.length>3)return toast('الاسم ما يزيد عن ثلاثي',true);
+const accs=getAccounts();
+const acc=accs.find(a=>a.username===currentUser);
+if(!acc)return toast('الحساب غير موجود',true);
+acc.fullName=n;
+saveAccounts(accs);
+currentAccount=acc;
+showApp();
+toast('✅ تم حفظ الاسم');
+}
+
+function renderSettings(){renderAccountsList();renderAdminPanel();}
+function renderAccountsList(){const el=document.getElementById('accountsList');const a=getAccounts();let h='';a.forEach(x=>{const c=x.username===currentUser;const ad=x.role==='admin';const disp=x.fullName||x.username;h+=`<div class="account-item ${c?'current':''}"><div class="avatar-sm">${disp.charAt(0)}</div><div class="info"><b>${disp} ${c?'✓':''} ${ad?'👑':''}</b><small>${c?'الحساب الحالي':(x.email||'منذ '+fmt(x.createdAt))}</small></div><div class="actions">${!c?`<button class="small blue" onclick="switchAccount('${x.username}')">🔁 تبديل</button>`:''}${!c&&isAdmin()?`<button class="small danger" onclick="delAccountByName('${x.username}')">🗑️</button>`:''}</div></div>`;});el.innerHTML=h;}
+function renderAdminPanel(){if(!isAdmin())return;const el=document.getElementById('adminPanel');const a=getAccounts();let h=`<table><tr><th>المستخدم</th><th>الدور</th><th>إجراءات</th></tr>`;a.forEach(x=>{const m=x.username===currentUser;h+=`<tr><td><b>${x.fullName||x.username}</b> ${m?'(أنت)':''}<br><span style="font-size:10px;color:#888">${x.username}</span></td><td>${x.role==='admin'?'👑 مدير':'👤 مستخدم'}</td><td>${!m?`<button class="small blue" onclick="resetPassword('${x.username}')">🔑</button>`:''}${!m?`<button class="small danger" onclick="delAccountByName('${x.username}')">🗑️</button>`:''}</td></tr>`;});h+=`</table>`;el.innerHTML=h;}
+function resetPassword(u){if(!isAdmin())return toast('غير مصرح',true);const np=prompt('كلمة مرور جديدة:');if(!np||np.length<6)return;const a=getAccounts();const x=a.find(y=>y.username===u);if(x){x.password=hash(np);saveAccounts(a);toast('✅');}}
+function changePassword(){const op=document.getElementById('oldPass').value;const np=document.getElementById('newPass').value;const np2=document.getElementById('newPass2').value;const a=getAccounts();const ac=a.find(x=>x.username===currentUser);if(!ac)return;if(ac.password!=='firebase'){if(ac.password!==hash(op))return toast('كلمة المرور الحالية غلط',true);}if(!np||np.length<6)return toast('6 أحرف على الأقل',true);if(np!==np2)return toast('غير متطابقتين',true);ac.password=hash(np);saveAccounts(a);currentAccount=ac;document.getElementById('oldPass').value='';document.getElementById('newPass').value='';document.getElementById('newPass2').value='';toast('✅');}
+function addNewAccount(){const u=normalizePhone(document.getElementById('newAccUser').value.trim());const p=document.getElementById('newAccPass').value;const p2=document.getElementById('newAccPass2').value;const ad=isAdmin()&&document.getElementById('newAccAdmin').checked;if(!u)return toast('اكتب الرقم',true);if(!/^07[0-9]{9}$/.test(u))return toast('رقم غير صحيح',true);if(!p||p.length<6)return toast('6 أحرف على الأقل',true);if(p!==p2)return toast('غير متطابقتين',true);const a=getAccounts();if(a.find(x=>x.username===u))return toast('موجود',true);a.push({username:u,password:hash(p),role:ad?'admin':'user',fullName:'مستخدم',createdAt:new Date().toISOString()});saveAccounts(a);document.getElementById('newAccUser').value='';document.getElementById('newAccPass').value='';document.getElementById('newAccPass2').value='';document.getElementById('newAccAdmin').checked=false;renderAccountsList();renderAdminPanel();toast('✅');}
 async function switchAccount(u){if(!confirm('التبديل إلى '+u+'؟'))return;stopRealtimeListener();localStorage.setItem(CUR_KEY,u);currentUser=u;const a=getAccounts();currentAccount=a.find(x=>x.username===u);await loadUserData();showApp();toast('تم');}
 function delAccountByName(u){if(!isAdmin()&&u!==currentUser)return toast('غير مصرح',true);if(u===currentUser)return deleteAccount();if(!confirm('حذف '+u+'؟'))return;const a=getAccounts().filter(x=>x.username!==u);saveAccounts(a);localStorage.removeItem(DATA_PREFIX+u);if(cloudDataRef){try{cloudDataRef.doc(u).delete().catch(e=>console.warn(e));}catch(e){}}renderAccountsList();renderAdminPanel();toast('تم');}
 function deleteAccount(){const a=getAccounts();if(!confirm('حذف حسابك؟'))return;if(!confirm('تأكيد نهائي؟'))return;stopRealtimeListener();const r=a.filter(x=>x.username!==currentUser);if(r.length>0&&currentAccount.role==='admin'&&!r.find(x=>x.role==='admin'))r[0].role='admin';saveAccounts(r);localStorage.removeItem(DATA_PREFIX+currentUser);localStorage.removeItem(CUR_KEY);if(cloudDataRef){try{cloudDataRef.doc(currentUser).delete().catch(e=>console.warn(e));}catch(e){}}currentUser=null;currentAccount=null;db=null;document.getElementById('appWrap').classList.remove('show');document.body.classList.remove('is-admin');document.getElementById('authScreen').classList.remove('hidden');showLogin();}
@@ -3605,20 +4043,35 @@ async function dotsShareImage(){closeDotsMenu();if(!currentReportImages||!curren
 function dotsCopy(){closeDotsMenu();const t=htmlToText(_currentViewHTML);const ft=`🌾 تقرير\n📅 ${new Date().toLocaleString('ar-IQ')}\n\n${t}`;copyText(ft);}
 function copyText(t){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(()=>{toast('✅');}).catch(()=>fallbackCopy(t));}else{fallbackCopy(t);}}
 function fallbackCopy(t){const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');toast('✅');}catch(e){toast('تعذر',true);}document.body.removeChild(ta);}
-function htmlToText(h){const t=document.createElement('div');t.innerHTML=h;return t.innerText||t.textContent||'';}document.querySelectorAll('.tab').forEach(t=>{t.onclick=()=>{
+function htmlToText(h){const t=document.createElement('div');t.innerHTML=h;return t.innerText||t.textContent||'';}
+
+// ===== التنقل بين الصفحات =====
+function gotoPage(name){
 document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
 document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
-t.classList.add('active');
-document.getElementById('page-'+t.dataset.page).classList.add('active');
-if(t.dataset.page==='report')renderReport();
-if(t.dataset.page==='archive')renderArchive();
-if(t.dataset.page==='settings')renderSettings();
-if(t.dataset.page==='prices')renderCustomerPrices();
-if(t.dataset.page==='sell')renderSaleItems();
-if(t.dataset.page==='exchange')renderExItems();
-if(t.dataset.page==='deposit')renderDepositTypes();
-};});
+document.querySelectorAll('.bottom-nav button').forEach(x=>x.classList.remove('active'));
+const pg=document.getElementById('page-'+name);
+if(pg) pg.classList.add('active');
+const tabBtn=document.querySelector('.tab[data-page="'+name+'"]');
+if(tabBtn) tabBtn.classList.add('active');
+const botBtn=document.querySelector('.bottom-nav button[data-page="'+name+'"]');
+if(botBtn) botBtn.classList.add('active');
+if(name==='report')renderReport();
+if(name==='archive')renderArchive();
+if(name==='settings')renderSettings();
+if(name==='prices')renderCustomerPrices();
+if(name==='sell')renderSaleItems();
+if(name==='exchange')renderExItems();
+if(name==='deposit')renderDepositTypes();
+if(name==='flour')renderFlour();
+if(name==='buyers')renderBuyers();
+window.scrollTo({top:0,behavior:'smooth'});
+}
 
+// ===== ربط التبويبات =====
+document.querySelectorAll('.tab').forEach(t=>{t.onclick=()=>{gotoPage(t.dataset.page);};});
+
+// ===== أحداث الشبكة =====
 window.addEventListener('online', function(){
 console.log('🌐 رجع النت');
 setSyncStatus('loading','☁️ رجع النت...');
@@ -3648,6 +4101,7 @@ _isReceivingUpdate=true;
 const applied = _applyCloudDB(cloudDb);
 if(applied){
 renderAll(); renderArchive(); renderSettings();
+_updateNotifBadge();
 showSyncNotification('📥 تحديث جديد من جهاز آخر', 'ok');
 setSyncStatus('ok', '☁️ متزامن');
 }
@@ -3696,6 +4150,7 @@ if(s && localAccounts.find(x=>x.username===s)){
             if(applied){
               renderAll(); renderArchive(); renderSettings();
               renderSaleItems(); renderExItems(); renderDepositTypes();
+              _updateNotifBadge();
               showSyncNotification('📥 تم تحديث البيانات من السحابة','ok');
             }
             setSyncStatus('ok','☁️ متزامن');
