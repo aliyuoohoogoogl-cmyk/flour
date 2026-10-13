@@ -12,19 +12,19 @@
   "dir": "rtl",
   "icons": [
     {
-      "src": "https://iili.io/nWRmzy7.png",
+      "src": "https://iili.io/nWRmzy7.png?v=2",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://iili.io/nWRmzy7.png",
+      "src": "https://iili.io/nWRmzy7.png?v=2",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://iili.io/nWRmzy7.png",
+      "src": "https://iili.io/nWRmzy7.png?v=2",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
