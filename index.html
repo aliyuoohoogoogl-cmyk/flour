@@ -592,7 +592,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="card">
 <h2>🌾 المخزون الحالي</h2>
 <div class="row no-print" style="margin-bottom:10px">
-<button onclick="renderFlour()" class="blue">🔄 تحديث</button>
+<button onclick="refreshFlourView()" class="blue">🔄 تحديث</button>
 <button onclick="viewFlour()" class="ok">📷 عرض الأنواع</button>
 <button onclick="doFlourMatch()" class="purple">✅ مطابقة</button>
 </div>
@@ -2932,16 +2932,62 @@ h+=`</div></div>`;i++;
 el.innerHTML=h;
 }
 
+// ✅ ✅ ✅ معدّلة: ترجّع كميات الطحين + استقطاعات واصل (مثل delSale) + ما تحذف الإيداعات
 function delBuyerCompletely(n){
-if(!confirm('⚠️ حذف كل شي عن "'+n+'"؟'))return;
+if(!confirm('⚠️ حذف المبيعات والديون والتسديدات والحجوزات عن "'+n+'"؟\n\n✅ سيتم الاحتفاظ بالإيداعات والأرصدة المالية (لأنها أموال الزبون)'))return;
 if(!confirm('تأكيد نهائي؟'))return;
-db.sales.filter(s=>s.buyer===n).forEach(s=>markDeleted('sales',s.id));
+db._pendingUpload = true;
+const buyerSales = db.sales.filter(s=>s.buyer===n);
+buyerSales.forEach(s=>{
+const items=s.items||[{typeName:s.typeName,qty:s.qty}];
+items.forEach(it=>{
+const t=db.flourTypes.find(x=>x.name===it.typeName);
+if(t){
+t.qty=(+t.qty||0) + (+it.qty||0);
+t.totalSold=Math.max(0,(+t.totalSold||0) - (+it.qty||0));
+t._editedAt=Date.now();
+}
+});
+if(s.method==='واصل'){
+const withdrawals = db.deposits.filter(x=>x.isWithdrawal && x.saleId===s.id);
+withdrawals.forEach(w=>{
+const dep = db.deposits.find(x => x.id === w.depositId);
+if(dep){
+const qtyBack = Math.abs(+w.originalQty || 0);
+const amtBack = Math.abs(+w.originalAmount || 0);
+dep._usedQty = Math.max(0, (dep._usedQty || 0) - qtyBack);
+dep._usedMoney = Math.max(0, (dep._usedMoney || 0) - amtBack);
+dep._finished = false;
+dep._editedAt = Date.now();
+}
+markDeleted('deposits', w.id);
+});
+db.deposits=db.deposits.filter(x=>!(x.isWithdrawal&&x.saleId===s.id));
+}
+if(s.method==='دين' || (s.remaining && s.remaining>0)){
+db.debts.filter(x=>x.saleId===s.id).forEach(x=>markDeleted('debts',x.id));
+db.debts=db.debts.filter(x=>x.saleId!==s.id);
+}
+const b=db.buyers.find(y=>y.name===s.buyer);
+if(b){
+b.totalQty=Math.max(0,(b.totalQty||0)-(s.qty||0));
+b.totalAmount=Math.max(0,(b.totalAmount||0)-(s.total||0));
+b._editedAt=Date.now();
+}
+});
+buyerSales.forEach(s=>markDeleted('sales',s.id));
 db.debts.filter(d=>d.person===n).forEach(d=>markDeleted('debts',d.id));
-db.deposits.filter(d=>d.person===n).forEach(d=>markDeleted('deposits',d.id));
 db.payments.filter(p=>p.person===n).forEach(p=>markDeleted('payments',p.id));
 db.reservations.filter(r=>r.person===n).forEach(r=>markDeleted('reservations',r.id));
-db.sales=db.sales.filter(s=>s.buyer!==n);db.debts=db.debts.filter(d=>d.person!==n);db.deposits=db.deposits.filter(d=>d.person!==n);db.payments=db.payments.filter(p=>p.person!==n);db.reservations=db.reservations.filter(r=>r.person!==n);db.buyers=db.buyers.filter(b=>b.name!==n);
-save();renderAll();toast('تم حذف '+n);
+db.sales=db.sales.filter(s=>s.buyer!==n);
+db.debts=db.debts.filter(d=>d.person!==n);
+db.payments=db.payments.filter(p=>p.person!==n);
+db.reservations=db.reservations.filter(r=>r.person!==n);
+db.buyers=db.buyers.filter(b=>b.name!==n);
+save();
+renderAll();
+renderFlour();
+toast('✅ تم حذف '+n+' — الكميات رجعت والإيداعات محفوظة');
 }
 
 function addManualDebt(){const p=document.getElementById('mdPerson').value.trim();const a=+document.getElementById('mdAmount').value;if(!p)return toast('اكتب الاسم',true);if(!a||a<=0)return toast('اكتب المبلغ',true);db.debts.push({id:uid(),person:p,amount:a,typeName:'دين يدوي',qty:0,date:nowISO(),manual:true,_editedAt:Date.now()});save();renderAll();document.getElementById('mdPerson').value='';document.getElementById('mdAmount').value='';toast('✅');}
@@ -3089,15 +3135,12 @@ if(nm==='دين'){newItems.forEach(it=>{db.debts.push({id:uid(),person:nb,amount
 save();renderAll();toast('✅');
 }
 
-// ✅ ✅ ✅ delSale — معدّلة: ترجع الكمية فوراً
 function delSale(id){
 if(!confirm('حذف هذه العملية؟'))return;
-// ✅ منع السحابة من الكتابة فوق التعديل
 db._pendingUpload = true;
 const s=db.sales.find(x=>x.id===id);
 if(s){
 const items=s.items||[{typeName:s.typeName,qty:s.qty}];
-// ✅ نرجّع الكميات للمخزون
 items.forEach(it=>{
 const t=db.flourTypes.find(x=>x.name===it.typeName);
 if(t){
@@ -3130,7 +3173,6 @@ if(b){b.totalQty=Math.max(0,(b.totalQty||0)-(s.qty||0));b.totalAmount=Math.max(0
 markDeleted('sales',id);
 db.sales=db.sales.filter(x=>x.id!==id);
 save();
-// ✅ تحديث فوري للمخزون
 renderFlour();
 renderAll();
 toast('✅ تم الحذف — الكمية رجعت للمخزون');
@@ -3236,6 +3278,13 @@ const all=[...db.sales.map(s=>({date:s.date,type:'sale',id:s.id,isCarry:false,tx
 .filter(x=>{if(x.isCarry)return false;if(lastArchTime2>0&&new Date(x.date).getTime()<=lastArchTime2)return false;return true;})
 .sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
 document.getElementById('recent').innerHTML=all.length?'<table>'+all.map(x=>`<tr><td style="width:180px;color:#888;font-size:11px">${fmt(x.date)}</td><td style="font-size:12px">${x.txt}</td><td style="width:120px;white-space:nowrap"><button class="blue small" onclick="editRecent('${x.type}','${x.id}')">✏️</button> <button class="gold small" onclick="editDateTime('${x.type}','${x.id}')">⏰</button> <button class="danger small" onclick="delRecent('${x.type}','${x.id}')">🗑️</button></td></tr>`).join('')+'</table>':'<div class="empty">لا توجد عمليات</div>';
+}
+
+// ✅ ✅ ✅ دالة جديدة: زر التحديث في صفحة الطحين
+function refreshFlourView(){
+_matchedFlourIds.clear();
+renderFlour();
+toast('✅ تم تحديث الكميات');
 }
 
 function editCashboxManual(){
@@ -3576,7 +3625,8 @@ const totalSales=rows.filter(r=>r.method!=='استرجاع'&&r.method!=='تبد�
 + (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
 const dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 let _carryAmount=0;let _carryDate='';
-if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carryAmount=+db._permanentCarry || 0;_carryDate=db._lastArchiveAt || nowISO();}
+// ✅ التعديل الوحيد: رصيد البايت = القيمة الأصلية + التعديل اليدوي
+if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carryAmount=(+db._permanentCarry || 0) + (+db._cashboxOffset || 0);_carryDate=db._lastArchiveAt || nowISO();}
 let h=`<div class="card" style="background:#fff8e6;border:2px solid #f39c12;padding:12px">`;
 h+=`<div style="text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #f39c12">`;
 h+=`<div style="font-size:15px;font-weight:bold;color:#8B4513;margin-bottom:6px">🛒 سجل البيع</div>`;
@@ -4960,4 +5010,4 @@ if(s && a.find(x=>x.username===s)){
 })();
 </script>
 </body>
-                                                                                                </html>
+  </html>
