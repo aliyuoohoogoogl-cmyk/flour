@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>حسابات الطحين</title>
-<link rel="manifest" href="./manifest.json">
+<link rel="manifest" href="./manifest.json?v=2">
 <link rel="icon" type="image/png" href="https://iili.io/nWRmzy7.png?v=2">
 <link rel="apple-touch-icon" href="https://iili.io/nWRmzy7.png?v=2">
 <meta name="theme-color" content="#D2691E">
@@ -78,8 +78,8 @@ header button{padding:6px 10px;font-size:11px;border:none;border-radius:6px;colo
 .notif-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;opacity:0;pointer-events:none;transition:opacity 0.3s}
 .notif-overlay.show{opacity:1;pointer-events:auto}
 
-/* ===== التبويبات ===== */
-.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px;background:#fdf8ee;position:sticky;top:0;z-index:10}
+/* ===== التبويبات (بدون sticky) ===== */
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px;background:#fdf8ee}
 .tab{background:#fffdf9;border:2px solid #f0e0d0;border-radius:14px;padding:10px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:inherit;box-shadow:0 2px 8px rgba(139,69,19,.08);transition:all 0.15s;font-size:11px;font-weight:bold;color:#8B5A2B}
 .tab:active{background:#faf0e6;border-color:#D2691E;transform:scale(0.97)}
 .tab .tb-icon{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#D2A56D,#B8860B);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 6px rgba(184,134,11,.3);border:2px solid rgba(255,255,255,0.5)}
@@ -390,7 +390,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <!-- ============ التطبيق ============ -->
 <div class="app-wrap" id="appWrap">
 
-<!-- الهيدر الجديد -->
+<!-- الهيدر -->
 <header>
 <div class="top-row">
 <div>
@@ -414,7 +414,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 </header>
 
-<!-- التبويبات الجديدة (8 أزرار) -->
+<!-- التبويبات (8 أزرار) -->
 <div class="tabs">
 <button class="tab" data-page="sell"><div class="tb-icon">🛒</div><div>البيع</div></button>
 <button class="tab" data-page="prices"><div class="tb-icon">🏷️</div><div>أسعار الزبائن</div></button>
@@ -691,11 +691,21 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 </div>
 
-<!-- ✏️ كارد تعديل الاسم الجديد -->
+<!-- ✏️ كارد تعديل الاسم -->
 <div class="card" style="background:#fffbf0;border:2px solid #f39c12">
 <h2>✏️ تعديل اسمي</h2>
 <div class="row"><input id="myName" type="text" placeholder="اسمك الكامل (ثنائي أو ثلاثي)"></div>
 <button onclick="updateMyName()" class="ok" style="width:100%">💾 حفظ الاسم</button>
+</div>
+
+<!-- 📧 كارد ربط الإيميل الجديد -->
+<div class="card" style="background:#f0f7fc;border:2px solid #3498db">
+<h2>📧 ربط بريد إلكتروني</h2>
+<div id="linkEmailStatus" style="font-size:12px;color:#666;margin-bottom:10px;text-align:center"></div>
+<div class="row"><input id="linkEmail" type="email" placeholder="example@gmail.com"></div>
+<div class="row"><div class="pass-wrap" style="flex:1"><input id="linkEmailPass" type="password" placeholder="اكتب كلمة المرور الحالية للتأكيد"><button type="button" class="eye-btn" onclick="togglePass('linkEmailPass', this)">👁️</button></div></div>
+<button onclick="linkEmailToAccount()" class="blue" style="width:100%">🔗 ربط الإيميل</button>
+<div style="font-size:11px;color:#888;text-align:center;margin-top:8px">💡 بعد الربط، تكدر تدخل بالإيميل أو بالرقم</div>
 </div>
 
 <div class="card"><h2>☁️ المزامنة السحابية</h2>
@@ -4017,7 +4027,99 @@ function loadCustomerForEdit(name){document.getElementById('cpPerson').value=nam
 function delCustomerPrice(cid,typeName){if(!confirm('حذف سعر "'+typeName+'"؟'))return;const c=db.customerPrices.find(x=>x.id===cid);if(!c)return;c.prices=c.prices.filter(x=>x.typeName!==typeName);c._editedAt=Date.now();if(!c.prices.length){markDeleted('customerPrices',cid);db.customerPrices=db.customerPrices.filter(x=>x.id!==cid);}save();renderCustomerPrices();renderSaleItems();renderExItems();toast('تم');}
 function delCustomerPrices(cid){if(!confirm('حذف كل أسعار هذا الزبون؟'))return;markDeleted('customerPrices',cid);db.customerPrices=db.customerPrices.filter(x=>x.id!==cid);save();renderCustomerPrices();renderSaleItems();renderExItems();toast('تم');}
 </script><script>
-// ===== دالة تعديل اسمي =====
+// ===== حالة ربط الإيميل =====
+function updateLinkEmailStatus(){
+const el=document.getElementById('linkEmailStatus');
+const inp=document.getElementById('linkEmail');
+const passInp=document.getElementById('linkEmailPass');
+const btn=document.querySelector('#page-settings button.blue[onclick="linkEmailToAccount()"]');
+if(!el||!inp) return;
+if(!currentAccount){
+el.textContent='';
+return;
+}
+if(currentAccount.email){
+el.innerHTML='✅ <b style="color:#27ae60">البريد مربوط:</b> <span style="direction:ltr;display:inline-block">'+currentAccount.email+'</span>';
+inp.value=currentAccount.email;
+inp.disabled=true;
+if(passInp) passInp.disabled=true;
+if(btn) btn.disabled=true;
+}else{
+el.innerHTML='⚠️ <b style="color:#f39c12">البريد غير مربوط بعد</b>';
+inp.value='';
+inp.disabled=false;
+if(passInp) passInp.disabled=false;
+if(btn) btn.disabled=false;
+}
+}
+
+// ===== ربط الإيميل بالحساب =====
+async function linkEmailToAccount(){
+const email=document.getElementById('linkEmail').value.trim();
+const pass=document.getElementById('linkEmailPass').value;
+if(!email)return toast('اكتب البريد الإلكتروني',true);
+if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return toast('البريد غير صحيح',true);
+if(!pass)return toast('اكتب كلمة المرور للتأكيد',true);
+if(!currentAccount)return toast('الحساب غير موجود',true);
+if(currentAccount.email)return toast('البريد مربوط مسبقاً',true);
+if(pass.length<6)return toast('كلمة المرور 6 أحرف على الأقل',true);
+
+// التحقق من كلمة المرور الحالية
+if(currentAccount.password!=='firebase'){
+  if(currentAccount.password!==hash(pass))return toast('كلمة المرور غلط',true);
+}else{
+  if(window._auth && currentAccount.email){
+    try{
+      await window._auth.signInWithEmailAndPassword(currentAccount.email, pass);
+    }catch(e){
+      return toast('كلمة المرور غلط',true);
+    }
+  }
+}
+
+// التحقق من عدم تكرار الإيميل
+const accs=getAccounts();
+if(accs.find(a=>a.email===email))return toast('البريد مستخدم مسبقاً',true);
+
+// إنشاء الحساب في Firebase Auth
+if(window._auth){
+  try{
+    const cred=await window._auth.createUserWithEmailAndPassword(email,pass);
+    if(cred.user){
+      try{ await cred.user.updateProfile({displayName: currentAccount.fullName || currentUser}); }catch(e){}
+      try{ await cred.user.sendEmailVerification(); }catch(e){console.warn(e);}
+    }
+  }catch(err){
+    console.warn('link email err:', err.code);
+    if(err.code==='auth/email-already-in-use'){
+      return toast('البريد مستخدم مسبقاً في Firebase',true);
+    }
+    if(err.code==='auth/weak-password'){
+      return toast('كلمة المرور ضعيفة (6 أحرف على الأقل)',true);
+    }
+    if(err.code==='auth/invalid-email'){
+      return toast('البريد غير صحيح',true);
+    }
+    console.warn('Continue without Firebase:', err);
+  }
+}
+
+// ربط الإيميل بالحساب
+const idx=accs.findIndex(a=>a.username===currentUser);
+if(idx===-1)return toast('الحساب غير موجود',true);
+accs[idx].email=email;
+saveAccounts(accs);
+currentAccount=accs[idx];
+
+// إشعار
+try{ _addNotification('register', currentAccount.fullName || currentUser, email); }catch(e){}
+
+toast('✅ تم ربط البريد بنجاح');
+document.getElementById('linkEmailPass').value='';
+updateLinkEmailStatus();
+}
+
+// ===== تعديل اسمي =====
 function updateMyName(){
 const n=document.getElementById('myName').value.trim();
 if(!n)return toast('اكتب الاسم',true);
@@ -4217,7 +4319,7 @@ const botBtn=document.querySelector('.bottom-nav button[data-page="'+name+'"]');
 if(botBtn) botBtn.classList.add('active');
 if(name==='report')renderReport();
 if(name==='archive')renderArchive();
-if(name==='settings')renderSettings();
+if(name==='settings'){renderSettings();setTimeout(updateLinkEmailStatus,50);}
 if(name==='prices')renderCustomerPrices();
 if(name==='sell')renderSaleItems();
 if(name==='exchange')renderExItems();
@@ -4345,4 +4447,4 @@ if(s && a.find(x=>x.username===s)){
 })();
 </script>
 </body>
-                   </html>
+                                                                                    </html>
