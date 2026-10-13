@@ -2741,7 +2741,7 @@ editDeposit(deps[idx].id);
 
 let _lastCashboxValue=0;
 
-// ✅ renderHome — معدّل: إحصائيات جديدة + بطاقة البايت
+// ✅ renderHome — الإحصائيات الجديدة + بطاقة البايت
 function renderHome(){
 var _archT=getArchiveTime();
 let reportTotal=0;
@@ -2783,7 +2783,6 @@ if(Math.abs(off) > 0.01){const sign=off > 0 ? '+' : '';offInfo.innerHTML=carryIn
 else{offInfo.innerHTML=carryInfo;}
 }
 
-// ✅ الإحصائيات الجديدة
 document.getElementById('stats').innerHTML=`
 <div class="stats-wrapper">
 <div class="stat-card sc-green" style="grid-column:span 2">
@@ -3072,6 +3071,166 @@ function addExpense(){const d=document.getElementById('eDesc').value.trim();cons
 function renderExpense(){const el=document.getElementById('expenseList');if(!db.expenses.length){el.innerHTML='<div class="empty">لا توجد صرفيات</div>';return;}let h=`<table><tr><th>التاريخ</th><th>الوصف</th><th>المبلغ</th><th></th></tr>`;[...db.expenses].reverse().forEach(e=>{h+=`<tr><td style="font-size:11px">${fmt(e.date)}</td><td>${e.desc}</td><td style="color:#c0392b;font-weight:bold">${money(e.amount)}</td><td><button class="blue small" onclick="editExpense('${e.id}')">✏️</button> <button class="gold small" onclick="editDateTime('expense','${e.id}')">⏰</button> <button class="danger small" onclick="delExpense('${e.id}')">🗑️</button></td></tr>`;});el.innerHTML=h+'</table>';}
 function addCashAmount(){if(!db.cashAdditions)db.cashAdditions=[];const a=+document.getElementById('caAmount').value;const n=document.getElementById('caNote').value.trim();if(!a||a<=0)return toast('اكتب المبلغ',true);db.cashAdditions.push({id:uid(),amount:a,note:n,date:nowISO(),_editedAt:Date.now()});save();renderAll();document.getElementById('caAmount').value='';document.getElementById('caNote').value='';toast('✅');}
 </script><script>
+// ===== حسابات واصل =====
+function computeWasselBalances(deps){
+deps = deps || db.deposits;
+const events=[...deps].sort((a,b)=>a.date.localeCompare(b.date));
+const state={};const hasQtyDep={};const hasMoneyDepPerson={};const result={};
+events.forEach(d=>{
+const typeKey=d.person + '|' + (d.typeName || '');
+if(!state[typeKey]) state[typeKey]={qty:0, money:0};
+const q=(d.originalQty !== undefined ? d.originalQty : (d.qty || 0));
+const m=(d.originalAmount !== undefined ? d.originalAmount : (d.amount || 0));
+if(q > 0) hasQtyDep[typeKey]=true;
+if(m > 0) hasMoneyDepPerson[d.person]=true;
+state[typeKey].qty += q;state[typeKey].money += m;
+if(d.isWithdrawal && d.saleId){
+const key=d.saleId + '|' + (d.typeName || '');
+if(!result[key]){result[key]={qty: null,money: null,hasQtyDeposit: !!hasQtyDep[typeKey],hasMoneyDeposit: !!hasMoneyDepPerson[d.person]};}
+if(d.remQtyAfter !== undefined && d.remQtyAfter !== null) result[key].qty=d.remQtyAfter;
+if(d.remMoneyAfter !== undefined && d.remMoneyAfter !== null) result[key].money=d.remMoneyAfter;
+if(result[key].qty === null && result[key].money === null){result[key].qty=Math.max(0, state[typeKey].qty);result[key].money=Math.max(0, state[typeKey].money);}
+}
+});
+return result;
+}
+
+function getSaleRemaining(buyer,typeName,saleDate,saleId){
+const sale=(db.sales||[]).find(s=>s.id===saleId);
+if(sale && sale.remByType && sale.remByType[typeName]){const rb=sale.remByType[typeName];return {mode: rb.mode || (rb.hasQtyDeposit ? 'qty' : 'money'),qty: (rb.qty!==null&&rb.qty!==undefined)?rb.qty:null,money: (rb.money!==null&&rb.money!==undefined)?rb.money:0,hasQtyDeposit: !!rb.hasQtyDeposit,hasMoneyDeposit: !!rb.hasMoneyDeposit};}
+const item=(sale&&sale.items)?sale.items.find(i=>i.typeName===typeName):null;
+if(item){return {mode:'qty',qty: item.remQty!==null&&item.remQty!==undefined?item.remQty:null,money: item.remMoney!==null&&item.remMoney!==undefined?item.remMoney:0,hasQtyDeposit: item.remQty>0,hasMoneyDeposit: item.remMoney>0};}
+return {mode:'qty',qty:null,money:0,hasQtyDeposit:false,hasMoneyDeposit:false};
+}
+
+let _finalCashbox=0;let _finalTotal=0;let _finalExpenses=0;
+
+// ===== دالة المطابقة الأساسية =====
+function renderReport(){
+var _archT=getArchiveTime();
+const wasselBals=computeWasselBalances();
+const rows=[];
+db.sales.forEach(s=>{
+const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
+const grossTotal=s.grossTotal||items.reduce((a,i)=>a+(i.total||0),0);
+const disc=s.discount||0;
+items.forEach(it=>{
+const ratio=grossTotal>0?(it.total/grossTotal):0;
+const itemDisc=disc*ratio;
+const discountedTotal=Math.max(0,it.total-itemDisc);
+const discountedUnitPrice=it.qty>0?Math.round((discountedTotal/it.qty)*100)/100:0;
+let rB=null;
+if(s.method==='واصل'){const wKey=s.id + '|' + it.typeName;if(wasselBals[wKey]) rB=wasselBals[wKey];else rB=getSaleRemaining(s.buyer, it.typeName, s.date, s.id);}
+if(s.method==='واصل' && s.remByType && s.remByType[it.typeName]){
+const rb = s.remByType[it.typeName];
+rB = {mode: rb.mode, qty: rb.qty, money: rb.money, hasQtyDeposit: rb.hasQtyDeposit, hasMoneyDeposit: rb.hasMoneyDeposit};
+}
+let paidAmount=discountedTotal;
+let remAfterPaid=0;
+if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;remAfterPaid=debtPart;paidAmount=Math.max(0, discountedTotal - debtPart);}
+else if(s.method==='واصل'){paidAmount=0;remAfterPaid=rB ? (rB.money>0 ? rB.money : 0) : 0;}
+else if(s.method==='هدية'){paidAmount=0;remAfterPaid=0;}
+rows.push({date:s.date,type:it.typeName,qty:it.qty,unitPrice:discountedUnitPrice,buyer:s.buyer,carrier:s.carrier||'—',amount:paidAmount,displayAmount:paidAmount,method:s.method,remQty:rB?rB.qty:(it.remQty!==undefined?it.remQty:null),remMoney:rB?rB.money:(it.remMoney!==undefined?it.remMoney:remAfterPaid),hasQtyDeposit:rB?rB.hasQtyDeposit:(it.remQty>0),hasMoneyDeposit:rB?rB.hasMoneyDeposit:(remAfterPaid>0)});
+});
+});
+db.payments.forEach(p=>{rows.push({date:p.date,type:p.typeName||'—',qty:p.qty||'',unitPrice:'',buyer:p.person,carrier:'—',amount:p.amount,displayAmount:p.amount,method:'تسديد',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+db.debts.filter(d=>d.manual && !d.fromSale && !d.fromDeposit && !d.fromExchange).forEach(d=>{
+rows.push({date:d.date,type:d.typeName||'دين يدوي',qty:'',unitPrice:d.amount,buyer:d.person,carrier:'—',amount:0,displayAmount:0,method:'دين يدوي',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});
+});
+db.deposits.filter(d=>{if(!(+d.amount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).forEach(d=>{rows.push({date:d.date,type:d.typeName||'💵 مبلغ حر',qty:d.originalQty||d.qty||'',unitPrice:d.unitPrice||'',buyer:d.person,carrier:d.carrier||'—',amount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,displayAmount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,method:'إيداع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+(db.cashAdditions||[]).filter(c=>!c.isCarry&&!c.fromExchange).forEach(c=>{rows.push({date:c.date,type:'—',qty:'',unitPrice:'',buyer:c.note||'إضافة صندوق',carrier:'—',amount:c.amount,displayAmount:c.amount,method:'إضافات',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+(db.exchanges||[]).forEach(e=>{
+(e.returnItems||[]).forEach(ri=>{rows.push({date:e.date,type:ri.typeName,qty:ri.qty,unitPrice:ri.unitPrice||0,buyer:e.buyer,carrier:e.carrier||'—',amount:0,displayAmount:0,method:'استرجاع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+(e.swapItems||[]).forEach(si=>{rows.push({date:e.date,type:si.typeName,qty:si.qty,unitPrice:si.unitPrice||0,buyer:e.buyer,carrier:e.carrier||'—',amount:0,displayAmount:0,method:'تبديل',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+if(e.diff!==0){rows.push({date:e.date,type:'—',qty:'',unitPrice:'',buyer:e.buyer,carrier:'—',amount:0,displayAmount:0,method:'فرق',diffValue:e.diff,diffMethod:e.method,remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});}
+});
+rows.sort((a,b)=>a.date.localeCompare(b.date));
+const totalSales=rows.filter(r=>r.method!=='استرجاع'&&r.method!=='تبديل'&&r.method!=='فرق'&&r.method!=='دين يدوي').reduce((a,r)=>a+r.amount,0)
++ (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
+const dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+let _carryAmount=0;let _carryDate='';
+if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carryAmount=+db._permanentCarry || 0;_carryDate=db._lastArchiveAt || nowISO();}
+let h=`<div class="card" style="background:#fff8e6;border:2px solid #f39c12;padding:12px">`;
+h+=`<div style="text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #f39c12">`;
+h+=`<div style="font-size:15px;font-weight:bold;color:#8B4513;margin-bottom:6px">🛒 سجل البيع</div>`;
+h+=`<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px">`;
+h+=`<div><b>📅:</b> ${fmt(nowISO())}</div><div><b>📆:</b> ${dayNames[new Date().getDay()]}</div></div></div>`;
+h+=`<table style="font-size:11px"><tr><th>#</th><th>النوع</th><th>العدد</th><th>📦 باقي كيس</th><th>المشتري</th><th>الناقل 🚛</th><th>سعر المفرد</th><th>المبلغ</th><th>💰 باقي فلوس</th><th>الدفع</th><th class="time-cell">الوقت</th></tr>`;
+if(_carryAmount > 0){h+=`<tr style="background:#fff3e0;font-weight:bold;border-bottom:2px solid #f39c12"><td style="text-align:center;color:#f39c12;font-size:14px">🏦</td><td colspan="6" style="color:#8B4513;font-size:12px">💰 رصيد البايت (${fmtShort(_carryDate)})</td><td style="color:#c0392b;font-size:13px;font-weight:bold">${money(_carryAmount)}</td><td colspan="3"></td></tr>`;}
+if(rows.length){
+rows.forEach((r,rowIdx)=>{
+let badgeHtml;
+if(['نقد','دين','واصل','هدية'].includes(r.method)){badgeHtml=`<span class="badge b-${r.method}">${r.method}</span>`;}
+else if(r.method==='تسديد'){badgeHtml=`<span style="background:#27ae60;color:#fff;padding:3px 9px;border-radius:11px;font-size:10px;font-weight:bold">✅ تسديد</span>`;}
+else if(r.method==='إيداع'){badgeHtml=`<span style="background:#3498db;color:#fff;padding:3px 9px;border-radius:11px;font-size:10px;font-weight:bold">💰 إيداع</span>`;}
+else if(r.method==='إضافات'){badgeHtml=`<span style="background:#f39c12;color:#fff;padding:3px 9px;border-radius:11px;font-size:10px;font-weight:bold">💵 إضافات</span>`;}
+else if(r.method==='استرجاع'){badgeHtml=`<span class="badge b-استرجاع">↩️ استرجاع</span>`;}
+else if(r.method==='تبديل'){badgeHtml=`<span class="badge b-تبديل">🔄 تبديل</span>`;}
+else if(r.method==='فرق'){badgeHtml=`<span class="badge b-فرق">💱 فرق استرجاع/تبديل</span>`;}
+else if(r.method==='دين يدوي'){badgeHtml=`<span class="badge b-دين">📝 دين يدوي</span>`;}
+else{badgeHtml=`<span>${r.method}</span>`;}
+let _amtShow;
+if(r.method==='فرق'){
+const isNeg = r.diffValue < 0;
+_amtShow = (isNeg ? '-' : '+') + money(Math.abs(r.diffValue)) + (r.diffValue>0?' ('+(r.diffMethod==='دين'?'دين':'نقد')+')':' (صرفيات)');
+}
+else if(r.method==='استرجاع'||r.method==='تبديل'){_amtShow='—';}
+else if(r.method==='واصل'){_amtShow='<span style="color:#ccc">—</span>';}
+else if(r.method==='دين يدوي'){_amtShow='<span style="color:#c0392b;font-weight:bold">'+money(r.unitPrice)+'</span>';}
+else if(r.displayAmount!==undefined){_amtShow=money(r.displayAmount);}
+else{_amtShow=money(r.amount);}
+let _remQtyShow='—';
+if(r.remQty!==null && r.remQty!==undefined){if(r.remQty<=0){_remQtyShow='<span style="color:#8b0000;font-weight:bold">انتهى</span>';}else{_remQtyShow='<span style="color:#c0392b;font-weight:bold">'+money(r.remQty)+'</span>';}}
+let _remMoneyShow='—';
+if(r.remMoney!==null && r.remMoney!==undefined){if(r.remMoney<=0){_remMoneyShow=r.hasMoneyDeposit ? '<span style="color:#8b0000;font-weight:bold">انتهى</span>' : '—';}else{_remMoneyShow='<span style="color:#c0392b;font-weight:bold">'+money(r.remMoney)+'</span>';}}
+h+=`<tr><td style="text-align:center;font-weight:bold;color:#888">${rowIdx+1}</td><td>${r.type}</td><td style="color:#2980b9;font-weight:bold">${r.qty?money(r.qty):'—'}</td><td>${_remQtyShow}</td><td>${r.buyer}</td><td style="font-size:10px">${r.carrier}</td><td style="color:#27ae60;font-weight:bold">${r.unitPrice?money(r.unitPrice):'—'}</td><td style="color:#8B4513;font-weight:bold">${_amtShow}</td><td>${_remMoneyShow}</td><td>${badgeHtml}</td><td class="time-cell">${fmtTime(r.date)}</td></tr>`;
+});
+h+=`<tr style="background:#faf0e6;font-weight:bold"><td colspan="7" style="text-align:center">المجموع</td><td style="color:#8B4513;font-size:14px">${money(totalSales + _carryAmount)}</td><td colspan="3"></td></tr>`;
+}else{
+h+=`<tr><td colspan="11" style="text-align:center;color:#888;padding:12px">لا توجد حركات</td></tr>`;
+if(_carryAmount > 0){h+=`<tr style="background:#faf0e6;font-weight:bold"><td colspan="7" style="text-align:center">المجموع</td><td style="color:#8B4513;font-size:14px">${money(_carryAmount)}</td><td colspan="3"></td></tr>`;}
+}
+h+=`</table></div>`;
+const expRows=[...db.expenses].sort((a,b)=>a.date.localeCompare(b.date));
+if(expRows.length){
+const totalExp=expRows.reduce((a,e)=>a+e.amount,0);
+h+=`<div class="card" style="background:#fff5f5;border:2px solid #c0392b;margin-top:10px;padding:10px"><div style="text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:2px dashed #c0392b"><b style="color:#c0392b;font-size:14px">💸 الصرفيات</b></div>`;
+h+=`<table style="font-size:11px"><tr><th>الوصف</th><th>المبلغ</th><th class="time-cell">الوقت</th></tr>`;
+expRows.forEach(e=>{
+const isExchange = e.fromExchange;
+h+=`<tr${isExchange?' style="background:#fff3e0"':''}><td>${e.desc}${isExchange?' <span style="background:#f39c12;color:#fff;padding:1px 6px;border-radius:6px;font-size:9px">💱</span>':''}</td><td style="color:#c0392b;font-weight:bold">${money(e.amount)}</td><td class="time-cell">${fmtTime(e.date)}</td></tr>`;
+});
+h+=`<tr style="background:#ffe5e5;font-weight:bold"><td style="text-align:center">المجموع</td><td style="color:#c0392b">${money(totalExp)}</td><td></td></tr></table></div>`;
+}
+let _reportTotal=0;
+db.sales.forEach(s=>{
+const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
+const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0);
+const disc=s.discount||0;
+items.forEach(it=>{
+const ratio=grossTotal>0?(it.total/grossTotal):0;
+const discountedTotal=Math.max(0,it.total-disc*ratio);
+let paid=discountedTotal;
+if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);}
+else if(s.method==='واصل'){paid=0;}
+else if(s.method==='هدية'){paid=0;}
+_reportTotal += paid;
+});
+});
+_reportTotal += db.payments.reduce((a,p)=>a+p.amount,0);
+_reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
+_reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.amount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
+_reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
+const _te=db.expenses.reduce((a,e)=>a+e.amount,0);
+let _carry=0;
+if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carry=+db._permanentCarry || 0;}
+_finalTotal=_reportTotal + _carry;
+_finalExpenses=_te;
+_finalCashbox=_finalTotal - _finalExpenses + (db._cashboxOffset || 0);
+document.getElementById('reportArea').innerHTML=h;
+}
+
+// ===== عرض المطابقة كصور =====
 async function viewReport(){
 window._printRowLimit=25;window._autoFontSize=false;
 const c=document.getElementById('reportArea').innerHTML;
@@ -4186,4 +4345,4 @@ if(s && a.find(x=>x.username===s)){
 })();
 </script>
 </body>
-  </html>
+                   </html>
