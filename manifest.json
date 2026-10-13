@@ -1,23 +1,33 @@
 {
   "name": "حسابات الطحين",
-  "short_name": "الطحين",
-  "description": "برنامج إدارة مبيعات الطحين والديون والحسابات",
+  "short_name": "حسابات الطحين",
+  "description": "برنامج إدارة المبيعات والمخزون والحسابات",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#8B4513",
   "theme_color": "#D2691E",
-  "dir": "rtl",
   "lang": "ar",
+  "dir": "rtl",
   "icons": [
     {
-      "src": "icon-192.jpg",
+      "src": "https://iili.io/nWRmzy7.png",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "icon-512.jpg",
+      "src": "https://iili.io/nWRmzy7.png",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://iili.io/nWRmzy7.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
