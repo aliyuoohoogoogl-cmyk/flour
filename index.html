@@ -78,7 +78,7 @@ header button{padding:6px 10px;font-size:11px;border:none;border-radius:6px;colo
 .notif-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;opacity:0;pointer-events:none;transition:opacity 0.3s}
 .notif-overlay.show{opacity:1;pointer-events:auto}
 
-/* ===== التبويبات (بدون sticky) ===== */
+/* ===== التبويبات ===== */
 .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px;background:#fdf8ee}
 .tab{background:#fffdf9;border:2px solid #f0e0d0;border-radius:14px;padding:10px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:inherit;box-shadow:0 2px 8px rgba(139,69,19,.08);transition:all 0.15s;font-size:11px;font-weight:bold;color:#8B5A2B}
 .tab:active{background:#faf0e6;border-color:#D2691E;transform:scale(0.97)}
@@ -129,12 +129,23 @@ button.gray{background:#95a5a6}
 button.gold{background:#f39c12}
 button.small{padding:5px 9px;font-size:11px}
 
+/* ===== ✅ أزرار طريقة الدفع ===== */
+.pay-methods{display:flex;gap:6px;flex-wrap:wrap}
+.pay-methods button{flex:1;background:#e8e0d5;color:#666;min-width:60px;font-weight:bold;padding:9px 6px;border-radius:8px;border:none;cursor:pointer;font-family:inherit;font-size:12px;transition:all 0.2s}
+.pay-methods button:active{transform:scale(0.96)}
+.pay-methods button.active[data-m="نقد"]{background:#27ae60;color:#fff;box-shadow:0 3px 10px rgba(39,174,96,0.4)}
+.pay-methods button.active[data-m="دين"]{background:#e74c3c;color:#fff;box-shadow:0 3px 10px rgba(231,76,60,0.4)}
+.pay-methods button.active[data-m="واصل"]{background:#3498db;color:#fff;box-shadow:0 3px 10px rgba(52,152,219,0.4)}
+.pay-methods button.active[data-m="هدية"]{background:#9b59b6;color:#fff;box-shadow:0 3px 10px rgba(155,89,182,0.4)}
+.pay-methods button.active[data-em="نقد"]{background:#27ae60;color:#fff;box-shadow:0 3px 10px rgba(39,174,96,0.4)}
+.pay-methods button.active[data-em="دين"]{background:#e74c3c;color:#fff;box-shadow:0 3px 10px rgba(231,76,60,0.4)}
+
 /* ===== الجداول ===== */
 table{width:100%;border-collapse:collapse;font-size:12px}
 th,td{padding:7px;text-align:right;border-bottom:1px solid #f5ede3}
 th{background:#fff8e6;color:#8B4513;font-weight:bold;font-size:11px}
 
-/* ===== الإحصائيات الجديدة ===== */
+/* ===== الإحصائيات ===== */
 .stats-wrapper{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .stat-card{background:#fffdf9;border:2px solid #f0e0d0;border-radius:16px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:8px;box-shadow:0 2px 10px rgba(139,69,19,.08);position:relative;overflow:hidden}
 .stat-card .sc-icon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 3px 10px rgba(0,0,0,.15);border:2px solid rgba(255,255,255,0.6);position:relative;z-index:2}
@@ -348,6 +359,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="sub" id="authSub">سجّل دخولك للمتابعة</div>
 <div class="auth-error" id="authError"></div>
 
+<!-- نموذج الدخول -->
 <div id="loginForm">
 <div class="field"><label>📱 البريد الإلكتروني أو رقم الهاتف</label><input id="loginUser" type="text" placeholder="example@gmail.com أو 07XX XXX XXXX"></div>
 <div class="field"><label>🔒 كلمة المرور</label><div class="pass-wrap"><input id="loginPass" type="password" placeholder="كلمة المرور"><button type="button" class="eye-btn" onclick="togglePass('loginPass', this)">👁️</button></div></div>
@@ -358,6 +370,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="switch-link">ما عندك حساب؟ <a onclick="showRegister()">إنشاء حساب</a></div>
 </div>
 
+<!-- نموذج التسجيل -->
 <div id="registerForm" class="hidden">
 
 <div id="adminRegMode" class="hidden">
@@ -388,6 +401,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <!-- ============ التطبيق ============ -->
 <div class="app-wrap" id="appWrap">
 
+<!-- الهيدر -->
 <header>
 <div class="top-row">
 <div>
@@ -411,6 +425,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 </header>
 
+<!-- التبويبات (8 أزرار) -->
 <div class="tabs">
 <button class="tab" data-page="sell"><div class="tb-icon">🛒</div><div>البيع</div></button>
 <button class="tab" data-page="prices"><div class="tb-icon">🏷️</div><div>أسعار الزبائن</div></button>
@@ -424,23 +439,38 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 
 <!-- ===== الصفحة الرئيسية ===== -->
 <div class="page active" id="page-home">
+
 <div class="money-box">
 <div class="label">👁️ المبلغ الإجمالي (الصندوق)</div>
 <div class="value" id="cashbox">0</div>
 <div class="note">💰 نقد + تسديدات + صافي الإيداعات + إضافات − صرفيات</div>
 </div>
+
 <div class="main-nav">
-<button onclick="gotoPage('buyers')"><div class="mn-icon">👥</div><div class="mn-label">المشترين</div></button>
-<button onclick="gotoPage('flour')"><div class="mn-icon">📦</div><div class="mn-label">المخزن / أنواع الطحين</div></button>
-<button onclick="gotoPage('report')"><div class="mn-icon">📅</div><div class="mn-label">المطابقة</div></button>
+<button onclick="gotoPage('buyers')">
+<div class="mn-icon">👥</div>
+<div class="mn-label">المشترين</div>
+</button>
+<button onclick="gotoPage('flour')">
+<div class="mn-icon">📦</div>
+<div class="mn-label">المخزن / أنواع الطحين</div>
+</button>
+<button onclick="gotoPage('report')">
+<div class="mn-icon">📅</div>
+<div class="mn-label">المطابقة</div>
+</button>
 </div>
+
 <div class="card">
 <h2>💵 إضافة مبلغ للصندوق</h2>
 <div class="row"><input id="caAmount" type="number" placeholder="المبلغ" min="0"><input id="caNote" placeholder="الوصف (اختياري)"></div>
 <div class="row"><button onclick="addCashAmount()" class="ok" style="width:100%">➕ إضافة مبلغ</button></div>
 </div>
+
 <div class="card"><h2>📊 الإحصائيات</h2><div id="stats"></div></div>
+
 <div class="card"><h2>🕐 آخر العمليات</h2><div id="recent"></div></div>
+
 <div class="card" style="background:#fffbf0;border:1px solid #f39c12;padding:10px">
 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
 <div style="font-size:12px;color:#8B4513;font-weight:bold">💰 تعديل الصندوق:</div>
@@ -448,6 +478,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 <div id="cashboxOffsetInfo" style="margin-top:8px;font-size:11px;color:#888;text-align:center;line-height:1.7"></div>
 </div>
+
 </div>
 
 <!-- ===== صفحة الطحين ===== -->
@@ -479,11 +510,11 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="row"><button onclick="addSaleItem()" class="blue" style="width:100%">➕ إضافة نوع آخر (++)</button></div>
 <div class="row"><input id="sDiscount" type="number" placeholder="🏷️ خصم (اختياري)" min="0" style="background:#f0f9f2;border-color:#27ae60" oninput="updateSaleGrandTotal()"><input id="sRemaining" type="number" placeholder="💰 الباقي الكلي" min="0" style="background:#fff3e0;border-color:#f39c12"></div>
 <div class="row"><div style="flex:0 0 100%;font-size:12px;color:#666">طريقة الدفع:</div>
-<div class="pay-methods" style="flex:1">
-<button data-m="نقد" class="active" onclick="setMethod('نقد')">💵 نقد</button>
-<button data-m="دين" onclick="setMethod('دين')">📝 دين</button>
-<button data-m="واصل" onclick="setMethod('واصل')">📦 واصل</button>
-<button data-m="هدية" onclick="setMethod('هدية')">🎁 هدية</button>
+<div class="pay-methods" style="flex:1;display:flex;gap:6px;flex-wrap:wrap">
+<button data-m="نقد" class="active" onclick="setMethod('نقد')" style="flex:1;background:#27ae60;color:#fff;font-weight:bold;padding:9px 6px;border-radius:8px">💵 نقد</button>
+<button data-m="دين" onclick="setMethod('دين')" style="flex:1;background:#e8e0d5;color:#666;font-weight:bold;padding:9px 6px;border-radius:8px">📝 دين</button>
+<button data-m="واصل" onclick="setMethod('واصل')" style="flex:1;background:#e8e0d5;color:#666;font-weight:bold;padding:9px 6px;border-radius:8px">📦 واصل</button>
+<button data-m="هدية" onclick="setMethod('هدية')" style="flex:1;background:#e8e0d5;color:#666;font-weight:bold;padding:9px 6px;border-radius:8px">🎁 هدية</button>
 </div></div>
 <div style="text-align:center;font-size:15px;font-weight:bold;color:#8B4513;margin:10px 0;padding:8px;background:#faf0e6;border-radius:8px">الإجمالي الكلي: <span id="saleGrandTotal">0</span> د.ع</div>
 <button onclick="doSale()" style="width:100%;padding:12px;font-size:15px">✔️ تسجيل البيع</button>
@@ -528,7 +559,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="card"><h2>💰 إيداع جديد</h2>
 <div class="row"><input id="dPerson" placeholder="اسم الشخص" list="depBuyersList"><datalist id="depBuyersList"></datalist></div>
 <div class="row"><input id="dCarrier" placeholder="اسم الناقل 🚛 (اختياري)"></div>
-<div class="row"><input id="dAmount" type="number" placeholder="💵 مبلغ حر" min="0" style="background:#f0f9f2;border-color:#27ae60"><input id="dDiscount" type="number" placeholder="🏷️ خصم (اختياري)" min="0" style="background:#f0f9f2;border-color:#27ae60"></div>
+<div class="row"><input id="dAmount" type="number" placeholder="💵 مبلغ حر" min="0" style="background:#f0f9f2;border-color:#27ae60"></div>
 <div style="background:#f0f7fc;border:2px solid #3498db;border-radius:10px;padding:10px;margin-bottom:10px">
 <div style="font-size:13px;font-weight:bold;color:#2980b9;margin-bottom:8px">🌾 الأنواع (اختياري)</div>
 <div id="multiDepRows"></div>
@@ -650,9 +681,9 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 <div id="exPayMethodsWrap">
 <div style="flex:0 0 100%;font-size:12px;color:#666;margin-bottom:6px">طريقة دفع الفرق:</div>
-<div class="pay-methods">
-<button data-em="نقد" class="active" onclick="setExMethod('نقد')">💵 نقد (للصندوق)</button>
-<button data-em="دين" onclick="setExMethod('دين')">📝 دين (للمطلوبين)</button>
+<div class="pay-methods" style="display:flex;gap:6px">
+<button data-em="نقد" class="active" onclick="setExMethod('نقد')" style="flex:1;background:#27ae60;color:#fff;font-weight:bold;padding:9px;border-radius:8px">💵 نقد (للصندوق)</button>
+<button data-em="دين" onclick="setExMethod('دين')" style="flex:1;background:#e8e0d5;color:#666;font-weight:bold;padding:9px;border-radius:8px">📝 دين (للمطلوبين)</button>
 </div>
 </div>
 <button onclick="doExchange()" style="width:100%;padding:12px;font-size:15px;margin-top:10px;background:#9b59b6">🔄 تسجيل العملية</button>
@@ -671,12 +702,14 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 </div>
 
+<!-- ✏️ كارد تعديل الاسم -->
 <div class="card" style="background:#fffbf0;border:2px solid #f39c12">
 <h2>✏️ تعديل اسمي</h2>
 <div class="row"><input id="myName" type="text" placeholder="اسمك الكامل (ثنائي أو ثلاثي)"></div>
 <button onclick="updateMyName()" class="ok" style="width:100%">💾 حفظ الاسم</button>
 </div>
 
+<!-- 📧 كارد ربط الإيميل الجديد -->
 <div class="card" style="background:#f0f7fc;border:2px solid #3498db">
 <h2>📧 ربط بريد إلكتروني</h2>
 <div id="linkEmailStatus" style="font-size:12px;color:#666;margin-bottom:10px;text-align:center"></div>
@@ -729,6 +762,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 
 </div>
 
+<!-- ============ الشريط السفلي ============ -->
 <div class="bottom-nav" id="bottomNav">
 <button class="active" data-page="home" onclick="gotoPage('home')"><span class="bn-icon">🏠</span><span>الرئيسية</span></button>
 <button data-page="archive" onclick="gotoPage('archive')"><span class="bn-icon">📦</span><span>الأرشيف</span></button>
@@ -736,9 +770,11 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <button data-page="settings" onclick="gotoPage('settings')"><span class="bn-icon">⚙️</span><span>الإعدادات</span></button>
 </div>
 
+<!-- ============ Toast + Sync Notification ============ -->
 <div class="toast" id="toast"></div>
 <div class="sync-notification" id="syncNotification"></div>
 
+<!-- ============ نافذة الإشعارات ============ -->
 <div class="notif-overlay" id="notifOverlay" onclick="closeNotif()"></div>
 <div class="notif-panel" id="notifPanel">
 <div class="notif-head">
@@ -1984,14 +2020,9 @@ function removeSaleItem(id){if(_saleItems.length===1){_saleItems=[{id:uid(),type
 function addSaleItem(){_saleItems.push({id:uid(),typeId:'',qty:'',price:'',remQty:null,remMoney:null});renderSaleItems();if(currentMethod==='واصل') recalcAllRemaining();}
 function updateSaleGrandTotal(){const gross=_saleItems.reduce((a,it)=>a+((+it.qty||0)*(+it.price||0)),0);const disc=+document.getElementById('sDiscount')?.value||0;const net=Math.max(0,gross-disc);const el=document.getElementById('saleGrandTotal');if(el){if(disc>0)el.innerHTML=money(net)+' <span style="font-size:12px;color:#27ae60">(خصم: '+money(disc)+')</span>';else el.textContent=money(net);}}
 
-// ✅ setMethod — معدّلة: تحذف الـ inline styles
 function setMethod(m){
 currentMethod=m;
-document.querySelectorAll('.pay-methods button[data-m]').forEach(b=>{
-b.classList.toggle('active',b.dataset.m===m);
-b.removeAttribute('style');
-b.style.flex='1';
-});
+document.querySelectorAll('.pay-methods button[data-m]').forEach(b=>b.classList.toggle('active',b.dataset.m===m));
 if(m==='هدية'){_saleItems.forEach(it=>{it.price='';});}
 if(m==='واصل'){recalcAllRemaining();}
 else{_saleItems.forEach(it=>{it.remQty=null;it.remMoney=null;it._over=false;it._overType=null;it._availableQty=0;it._availableMoney=0;it._mode='none';});refreshRemInputs();}
@@ -2842,13 +2873,13 @@ _skipNextMerge=true;
 save();renderHome();toast('✅');
 }
 
-// ✅ addDeposit — معدّلة: خصم الإيداع
+// ✅ addDeposit — معدّلة: الخصم يُوزّع على المبلغ الحر والأنواع
 function addDeposit(){
 const p=document.getElementById('dPerson').value.trim();
 const carrier=document.getElementById('dCarrier')?document.getElementById('dCarrier').value.trim():'';
 let freeAmount=+document.getElementById('dAmount').value||0;
-const discount=+document.getElementById('dDiscount').value||0;
-if(discount>0) freeAmount=Math.max(0, freeAmount - discount);
+let remainingDiscount=+document.getElementById('dDiscount').value||0;
+const originalDiscount=remainingDiscount;
 const rem=+document.getElementById('dRemaining').value||0;
 const isLegacy=document.getElementById('dLegacy')&&document.getElementById('dLegacy').checked;
 if(!p)return toast('اكتب اسم الشخص',true);
@@ -2862,6 +2893,15 @@ if(freeAmount<=0 && validItems.length===0 && rem<=0){
 return toast('اكتب مبلغ أو كمية',true);
 }
 const bC = _cleanPerson(p);
+
+// ✅ نطبّق الخصم على المبلغ الحر أولاً
+if(remainingDiscount>0 && freeAmount>0){
+  const applied=Math.min(freeAmount, remainingDiscount);
+  freeAmount -= applied;
+  remainingDiscount -= applied;
+}
+
+// ✅ إضافة المبلغ الحر
 if(freeAmount>0){
 let freeDep = db.deposits.find(x => _cleanPerson(x.person) === bC && (!x.typeName || x.typeName === '') && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && !!x.legacy === !!isLegacy);
 if(freeDep){
@@ -2872,12 +2912,22 @@ freeDep._editedAt = Date.now();
 db.deposits.push({id:uid(),person:p,carrier:carrier,amount:freeAmount,originalAmount:freeAmount,typeName:'',qty:0,originalQty:0,unitPrice:0,totalPrice:0,date:d,legacy:isLegacy,note:'💵 مبلغ حر',_usedQty:0,_usedMoney:0,_editedAt:Date.now()});
 }
 }
+
+// ✅ إضافة الأنواع مع توزيع الخصم المتبقي
 validItems.forEach(it=>{
 const t=db.flourTypes.find(x=>x.id===it.typeId);
 if(!t)return;
 const qty=+it.qty||0;
 const price=+it.price||0;
-const total=qty*price;
+let total=qty*price;
+
+// ✅ نطبّق باقي الخصم على الأنواع
+if(remainingDiscount>0 && total>0){
+  const applied=Math.min(total, remainingDiscount);
+  total -= applied;
+  remainingDiscount -= applied;
+}
+
 const tC = _cleanType(t.name);
 let dep = db.deposits.find(x => _cleanPerson(x.person) === bC && _cleanType(x.typeName) === tC && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && x.originalQty !== undefined && !!x.legacy === !!isLegacy);
 if(dep){
@@ -2907,7 +2957,7 @@ document.getElementById('dRemaining').value='';
 if(document.getElementById('dDateTime'))document.getElementById('dDateTime').value='';
 _depositItems=[{id:uid(),typeId:'',qty:'',price:''}];
 renderDepositTypes();
-toast('تم الإيداع ✅'+(rem>0?' — الباقي للديون':'')+(discount>0?' — خصم: '+money(discount):''));
+toast('تم الإيداع ✅'+(rem>0?' — الباقي للديون':'')+(originalDiscount>0?' — خصم: '+money(originalDiscount):''));
 }
 
 function renderDeposit(){
@@ -3881,15 +3931,7 @@ const dn=document.getElementById('exDiffNote');
 if(dn){if(diff>0)dn.textContent='⬆️ مطلوب من الزبون';else if(diff<0)dn.textContent='⬇️ له عندنا (صرفيات)';else dn.textContent='🟰 ما موجود فرق';}
 }
 
-// ✅ setExMethod — معدّلة: تحذف الـ inline styles
-function setExMethod(m){
-currentExMethod=m;
-document.querySelectorAll('#exPayMethodsWrap button[data-em]').forEach(b=>{
-b.classList.toggle('active',b.dataset.em===m);
-b.removeAttribute('style');
-b.style.flex='1';
-});
-}
+function setExMethod(m){currentExMethod=m;document.querySelectorAll('#exPayMethodsWrap button[data-em]').forEach(b=>b.classList.toggle('active',b.dataset.em===m));}
 
 function doExchange(){
 const buyer=document.getElementById('exPerson').value.trim();
