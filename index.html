@@ -18,6 +18,7 @@ html,body,*{-webkit-print-color-adjust:exact !important;print-color-adjust:exact
 html,body{overflow-x:hidden !important;max-width:100% !important}
 body{margin:0;background:#fdf8ee;color:#222;padding-bottom:90px}
 
+/* ===== الهيدر ===== */
 header{position:relative;background:#8B4513 url('https://iili.io/nVmzXrx.png') center/cover no-repeat;padding:18px 15px 22px;border-radius:0 0 22px 22px;overflow:hidden;box-shadow:0 4px 15px rgba(139,69,19,.25)}
 header::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(139,69,19,0.75),rgba(210,105,30,0.55))}
 header > *{position:relative;z-index:2}
@@ -32,12 +33,13 @@ header button{padding:6px 10px;font-size:11px;border:none;border-radius:6px;colo
 .btn-blue{background:#3498db}
 .btn-gray{background:#95a5a6}
 
+/* ===== زر الإشعارات ===== */
 .bell-wrap{position:relative;display:inline-block}
 .bell-btn{background:rgba(255,255,255,0.2);width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;padding:0}
 .bell-badge{position:absolute;top:-4px;right:-4px;background:#e74c3c;color:#fff;min-width:18px;height:18px;border-radius:10px;font-size:10px;font-weight:bold;display:none;align-items:center;justify-content:center;padding:0 4px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .bell-badge.show{display:flex}
 
-/* ✅ إشعارات — display:none بدل right:-100% */
+/* ===== نافذة الإشعارات ===== */
 .notif-panel{position:fixed;top:0;right:0;bottom:0;width:90%;max-width:420px;background:#fffdf9;z-index:9999;box-shadow:-8px 0 30px rgba(0,0,0,.3);display:none;flex-direction:column}
 .notif-panel.show{display:flex}
 .notif-head{background:linear-gradient(135deg,#8B4513,#D2691E);color:#fff;padding:16px 18px;display:flex;justify-content:space-between;align-items:center}
@@ -64,11 +66,10 @@ header button{padding:6px 10px;font-size:11px;border:none;border-radius:6px;colo
 .notif-actions button{padding:5px 10px;font-size:11px;border-radius:6px;border:none;cursor:pointer;font-family:inherit;font-weight:bold}
 .notif-actions .btn-mark{background:#f0f0f0;color:#666}
 .notif-actions .btn-del{background:#e74c3c;color:#fff}
-
-/* ✅ إشعارات overlay — display:none */
 .notif-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;display:none}
 .notif-overlay.show{display:block}
 
+/* ===== التبويبات ===== */
 .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px;background:#fdf8ee}
 .tab{background:#fffdf9;border:2px solid #f0e0d0;border-radius:14px;padding:10px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:inherit;box-shadow:0 2px 8px rgba(139,69,19,.08);font-size:11px;font-weight:bold;color:#8B5A2B}
 .tab .tb-icon{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#D2A56D,#B8860B);display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid rgba(255,255,255,0.5)}
@@ -94,6 +95,7 @@ header button{padding:6px 10px;font-size:11px;border:none;border-radius:6px;colo
 .main-nav .mn-icon{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#D2A56D,#B8860B);display:flex;align-items:center;justify-content:center;font-size:22px;border:2px solid rgba(255,255,255,0.5)}
 .main-nav .mn-label{font-size:11px;font-weight:bold;color:#8B5A2B;text-align:center;line-height:1.3}
 
+/* ===== الحقول العامة ===== */
 .row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px;align-items:center}
 .row>*{flex:1;min-width:100px}
 input,select{padding:10px 12px;border:2px solid #f0e0d0;border-radius:9px;font-size:13px;width:100%;background:#fffdf9;color:#333;font-family:inherit}
@@ -110,7 +112,7 @@ button.gray{background:#95a5a6}
 button.gold{background:#f39c12}
 button.small{padding:5px 9px;font-size:11px}
 
-/* ✅ أزرار طريقة الدفع */
+/* ===== أزرار طريقة الدفع ===== */
 .pay-methods{display:flex;gap:6px;flex-wrap:wrap}
 .pay-methods button{flex:1;background:#e8e0d5;color:#666;min-width:60px;font-weight:bold;padding:9px 6px;border-radius:8px;border:none;cursor:pointer;font-family:inherit;font-size:12px;transition:all 0.2s}
 .pay-methods button:active{transform:scale(0.96)}
@@ -160,6 +162,7 @@ th{background:#fff8e6;color:#8B4513;font-weight:bold;font-size:11px}
 .bottom-nav button.active{color:#D2691E}
 .bottom-nav button .bn-icon{font-size:22px}
 
+/* ===== الافتتاحية ===== */
 #splashScreen{position:fixed;inset:0;background:#8B4513 url('https://iili.io/nVmzXrx.png') center/cover no-repeat;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:99999}
 #splashScreen::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(139,69,19,0.45),rgba(210,105,30,0.25))}
 #splashScreen .splash-inner{position:relative;z-index:2;text-align:center;padding:25px 35px;background:rgba(255,255,255,0.15);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:2px solid rgba(255,255,255,0.35);border-radius:20px;box-shadow:0 15px 45px rgba(0,0,0,0.4)}
@@ -171,15 +174,101 @@ th{background:#fff8e6;color:#8B4513;font-weight:bold;font-size:11px}
 #splashScreen .splash-bar div{height:100%;width:0;background:linear-gradient(90deg,#FFD700,#FFA500);border-radius:10px;animation:spLoad 4s ease-in-out forwards}
 @keyframes spLoad{0%{width:0%}50%{width:65%}100%{width:100%}}
 
-.auth-screen{position:fixed;inset:0;background:linear-gradient(135deg,#8B4513,#D2691E);display:flex;align-items:center;justify-content:center;padding:20px;z-index:1000;overflow-y:auto}
-.auth-box{background:#fff;border-radius:20px;padding:30px 24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.35);margin:auto}
-.auth-box h1{margin:0 0 6px;color:#8B4513;font-size:24px;text-align:center}
-.auth-box .sub{text-align:center;color:#888;font-size:13px;margin-bottom:22px}
+/* ===== ✅ شاشة الدخول ===== */
+.auth-screen{
+position:fixed;inset:0;
+background:url('https://iili.io/nVmzXrx.png') center/cover no-repeat;
+background-color:#8B4513;
+display:flex;align-items:center;justify-content:center;
+padding:20px;z-index:1000;overflow-y:auto;
+}
+.auth-screen::before{
+content:"";position:fixed;inset:0;
+background:linear-gradient(135deg,rgba(139,69,19,0.78),rgba(210,105,30,0.6));
+z-index:0;
+}
+.auth-box{
+position:relative;z-index:1;
+width:100%;max-width:400px;
+background:rgba(255,255,255,0.97);
+backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);
+border:2px solid rgba(255,255,255,0.4);
+border-radius:25px;
+padding:30px 24px;
+box-shadow:0 25px 70px rgba(0,0,0,0.45);
+margin:auto;
+animation:authZoom 0.5s ease;
+}
+@keyframes authZoom{from{transform:scale(0.9);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* ✅ الشعار */
+.auth-box .logo-wrap{text-align:center;margin-bottom:12px}
+.auth-box .logo-wrap img{width:65px;height:65px;border-radius:16px;box-shadow:0 6px 18px rgba(139,69,19,0.3);object-fit:cover;border:3px solid #fff}
+
+.auth-box h1{margin:0 0 4px;color:#8B4513;font-size:22px;text-align:center;font-weight:bold}
+.auth-box .sub{text-align:center;color:#999;font-size:12px;margin-bottom:20px}
+
 .auth-box .field{margin-bottom:12px}
-.auth-box .field label{display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:bold}
-.auth-box .btn-main{width:100%;padding:13px;font-size:15px;background:#D2691E;margin-top:8px}
-.auth-box .switch-link{text-align:center;margin-top:16px;font-size:13px;color:#666}
-.auth-box .switch-link a{color:#D2691E;font-weight:bold;cursor:pointer;text-decoration:underline}
+.auth-box .field label{display:block;font-size:12px;color:#8B4513;font-weight:bold;margin-bottom:5px}
+.auth-box .field input{
+width:100%;padding:12px 14px;
+border:2px solid #f0e0d0;border-radius:12px;
+font-size:13px;background:#fffdf9;color:#333;
+transition:all 0.2s;font-family:inherit;
+}
+.auth-box .field input:focus{outline:none;border-color:#D2691E;background:#fff;box-shadow:0 0 0 4px rgba(210,105,30,0.15)}
+
+/* ✅ حقل كلمة المرور — الزر على اليمين (مثل التصميم العام) */
+.auth-box .pass-wrap input{padding-right:45px !important;padding-left:14px !important}
+
+.auth-box .btn-login{
+width:100%;padding:14px;
+background:linear-gradient(135deg,#D2691E,#8B4513);
+color:#fff;border:none;border-radius:12px;
+font-size:15px;font-weight:bold;cursor:pointer;
+margin-top:6px;
+box-shadow:0 6px 18px rgba(210,105,30,0.4);
+transition:all 0.2s;font-family:inherit;
+}
+.auth-box .btn-login:active{transform:scale(0.97);box-shadow:0 3px 10px rgba(210,105,30,0.4)}
+
+.auth-box .forgot-link{
+display:flex;align-items:center;justify-content:center;gap:6px;
+margin-top:14px;padding:9px;
+color:#D2691E;font-size:12px;font-weight:bold;
+cursor:pointer;text-decoration:none;
+background:#fff8e6;border-radius:10px;
+border:1px dashed #f39c12;transition:all 0.2s;
+font-family:inherit;
+}
+.auth-box .forgot-link:hover{background:#fdf5e0;border-color:#D2691E}
+
+.auth-box .divider{
+display:flex;align-items:center;gap:10px;
+margin:18px 0 12px;color:#bbb;font-size:12px;
+}
+.auth-box .divider::before,
+.auth-box .divider::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,#e0d0c0,transparent)}
+
+.auth-box .switch-link{text-align:center;font-size:12px;color:#888;line-height:1.8}
+.auth-box .switch-link a{
+color:#D2691E;font-weight:bold;text-decoration:none;
+padding:8px 16px;background:#fff8e6;border-radius:20px;
+display:inline-block;margin-top:6px;border:2px solid #f39c12;
+transition:all 0.2s;cursor:pointer;font-family:inherit;font-size:12px;
+}
+.auth-box .switch-link a:hover{background:#fdf5e0;border-color:#D2691E}
+
+.auth-box .btn-main{
+width:100%;padding:14px;
+background:linear-gradient(135deg,#D2691E,#8B4513);
+color:#fff;border:none;border-radius:12px;
+font-size:15px;font-weight:bold;cursor:pointer;
+margin-top:6px;
+box-shadow:0 6px 18px rgba(210,105,30,0.4);
+font-family:inherit;
+}
+
 .auth-error{background:#fef5f4;color:#c0392b;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px;display:none;border-right:3px solid #e74c3c}
 .auth-error.show{display:block}
 .hidden{display:none!important}
@@ -218,6 +307,7 @@ body.is-admin .admin-only{display:block}
 .pass-wrap{position:relative;display:flex;align-items:center}
 .pass-wrap input{padding-right:42px!important}
 .eye-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:transparent;border:none;cursor:pointer;font-size:17px;padding:5px 8px;color:#b8a89a;border-radius:6px;z-index:2}
+.eye-btn:hover{background:#f0e0d0;color:#D2691E}
 .dots-menu{position:relative;display:inline-block}
 .dots-btn{background:#D2691E;color:#fff;border:none;width:44px;height:44px;border-radius:50%;font-size:22px;cursor:pointer;font-weight:bold;display:flex;align-items:center;justify-content:center}
 .dots-dropdown{position:absolute;top:52px;left:0;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.25);min-width:230px;overflow:hidden;display:none;z-index:100}
@@ -252,7 +342,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 #reportArea .buyer-head{padding:5px 8px;font-size:11px}
 #reportArea table{font-size:9px}
 #reportArea th,#reportArea td{padding:3px 5px}
-.time-cell{font-size:11px !important;color:#666 !important;white-space:nowrap !important;text-align:center !important}
+.time-cell,#reportArea td.time-cell,#reportArea th.time-cell{font-size:11px !important;color:#666 !important;white-space:nowrap !important;text-align:center !important}
 .sync-notification{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-100px);background:linear-gradient(135deg,#3498db,#2980b9);color:#fff;padding:12px 24px;border-radius:25px;font-weight:bold;font-size:13px;z-index:99998;transition:transform .4s ease,opacity .4s ease;opacity:0;pointer-events:none;max-width:90%;text-align:center}
 .sync-notification.show{transform:translateX(-50%) translateY(0);opacity:1}
 .sync-notification.err{background:linear-gradient(135deg,#e74c3c,#c0392b)}
@@ -280,7 +370,6 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 
 @media print{body.printing-overlay > *{display:none !important}body.printing-overlay #reportOverlay{display:block !important;position:static !important;background:#fff !important}}
 
-/* ✅ منع الشاشة من الاتساع */
 @media (max-width: 600px){
   #reportArea table,#flourList table{font-size:9px !important}
   #reportArea,#flourList{overflow-x:auto !important;-webkit-overflow-scrolling:touch !important}
@@ -308,44 +397,123 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <!-- ============ شاشة الدخول / التسجيل ============ -->
 <div class="auth-screen" id="authScreen">
 <div class="auth-box">
-<h1>🌾 حسابات الطحين</h1>
+
+<div class="logo-wrap">
+<img src="https://iili.io/nWRmzy7.png" alt="حسابات الطحين">
+</div>
+
+<h1>حسابات الطحين</h1>
 <div class="sub" id="authSub">سجّل دخولك للمتابعة</div>
 <div class="auth-error" id="authError"></div>
 
-<!-- نموذج الدخول -->
+<!-- ===== نموذج الدخول ===== -->
 <div id="loginForm">
-<div class="field"><label>📱 البريد الإلكتروني أو رقم الهاتف</label><input id="loginUser" type="text" placeholder="example@gmail.com أو 07XX XXX XXXX"></div>
-<div class="field"><label>🔒 كلمة المرور</label><div class="pass-wrap"><input id="loginPass" type="password" placeholder="كلمة المرور"><button type="button" class="eye-btn" onclick="togglePass('loginPass', this)">👁️</button></div></div>
-<button class="btn-main" onclick="doLogin()">🔓 تسجيل الدخول</button>
-<div style="text-align:center;margin-top:10px;font-size:13px">
-<a onclick="forgotPassword()" style="color:#D2691E;font-weight:bold;cursor:pointer;text-decoration:underline">🔑 نسيت كلمة المرور؟</a>
-</div>
-<div class="switch-link">ما عندك حساب؟ <a onclick="showRegister()">إنشاء حساب</a></div>
+
+<div class="field">
+<label>📱 البريد الإلكتروني أو رقم الهاتف</label>
+<input id="loginUser" type="text" placeholder="example@gmail.com أو 07XX XXX XXXX">
 </div>
 
-<!-- نموذج التسجيل -->
+<div class="field">
+<label>🔒 كلمة المرور</label>
+<div class="pass-wrap">
+<input id="loginPass" type="password" placeholder="كلمة المرور">
+<button type="button" class="eye-btn" onclick="togglePass('loginPass', this)">👁️</button>
+</div>
+</div>
+
+<button class="btn-login" onclick="doLogin()">🔓 تسجيل الدخول</button>
+
+<a class="forgot-link" onclick="forgotPassword()">🔑 نسيت كلمة المرور؟</a>
+
+<div class="divider">أو</div>
+
+<div class="switch-link">
+ما عندك حساب؟<br>
+<a onclick="showRegister()">✨ إنشاء حساب جديد</a>
+</div>
+
+</div>
+
+<!-- ===== نموذج التسجيل ===== -->
 <div id="registerForm" class="hidden">
 
+<!-- حساب المدير الأول -->
 <div id="adminRegMode" class="hidden">
-<div class="field"><label>📱 رقم الهاتف (المدير)</label><input id="regUserAdmin" type="tel" placeholder="07XX XXX XXXX"></div>
-<div class="field"><label>🔒 كلمة المرور</label><div class="pass-wrap"><input id="regPassAdmin" type="password" placeholder="كلمة المرور"><button type="button" class="eye-btn" onclick="togglePass('regPassAdmin', this)">👁️</button></div></div>
-<div class="field"><label>🔒 تأكيد كلمة المرور</label><div class="pass-wrap"><input id="regPassAdmin2" type="password" placeholder="أعد كتابتها"><button type="button" class="eye-btn" onclick="togglePass('regPassAdmin2', this)">👁️</button></div></div>
-<button class="btn-main" onclick="doRegisterAdmin()">✅ إنشاء حساب المدير</button>
+<div class="field">
+<label>📱 رقم الهاتف (المدير)</label>
+<input id="regUserAdmin" type="tel" placeholder="07XX XXX XXXX">
+</div>
+<div class="field">
+<label>🔒 كلمة المرور</label>
+<div class="pass-wrap">
+<input id="regPassAdmin" type="password" placeholder="كلمة المرور">
+<button type="button" class="eye-btn" onclick="togglePass('regPassAdmin', this)">👁️</button>
+</div>
+</div>
+<div class="field">
+<label>🔒 تأكيد كلمة المرور</label>
+<div class="pass-wrap">
+<input id="regPassAdmin2" type="password" placeholder="أعد كتابتها">
+<button type="button" class="eye-btn" onclick="togglePass('regPassAdmin2', this)">👁️</button>
+</div>
+</div>
+<button class="btn-login" onclick="doRegisterAdmin()">✅ إنشاء حساب المدير</button>
+<div class="divider">أو</div>
+<div class="switch-link">
+عندك حساب؟<br>
+<a onclick="showLogin()">🔓 تسجيل الدخول</a>
+</div>
 </div>
 
+<!-- حساب المستخدم العادي -->
 <div id="userRegMode">
-<div class="field"><label>👤 الاسم الكامل (ثنائي أو ثلاثي)</label><input id="regName" type="text" placeholder="مثال: علي محمد أحمد"></div>
-<div class="field"><label>📅 تاريخ الميلاد</label><input id="regBirth" type="date"></div>
-<div class="field"><label>📱 رقم الهاتف (اختياري)</label><input id="regUser" type="tel" placeholder="07XX XXX XXXX"></div>
-<div class="field"><label>📧 أو البريد الإلكتروني (اختياري)</label><input id="regEmail" type="email" placeholder="example@gmail.com"></div>
-<div class="field"><label>🔒 كلمة المرور</label><div class="pass-wrap"><input id="regPass" type="password" placeholder="كلمة المرور"><button type="button" class="eye-btn" onclick="togglePass('regPass', this)">👁️</button></div></div>
-<div class="field"><label>🔒 تأكيد كلمة المرور</label><div class="pass-wrap"><input id="regPass2" type="password" placeholder="أعد كتابتها"><button type="button" class="eye-btn" onclick="togglePass('regPass2', this)">👁️</button></div></div>
-<div class="field"><label>🔐 سؤال الأمان</label><input id="regQuestion" type="text" placeholder="مثال: ما اسم مدرستك الابتدائية؟"></div>
-<div class="field"><label>💡 الجواب</label><input id="regAnswer" type="text" placeholder="الجواب"></div>
-<button class="btn-main" onclick="doRegister()">✅ إنشاء الحساب</button>
+<div class="field">
+<label>👤 الاسم الكامل (ثنائي أو ثلاثي)</label>
+<input id="regName" type="text" placeholder="مثال: علي محمد أحمد">
+</div>
+<div class="field">
+<label>📅 تاريخ الميلاد</label>
+<input id="regBirth" type="date">
+</div>
+<div class="field">
+<label>📱 رقم الهاتف (اختياري)</label>
+<input id="regUser" type="tel" placeholder="07XX XXX XXXX">
+</div>
+<div class="field">
+<label>📧 أو البريد الإلكتروني (اختياري)</label>
+<input id="regEmail" type="email" placeholder="example@gmail.com">
+</div>
+<div class="field">
+<label>🔒 كلمة المرور</label>
+<div class="pass-wrap">
+<input id="regPass" type="password" placeholder="كلمة المرور">
+<button type="button" class="eye-btn" onclick="togglePass('regPass', this)">👁️</button>
+</div>
+</div>
+<div class="field">
+<label>🔒 تأكيد كلمة المرور</label>
+<div class="pass-wrap">
+<input id="regPass2" type="password" placeholder="أعد كتابتها">
+<button type="button" class="eye-btn" onclick="togglePass('regPass2', this)">👁️</button>
+</div>
+</div>
+<div class="field">
+<label>🔐 سؤال الأمان</label>
+<input id="regQuestion" type="text" placeholder="مثال: ما اسم مدرستك الابتدائية؟">
+</div>
+<div class="field">
+<label>💡 الجواب</label>
+<input id="regAnswer" type="text" placeholder="الجواب">
+</div>
+<button class="btn-login" onclick="doRegister()">✅ إنشاء الحساب</button>
+<div class="divider">أو</div>
+<div class="switch-link">
+عندك حساب؟<br>
+<a onclick="showLogin()">🔓 تسجيل الدخول</a>
+</div>
 </div>
 
-<div class="switch-link">عندك حساب؟ <a onclick="showLogin()">تسجيل الدخول</a></div>
 </div>
 
 </div>
@@ -354,7 +522,6 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <!-- ============ التطبيق ============ -->
 <div class="app-wrap" id="appWrap">
 
-<!-- الهيدر -->
 <header>
 <div class="top-row">
 <div>
@@ -378,7 +545,6 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 </header>
 
-<!-- التبويبات -->
 <div class="tabs">
 <button class="tab" data-page="sell"><div class="tb-icon">🛒</div><div>البيع</div></button>
 <button class="tab" data-page="prices"><div class="tb-icon">🏷️</div><div>أسعار الزبائن</div></button>
@@ -1258,21 +1424,31 @@ if(needsQA){
   if(!answer)return showError('اكتب جواب سؤال الأمان');
 }
 
+// ===== إنشاء الحساب =====
 let firebaseUser = null;
 
 if(email){
-  if(!window._auth) return showError('❌ Firebase غير جاهز، حاول بعد لحظات');
+  if(!window._auth){
+    try{
+      if(typeof firebase !== 'undefined'){ window._auth = firebase.auth(); }
+    }catch(e){}
+    if(!window._auth){
+      return showError('❌ Firebase Auth مو جاهز — تحقق من الإنترنت');
+    }
+  }
   try{
     const cred = await window._auth.createUserWithEmailAndPassword(email, p);
     firebaseUser = cred.user;
     try{ await firebaseUser.updateProfile({displayName: name}); }catch(e){}
-    try{ await firebaseUser.sendEmailVerification(); }catch(e){console.warn('verify email:', e);}
+    try{ await firebaseUser.sendEmailVerification(); }catch(e){}
   }catch(err){
-    console.warn('Firebase register err:', err.code);
-    if(err.code === 'auth/email-already-in-use') return showError('البريد مستخدم مسبقاً');
-    if(err.code === 'auth/invalid-email') return showError('البريد الإلكتروني غير صحيح');
-    if(err.code === 'auth/weak-password') return showError('كلمة المرور ضعيفة');
-    return showError('فشل إنشاء الحساب، حاول مرة ثانية');
+    if(err.code === 'auth/email-already-in-use') return showError('❌ البريد مستخدم مسبقاً — جرّب إيميل ثاني');
+    if(err.code === 'auth/invalid-email') return showError('❌ البريد الإلكتروني غير صحيح');
+    if(err.code === 'auth/weak-password') return showError('❌ كلمة المرور ضعيفة (6+ أحرف)');
+    if(err.code === 'auth/unauthorized-domain') return showError('❌ الدومين غير مصرّح');
+    if(err.code === 'auth/operation-not-allowed') return showError('❌ خدمة الإيميل غير مفعّلة');
+    if(err.code === 'auth/network-request-failed') return showError('❌ مشكلة اتصال بالإنترنت');
+    return showError('❌ فشل إنشاء الحساب');
   }
 }
 
@@ -1300,25 +1476,63 @@ if(cloudEnabled && cloudAccountsRef){
   const e=document.getElementById(id); if(e) e.value='';
 });
 
+// ✅ إشعار للمدير
+try{ await _addNotification('register', name, phone || email); }catch(e){}
+
 toast(email ? '✅ تم إنشاء الحساب — تحقق من بريدك' : '✅ تم إنشاء الحساب');
 showLogin();
 document.getElementById('loginUser').value = email || phone;
 }
 
-// ===== نسيت كلمة المرور =====
+// ===== ✅ نسيت كلمة المرور — إيميل أو رقم + سؤال =====
 async function forgotPassword(){
-const email = prompt('📧 اكتب بريدك الإلكتروني:');
-if(!email) return;
-if(!email.includes('@')) return toast('❌ اكتب بريد إلكتروني صحيح', true);
-if(!window._auth) return toast('❌ Firebase غير جاهز', true);
-try{
-  await window._auth.sendPasswordResetEmail(email);
-  toast('✅ تم إرسال رابط إعادة التعيين لبريدك');
-}catch(err){
-  console.warn('forgot err:', err.code);
-  if(err.code === 'auth/user-not-found') return toast('❌ البريد غير مسجل', true);
-  if(err.code === 'auth/invalid-email') return toast('❌ البريد غير صحيح', true);
-  toast('❌ فشل الإرسال، حاول مرة ثانية', true);
+const choice = prompt('🔑 كيف تريد إعادة تعيين كلمة المرور؟\n\n1. 📧 عبر البريد الإلكتروني\n2. 📱 عبر الرقم + سؤال الأمان\n\nاكتب رقم الخيار:');
+if(choice === null) return;
+const n = parseInt(choice);
+
+if(n === 1){
+  // ✅ طريقة البريد الإلكتروني
+  const email = prompt('📧 اكتب بريدك الإلكتروني:');
+  if(!email) return;
+  if(!email.includes('@')) return toast('❌ اكتب بريد إلكتروني صحيح', true);
+  if(!window._auth) return toast('❌ Firebase غير جاهز', true);
+  try{
+    await window._auth.sendPasswordResetEmail(email);
+    toast('✅ تم إرسال رابط إعادة التعيين لبريدك');
+  }catch(err){
+    if(err.code === 'auth/user-not-found') return toast('❌ البريد غير مسجل', true);
+    if(err.code === 'auth/invalid-email') return toast('❌ البريد غير صحيح', true);
+    toast('❌ فشل الإرسال، حاول مرة ثانية', true);
+  }
+  
+}else if(n === 2){
+  // ✅ طريقة الرقم + سؤال الأمان
+  const phone = prompt('📱 اكتب رقم هاتفك:');
+  if(!phone) return;
+  const u = normalizePhone(phone);
+  const accs = getAccounts();
+  const acc = accs.find(a => a.username === u);
+  if(!acc) return toast('❌ الرقم غير مسجل', true);
+  if(acc.password === 'firebase') return toast('❌ هذا الحساب مسجل بإيميل — استخدم طريقة الإيميل', true);
+  if(!acc.question || !acc.answer) return toast('❌ ما عندك سؤال أمان بهذا الحساب', true);
+  
+  const ans = prompt('🔐 ' + acc.question);
+  if(ans === null) return;
+  if(hash(ans.toLowerCase()) !== acc.answer) return toast('❌ الجواب غلط', true);
+  
+  const np = prompt('🔒 كلمة المرور الجديدة (6 أحرف على الأقل):');
+  if(!np || np.length < 6) return toast('❌ 6 أحرف على الأقل', true);
+  const np2 = prompt('🔒 أعد كتابتها للتأكيد:');
+  if(np2 === null) return;
+  if(np !== np2) return toast('❌ كلمتا المرور غير متطابقتين', true);
+  
+  const idx = accs.findIndex(a => a.username === u);
+  accs[idx].password = hash(np);
+  saveAccounts(accs);
+  toast('✅ تم تغيير كلمة المرور — سجّل دخولك');
+  
+}else{
+  toast('❌ خيار غير صحيح', true);
 }
 }
 
@@ -1330,7 +1544,12 @@ if(!login)return showError('اكتب البريد الإلكتروني أو رق
 if(!p)return showError('اكتب كلمة المرور');
 
 if(login.includes('@')){
-  if(!window._auth)return showError('❌ Firebase غير جاهز، حاول بعد لحظات');
+  if(!window._auth){
+    try{
+      if(typeof firebase !== 'undefined'){ window._auth = firebase.auth(); }
+    }catch(e){}
+    if(!window._auth) return showError('❌ Firebase غير جاهز، حاول بعد لحظات');
+  }
   try{
     const cred = await window._auth.signInWithEmailAndPassword(login, p);
     const accs = getAccounts();
@@ -1358,7 +1577,6 @@ if(login.includes('@')){
     toast('أهلاً بك 👋');
     return;
   }catch(err){
-    console.warn('Firebase login err:', err.code);
     if(err.code === 'auth/user-not-found') return showError('البريد غير مسجل');
     if(err.code === 'auth/wrong-password') return showError('كلمة المرور غلط');
     if(err.code === 'auth/invalid-credential') return showError('البريد أو كلمة المرور غلط');
@@ -1387,7 +1605,6 @@ if(!acc && cloudEnabled && cloudAccountsRef){
 }
 if(!acc) return showError('الرقم أو كلمة المرور غلط');
 
-// ✅ إصلاح تلقائي: إذا ما عند الحساب role
 if(!acc.role){
   acc.role = 'user';
   const accsFix = getAccounts();
@@ -1437,8 +1654,6 @@ document.getElementById('settingsAvatar').textContent=displayName.charAt(0);
 if(currentAccount)document.getElementById('settingsSince').textContent='منذ: '+fmt(currentAccount.createdAt);
 const badge=document.getElementById('headerBadge');
 const roleEl=document.getElementById('settingsRole');
-
-// ✅ إخفاء/إظهار الإشعارات حسب الدور
 const bellWrap=document.querySelector('.bell-wrap');
 const notifBtn=document.querySelector('.bottom-nav button[data-page="notif"]');
 
@@ -1456,13 +1671,11 @@ if(bellWrap) bellWrap.style.display='none';
 if(notifBtn) notifBtn.style.display='none';
 }
 
-// ✅ تعبئة الاسم الحالي
 const myNameInput=document.getElementById('myName');
 if(myNameInput && currentAccount && currentAccount.fullName){
   myNameInput.value=currentAccount.fullName;
 }
 
-// ✅ تحديث حالة ربط الإيميل
 if(typeof updateLinkEmailStatus==='function'){
   updateLinkEmailStatus();
 }
@@ -4527,4 +4740,4 @@ if(s && a.find(x=>x.username===s)){
 })();
 </script>
 </body>
-                   </html>
+  </html>
