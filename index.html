@@ -3212,7 +3212,8 @@ reportTotal += paid;
 });
 reportTotal += db.payments.reduce((a,p)=>a+p.amount,0);
 reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.amount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
+// ✅ التعديل: يعتمد على originalAmount بدل amount
+reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
 reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
 const gs=db.sales.filter(s=>s.method==='هدية').reduce((a,s)=>a+(s.qty||0),0);
 const _debtPersons=[...new Set(db.debts.map(d=>d.person))];
@@ -3280,7 +3281,7 @@ const all=[...db.sales.map(s=>({date:s.date,type:'sale',id:s.id,isCarry:false,tx
 document.getElementById('recent').innerHTML=all.length?'<table>'+all.map(x=>`<tr><td style="width:180px;color:#888;font-size:11px">${fmt(x.date)}</td><td style="font-size:12px">${x.txt}</td><td style="width:120px;white-space:nowrap"><button class="blue small" onclick="editRecent('${x.type}','${x.id}')">✏️</button> <button class="gold small" onclick="editDateTime('${x.type}','${x.id}')">⏰</button> <button class="danger small" onclick="delRecent('${x.type}','${x.id}')">🗑️</button></td></tr>`).join('')+'</table>':'<div class="empty">لا توجد عمليات</div>';
 }
 
-// ✅ ✅ ✅ دالة جديدة: زر التحديث في صفحة الطحين
+// ✅ دالة زر التحديث في صفحة الطحين
 function refreshFlourView(){
 _matchedFlourIds.clear();
 renderFlour();
@@ -3613,7 +3614,8 @@ db.payments.forEach(p=>{rows.push({date:p.date,type:p.typeName||'—',qty:p.qty|
 db.debts.filter(d=>d.manual && !d.fromSale && !d.fromDeposit && !d.fromExchange).forEach(d=>{
 rows.push({date:d.date,type:d.typeName||'دين يدوي',qty:'',unitPrice:d.amount,buyer:d.person,carrier:'—',amount:0,displayAmount:0,method:'دين يدوي',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});
 });
-db.deposits.filter(d=>{if(!(+d.amount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).forEach(d=>{rows.push({date:d.date,type:d.typeName||'💵 مبلغ حر',qty:d.originalQty||d.qty||'',unitPrice:d.unitPrice||'',buyer:d.person,carrier:d.carrier||'—',amount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,displayAmount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,method:'إيداع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+// ✅ التعديل 1: يعتمد على originalAmount
+db.deposits.filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).forEach(d=>{rows.push({date:d.date,type:d.typeName||'💵 مبلغ حر',qty:d.originalQty||d.qty||'',unitPrice:d.unitPrice||'',buyer:d.person,carrier:d.carrier||'—',amount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,displayAmount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,method:'إيداع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
 (db.cashAdditions||[]).filter(c=>!c.isCarry&&!c.fromExchange).forEach(c=>{rows.push({date:c.date,type:'—',qty:'',unitPrice:'',buyer:c.note||'إضافة صندوق',carrier:'—',amount:c.amount,displayAmount:c.amount,method:'إضافات',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
 (db.exchanges||[]).forEach(e=>{
 (e.returnItems||[]).forEach(ri=>{rows.push({date:e.date,type:ri.typeName,qty:ri.qty,unitPrice:ri.unitPrice||0,buyer:e.buyer,carrier:e.carrier||'—',amount:0,displayAmount:0,method:'استرجاع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
@@ -3625,7 +3627,7 @@ const totalSales=rows.filter(r=>r.method!=='استرجاع'&&r.method!=='تبد�
 + (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
 const dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 let _carryAmount=0;let _carryDate='';
-// ✅ التعديل الوحيد: رصيد البايت = القيمة الأصلية + التعديل اليدوي
+// ✅ التعديل 3: رصيد البايت يعرض المبلغ بعد التعديل اليدوي
 if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carryAmount=(+db._permanentCarry || 0) + (+db._cashboxOffset || 0);_carryDate=db._lastArchiveAt || nowISO();}
 let h=`<div class="card" style="background:#fff8e6;border:2px solid #f39c12;padding:12px">`;
 h+=`<div style="text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #f39c12">`;
@@ -3696,7 +3698,8 @@ _reportTotal += paid;
 });
 _reportTotal += db.payments.reduce((a,p)=>a+p.amount,0);
 _reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-_reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.amount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
+// ✅ التعديل 2: يعتمد على originalAmount
+_reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
 _reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
 const _te=db.expenses.reduce((a,e)=>a+e.amount,0);
 let _carry=0;
@@ -3944,6 +3947,8 @@ const remAmt = Math.max(0, origAmt - usedMoney);
 if(remQty <= 0 && remAmt <= 0){markDeleted('deposits', d.id);return;}
 d.originalQty = remQty;d.qty = remQty;d.originalAmount = remAmt;d.amount = remAmt;
 d._usedQty = 0;d._usedMoney = 0;d._finished = false;d._editedAt = Date.now();
+d._archived = true;
+d._archivedAt = _archiveTime;
 keptDeposits.push(d);
 });
 
