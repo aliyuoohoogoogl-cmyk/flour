@@ -1788,8 +1788,8 @@ if(cloudDb && localDb){
   
   console.log('🔍 مقارنة:', {cloudTime, localTime, cloudIsNewerOrEqual: cloudTime >= localTime});
   
-  // ✅ إذا السحابة أحدث أو نفس الوقت → استخدم السحابة
-  if(cloudTime >= localTime){
+  // ✅ التعديل 2: قبول السحابة لو الفرق أقل من 5 ثواني
+  if(cloudTime >= localTime - 5000){
     db = Object.assign(emptyDB(), cloudDb);
     _fixDBFields(db);
     // ✅ دمج التعديلات اليدوية
@@ -1853,7 +1853,8 @@ try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e
 
 if(cloudEnabled && cloudDataRef && navigator.onLine){
   if(_saveTimer) clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(_doUpload, 1000);
+  // ✅ التعديل 1: رفع أسرع (300ms بدل 1000ms)
+  _saveTimer = setTimeout(_doUpload, 300);
 } else {
   db._needsSync = true;
   setSyncStatus('warn','📱 محلي');
@@ -1934,7 +1935,8 @@ _lastCloudState = cloudDb;
 if(doc.data().updatedAt && doc.data().updatedAt.toMillis) _lastCloudServerTime = doc.data().updatedAt.toMillis();
 const cloudTime = +cloudDb._lastSaved || 0;
 const localTime = +db._lastSaved || 0;
-if(cloudTime > localTime){
+// ✅ التعديل 2: قبول الفرق الصغير
+if(cloudTime >= localTime - 5000){
   db = Object.assign(emptyDB(), cloudDb);
   _fixDBFields(db);
   try{localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db));}catch(e){}
@@ -1967,7 +1969,7 @@ if(doc.data()&&doc.data().updatedAt&&doc.data().updatedAt.toMillis) _lastCloudSe
 if(cloudDb){
   const cloudTime = +cloudDb._lastSaved || 0;
   const localTime = +db._lastSaved || 0;
-  if(cloudTime > localTime){
+  if(cloudTime >= localTime - 5000){
     db = Object.assign(emptyDB(), cloudDb);
     _fixDBFields(db);
   } else {
@@ -3254,8 +3256,8 @@ reportTotal += paid;
 });
 reportTotal += db.payments.reduce((a,p)=>a+p.amount,0);
 reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-// ✅ التعديل: يعتمد على originalAmount بدل amount
-reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
+// ✅ التعديل: حذف d.legacy — الإيداع "قديم" يظهر في الصندوق
+reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
 reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
 const gs=db.sales.filter(s=>s.method==='هدية').reduce((a,s)=>a+(s.qty||0),0);
 const _debtPersons=[...new Set(db.debts.map(d=>d.person))];
@@ -3656,8 +3658,8 @@ db.payments.forEach(p=>{rows.push({date:p.date,type:p.typeName||'—',qty:p.qty|
 db.debts.filter(d=>d.manual && !d.fromSale && !d.fromDeposit && !d.fromExchange).forEach(d=>{
 rows.push({date:d.date,type:d.typeName||'دين يدوي',qty:'',unitPrice:d.amount,buyer:d.person,carrier:'—',amount:0,displayAmount:0,method:'دين يدوي',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});
 });
-// ✅ التعديل 1: يعتمد على originalAmount
-db.deposits.filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).forEach(d=>{rows.push({date:d.date,type:d.typeName||'💵 مبلغ حر',qty:d.originalQty||d.qty||'',unitPrice:d.unitPrice||'',buyer:d.person,carrier:d.carrier||'—',amount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,displayAmount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,method:'إيداع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+// ✅ التعديل: حذف d.legacy — الإيداع "قديم" يظهر في سجل المطابقة
+db.deposits.filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).forEach(d=>{rows.push({date:d.date,type:d.typeName||'💵 مبلغ حر',qty:d.originalQty||d.qty||'',unitPrice:d.unitPrice||'',buyer:d.person,carrier:d.carrier||'—',amount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,displayAmount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,method:'إيداع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
 (db.cashAdditions||[]).filter(c=>!c.isCarry&&!c.fromExchange).forEach(c=>{rows.push({date:c.date,type:'—',qty:'',unitPrice:'',buyer:c.note||'إضافة صندوق',carrier:'—',amount:c.amount,displayAmount:c.amount,method:'إضافات',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
 (db.exchanges||[]).forEach(e=>{
 (e.returnItems||[]).forEach(ri=>{rows.push({date:e.date,type:ri.typeName,qty:ri.qty,unitPrice:ri.unitPrice||0,buyer:e.buyer,carrier:e.carrier||'—',amount:0,displayAmount:0,method:'استرجاع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
@@ -3740,8 +3742,8 @@ _reportTotal += paid;
 });
 _reportTotal += db.payments.reduce((a,p)=>a+p.amount,0);
 _reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-// ✅ التعديل 2: يعتمد على originalAmount
-_reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
+// ✅ التعديل 2: حذف d.legacy — الإيداع "قديم" يُحسب في الإجمالي
+_reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
 _reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
 const _te=db.expenses.reduce((a,e)=>a+e.amount,0);
 let _carry=0;
