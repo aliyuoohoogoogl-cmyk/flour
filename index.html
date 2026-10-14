@@ -983,7 +983,6 @@ return 'dev_'+Math.random().toString(36).slice(2,10)+'_'+Date.now();
 }
 })();
 
-// ✅ Firebase Config
 const firebaseConfig={apiKey:"AIzaSyAJ8kK9KxBDg8vjfFbEYYgnlik3zgzNjQg",authDomain:"continue-ac20e.firebaseapp.com",projectId:"continue-ac20e",storageBucket:"continue-ac20e.firebasestorage.app",messagingSenderId:"961701328701",appId:"1:961701328701:web:db27d7f0f11d3c52fa7754",measurementId:"G-GG7ZLXL8Z1"};
 
 let cloudEnabled=false;
@@ -1032,7 +1031,6 @@ function hash(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i
 function getAccounts(){try{return JSON.parse(localStorage.getItem(ACC_KEY))||[];}catch(e){return[];}}
 function saveAccounts(a){localStorage.setItem(ACC_KEY,JSON.stringify(a));saveAccountsCloud(a);}
 
-// ✅ emptyDB — مع _manualOverrides
 function emptyDB(){return{flourTypes:[],sales:[],debts:[],deposits:[],payments:[],expenses:[],archive:[],buyers:[],reservations:[],cashAdditions:[],customerPrices:[],exchanges:[],_notifications:[],_manualOverrides:{},_lastSaved:0,_needsSync:false,_pendingUpload:false,_permanentCarry:0,_cashboxOffset:0,_deleted:{}};}
 
 function showError(m){const e=document.getElementById('authError');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),4000);}
@@ -1078,7 +1076,6 @@ if(!d.customerPrices) d.customerPrices=[];
 if(!d.exchanges) d.exchanges=[];
 if(!d._notifications) d._notifications=[];
 if(!d._deleted) d._deleted={};
-// ✅ _manualOverrides
 if(!d._manualOverrides) d._manualOverrides={};
 if(d._permanentCarry === undefined) d._permanentCarry=0;
 if(d._cashboxOffset === undefined) d._cashboxOffset=0;
@@ -1098,28 +1095,26 @@ try{
 _fixDBFields(cloudDb);
 const _beforeSnapshot = JSON.stringify(db);
 
-// ✅ حماية 1: إذا في رفع معلّق — لا تقبل التحديث
 if(db && db._pendingUpload === true){
   console.log('⏸️ رفع معلّق — تم تجاهل تحديث السحابة');
   return false;
 }
 
-// ✅ حماية 2: إذا التحديث من نفس الجهاز — تجاهل
 if(cloudDb._lastActionBy === _deviceId){
+  console.log('⏭️ نفس الجهاز — تجاهل');
   return false;
 }
 
-// ✅ حماية 3: احتفظ بـ _manualOverrides المحلية
 const _localManual = (db && db._manualOverrides) ? JSON.parse(JSON.stringify(db._manualOverrides)) : {};
-const _cloudManual = (cloudDb && cloudDb._manualOverrides) ? cloudDb._manualOverrides : {};
 
 const localTime = +db._lastSaved || 0;
 const cloudTime = +cloudDb._lastSaved || 0;
 
+console.log('🔍 _applyCloudDB:', {localTime, cloudTime, cloudIsNewer: cloudTime > localTime});
+
 if(cloudTime > localTime){
   db = Object.assign(emptyDB(), cloudDb);
   _fixDBFields(db);
-  // ✅ دمج التعديلات اليدوية — الأحدث يفوز
   if(!db._manualOverrides) db._manualOverrides={};
   Object.keys(_localManual).forEach(k=>{
     const localTS = _localManual[k].timestamp || 0;
@@ -1129,6 +1124,7 @@ if(cloudTime > localTime){
     }
   });
   try{localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db));}catch(e){}
+  console.log('✅ تم استبدال البيانات من السحابة');
   return true;
 }
 return _beforeSnapshot !== JSON.stringify(db);
@@ -1174,31 +1170,58 @@ function startRealtimeListener(){
 if(!cloudEnabled||!cloudDataRef||!currentUser)return;
 if(cloudUnsubscribe){try{cloudUnsubscribe();}catch(e){}cloudUnsubscribe=null;}
 console.log('🎧 بدء الاستماع الفوري...');
+console.log('🔑 جهازي:', _deviceId);
+console.log('👤 المستخدم:', currentUser);
 try{
 cloudUnsubscribe = cloudDataRef.doc(currentUser).onSnapshot(snap=>{
 try{
-if(snap.metadata.hasPendingWrites) return;
-if(!snap.exists) return;
-const data = snap.data();
-if(!data || !data.data) return;
-const cloudDb = data.data;
-_lastCloudState = cloudDb;
-if(_isReceivingUpdate) return;
-if(data._lastActionBy === _deviceId) {
-if(data.updatedAt && data.updatedAt.toMillis) _lastCloudServerTime = data.updatedAt.toMillis();
-return;
-}
-if(db && db._pendingUpload === true){
-  console.log('⏸️ رفع معلّق — تم تجاهل تحديث realtime');
+console.log('📥 onSnapshot received:', {
+  exists: snap.exists,
+  hasPendingWrites: snap.metadata.hasPendingWrites,
+  fromCache: snap.metadata.fromCache,
+  lastActionBy: snap.data()?._lastActionBy,
+  myId: _deviceId,
+  lastSaved: snap.data()?.data?._lastSaved,
+  cloudTime: new Date(snap.data()?.data?._lastSaved || 0).toLocaleTimeString('ar-IQ')
+});
+if(snap.metadata.hasPendingWrites){
+  console.log('⏳ hasPendingWrites — تجاهل');
   return;
 }
-console.log('📥 استقبال تحديث من جهاز آخر');
+if(!snap.exists){
+  console.log('❌ المستند غير موجود');
+  return;
+}
+const data = snap.data();
+if(!data || !data.data){
+  console.log('❌ ما في بيانات');
+  return;
+}
+const cloudDb = data.data;
+_lastCloudState = cloudDb;
+if(_isReceivingUpdate){
+  console.log('⏳ _isReceivingUpdate — تجاهل');
+  return;
+}
+if(data._lastActionBy === _deviceId) {
+  console.log('✅ نفس الجهاز — تجاهل');
+  if(data.updatedAt && data.updatedAt.toMillis) _lastCloudServerTime = data.updatedAt.toMillis();
+  return;
+}
+if(db && db._pendingUpload === true){
+  console.log('⏸️ رفع معلّق — تجاهل');
+  return;
+}
+console.log('🌟 استقبال تحديث من جهاز آخر — بدء التطبيق');
 _isReceivingUpdate = true;
 const applied = _applyCloudDB(cloudDb);
 if(applied){
 try{renderAll();renderArchive();renderSettings();renderSaleItems();renderExItems();renderDepositTypes();}catch(e){console.warn('render err:',e);}
 showSyncNotification('📥 تحديث جديد تم استقباله','ok');
 setSyncStatus('ok','☁️ متزامن');
+console.log('✅ تم تطبيق التحديث');
+}else{
+console.log('⚠️ ما تم تطبيق التحديث');
 }
 _isReceivingUpdate = false;
 }catch(err){
@@ -1751,10 +1774,22 @@ if(doc.data().updatedAt && doc.data().updatedAt.toMillis) _lastCloudServerTime =
 console.warn('cloud fetch err:', e);
 setSyncStatus('err','⚠️ غير متزامن');
 }
+
+console.log('🔍 loadUserData:', {
+  hasCloud: !!cloudDb,
+  hasLocal: !!localDb,
+  cloudSaved: cloudDb?._lastSaved,
+  localSaved: localDb?._lastSaved
+});
+
 if(cloudDb && localDb){
   const cloudTime = +cloudDb._lastSaved || 0;
   const localTime = +localDb._lastSaved || 0;
-  if(cloudTime > localTime){
+  
+  console.log('🔍 مقارنة:', {cloudTime, localTime, cloudIsNewerOrEqual: cloudTime >= localTime});
+  
+  // ✅ إذا السحابة أحدث أو نفس الوقت → استخدم السحابة
+  if(cloudTime >= localTime){
     db = Object.assign(emptyDB(), cloudDb);
     _fixDBFields(db);
     // ✅ دمج التعديلات اليدوية
@@ -1766,10 +1801,12 @@ if(cloudDb && localDb){
     });
     localStorage.setItem(key, JSON.stringify(db));
     setSyncStatus('ok','☁️ متزامن');
+    console.log('✅ السحابة أحدث أو نفس الوقت — استقبلنا من السحابة');
   } else {
     db = localDb;
     _fixDBFields(db);
     setSyncStatus('ok','☁️ متزامن');
+    console.log('📤 المحلي أحدث — نرفع للسحابة');
     setTimeout(()=>save(), 500);
   }
 } else if(cloudDb){
@@ -1777,6 +1814,7 @@ if(cloudDb && localDb){
   _fixDBFields(db);
   localStorage.setItem(key, JSON.stringify(db));
   setSyncStatus('ok','☁️ متزامن');
+  console.log('✅ استقبلنا من السحابة (ما في محلي)');
 } else if(localDb){
   db = localDb;
   _fixDBFields(db);
@@ -1788,14 +1826,16 @@ if(cloudDb && localDb){
       _lastActionBy: _deviceId
     });
     setSyncStatus('ok','☁️ متزامن');
+    console.log('📤 رفعنا المحلي للسحابة');
   }catch(e){ setSyncStatus('err','⚠️'); }
 } else {
   db = emptyDB();
   setSyncStatus('ok','☁️ متزامن');
+  console.log('🆕 مستخدم جديد');
 }
 }
 
-// ===== ✅ حفظ — debounce 1 ثانية
+// ===== حفظ =====
 let _saveTimer = null;
 
 function save(){
@@ -1812,7 +1852,6 @@ db._pendingUpload = true;
 try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){ toast('⚠️ المساحة ممتلئة', true); }
 
 if(cloudEnabled && cloudDataRef && navigator.onLine){
-  // ✅ ما نعرض "جاري الحفظ" إلا لما يبدأ الرفع الفعلي
   if(_saveTimer) clearTimeout(_saveTimer);
   _saveTimer = setTimeout(_doUpload, 1000);
 } else {
@@ -1831,8 +1870,8 @@ if(!navigator.onLine){
   setSyncStatus('warn','📱 محلي');
   return;
 }
-// ✅ عرض "جاري الحفظ" فقط أثناء الرفع الفعلي
 setSyncStatus('loading','⏳ جاري الحفظ...');
+console.log('📤 بدء الرفع للسحابة...');
 try{
   const _clean = JSON.parse(JSON.stringify(db));
   delete _clean._deleted;
@@ -1842,6 +1881,8 @@ try{
     _clean._notifications = _clean._notifications.slice(0, 20);
   }
   const _snapshot = JSON.parse(JSON.stringify(_clean));
+  const _size = JSON.stringify(_snapshot).length;
+  console.log('📤 حجم البيانات:', Math.round(_size/1024), 'KB');
   
   cloudDataRef.doc(currentUser).set({
     data: _snapshot,
@@ -1852,6 +1893,7 @@ try{
     setSyncStatus('ok','☁️ متزامن');
     _lastCloudServerTime = Date.now();
     _lastCloudState = _snapshot;
+    console.log('✅ تم الرفع بنجاح');
   }).catch(e=>{
     console.warn('save upload err:', e);
     db._pendingUpload = false;
