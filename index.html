@@ -4458,7 +4458,7 @@ return Math.max(0,debtSum-allPayments);
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ renderDebt — مع عمود "🚛 الناقل"
+// ✅ renderDebt — مع عمود "🚛 الناقل" + استخراج ذكي
 // ═══════════════════════════════════════════════════════════
 function renderDebt(){
 const el=document.getElementById('debtList');
@@ -4476,7 +4476,6 @@ h+=`<div class="date-row">`;
 h+=`<div><b>📅:</b> ${fmt(nowISO())}</div><div><b>📆:</b> ${dayNames[new Date().getDay()]}</div>`;
 h+=`</div></div>`;
 h+=`<table class="deposit-table"><tr>`;
-// ✅ أضفت عمود الناقل
 h+=`<th>#</th><th>الاسم</th><th>النوع</th><th>🚛 الناقل</th><th>📦 مأخوذ</th><th>💵 قيمته</th><th>✅ مسدد</th><th>💰 متبقي</th><th>📅 التاريخ</th>`;
 h+=`</tr>`;
 
@@ -4509,8 +4508,20 @@ ap.forEach(p=>{
     const paidAmt = tps.reduce((a,x)=>a+x.amount,0);
     const remAmt = Math.max(0, debtAmt - paidAmt);
     
-    // ✅ استخرج اسم الناقل (من أول دين عنده carrier)
-    const carrierName = tds.find(d => d.carrier && d.carrier.trim())?.carrier || '—';
+    // ✅ استخرج اسم الناقل (1) من الدين مباشرة
+    let carrierName = tds.find(d => d.carrier && d.carrier.trim())?.carrier;
+    
+    // ✅ (2) إذا ما موجود — ابحث في البيع المرتبط
+    if(!carrierName){
+      const saleId = tds.find(d => d.saleId)?.saleId;
+      if(saleId){
+        const sale = db.sales.find(s => s.id === saleId);
+        if(sale && sale.carrier && sale.carrier.trim()) carrierName = sale.carrier;
+      }
+    }
+    
+    // ✅ (3) إذا ما موجود — خليه —
+    if(!carrierName) carrierName = '—';
     
     const allDates = [...tds.map(d=>d.date), ...tps.map(x=>x.date)];
     const lastDate = allDates.length ? allDates.sort().slice(-1)[0] : nowISO();
