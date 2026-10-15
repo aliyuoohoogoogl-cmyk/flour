@@ -4030,7 +4030,6 @@ if(!confirm('⚠️ تنبيه:\n\nكمية "'+t.name+'" في المخزون: '+
 if(currentMethod!=='هدية'&&currentMethod!=='واصل'&&(!+it.price||+it.price<=0)){return toast('اكتب السعر للنوع "'+t.name+'"',true);}
 }
 
-// ✅ ✅ ✅ فحص "واصل" — لكل نوع على حدة
 if(currentMethod==='واصل'){
 for(const it of validItems){
   const t=db.flourTypes.find(x=>x.id===it.typeId);
@@ -4044,17 +4043,14 @@ for(const it of validItems){
   const hasSpecific = availQty > 0;
   const hasMoney = availMoney > 0;
   
-  // ❌ ما عنده لا نوع ولا مبلغ حر
   if(!hasSpecific && !hasMoney){
     return toast('❌ الزبون ما عنده إيداع من نوع "'+t.name+'" ولا مبلغ حر',true);
   }
   
-  // ⚠️ عنده مبلغ حر بس مو كافي
   if(!hasSpecific && hasMoney && needMoney > availMoney){
     if(!confirm('⚠️ نوع "'+t.name+'" غير موجود بالإيداع!\n\nالمبلغ الحر المتاح: '+money(availMoney)+' د.ع\nالمطلوب: '+money(needMoney)+' د.ع\n\nمتابعة؟')){return;}
   }
   
-  // ⚠️ عنده نوع بس الكمية مو كافية
   if(hasSpecific && availQty < qty){
     if(!confirm('⚠️ نوع "'+t.name+'" الكمية غير كافية!\n\nالمتاح: '+money(availQty)+' كيس\nالمطلوب: '+money(qty)+' كيس\n\nمتابعة؟')){return;}
   }
@@ -4110,12 +4106,12 @@ if(wasselRemByType){saleRecord.remByType=wasselRemByType;}
 db.sales.push(saleRecord);
 wasselWithdrawals.forEach(w=>{w.saleId=saleRecord.id;db.deposits.push(w);});
 if(currentMethod==='دين'){
-saleItems.forEach(it=>{const ratio=grossTotal>0?(it.total/grossTotal):0;const itemDebt=netTotal*ratio;db.debts.push({id:uid(),person:buyer,amount:itemDebt,typeName:it.typeName,qty:it.qty,date:d,fromSale:true,saleId:saleRecord.id,_editedAt:Date.now()});});
+saleItems.forEach(it=>{const ratio=grossTotal>0?(it.total/grossTotal):0;const itemDebt=netTotal*ratio;db.debts.push({id:uid(),person:buyer,amount:itemDebt,typeName:it.typeName,qty:it.qty,date:d,carrier:carrier,fromSale:true,saleId:saleRecord.id,_editedAt:Date.now()});});
 }
 if(currentMethod==='واصل'){
 saleItems.forEach(it=>{const r=db.reservations.find(x=>_cleanPerson(x.person)===_cleanPerson(buyer)&&_cleanType(x.typeName)===_cleanType(it.typeName)&&(x.totalQty-x.usedQty)>0);if(r){r.usedQty+=it.qty;r._editedAt=Date.now();}});
 }
-if(remaining>0){db.debts.push({id:uid(),person:buyer,amount:remaining,typeName:'(الباقي)',qty:0,date:d,manual:true,fromSale:true,saleId:saleRecord.id,_editedAt:Date.now()});}
+if(remaining>0){db.debts.push({id:uid(),person:buyer,amount:remaining,typeName:'(الباقي)',qty:0,date:d,carrier:carrier,manual:true,fromSale:true,saleId:saleRecord.id,_editedAt:Date.now()});}
 recordBuyer(buyer,saleItems,currentMethod,d,carrier,tt);
 save();renderAll();
 document.getElementById('sBuyer').value='';
@@ -4396,7 +4392,6 @@ h+=`</div></div>`;i++;
 el.innerHTML=h;
 }
 
-// ✅ ✅ ✅ معدّلة: ترجّع كميات الطحين + استقطاعات واصل (مثل delSale) + ما تحذف الإيداعات
 function delBuyerCompletely(n){
 if(!confirm('⚠️ حذف المبيعات والديون والتسديدات والحجوزات عن "'+n+'"؟\n\n✅ سيتم الاحتفاظ بالإيداعات والأرصدة المالية (لأنها أموال الزبون)'))return;
 if(!confirm('تأكيد نهائي؟'))return;
@@ -4463,7 +4458,7 @@ return Math.max(0,debtSum-allPayments);
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ renderDebt الجديدة — جدول نظيف (بدون مجموعات)
+// ✅ renderDebt — مع عمود "🚛 الناقل"
 // ═══════════════════════════════════════════════════════════
 function renderDebt(){
 const el=document.getElementById('debtList');
@@ -4481,7 +4476,8 @@ h+=`<div class="date-row">`;
 h+=`<div><b>📅:</b> ${fmt(nowISO())}</div><div><b>📆:</b> ${dayNames[new Date().getDay()]}</div>`;
 h+=`</div></div>`;
 h+=`<table class="deposit-table"><tr>`;
-h+=`<th>#</th><th>الاسم</th><th>النوع</th><th>📦 مأخوذ</th><th>💵 قيمته</th><th>✅ مسدد</th><th>💰 متبقي</th><th>📅 التاريخ</th>`;
+// ✅ أضفت عمود الناقل
+h+=`<th>#</th><th>الاسم</th><th>النوع</th><th>🚛 الناقل</th><th>📦 مأخوذ</th><th>💵 قيمته</th><th>✅ مسدد</th><th>💰 متبقي</th><th>📅 التاريخ</th>`;
 h+=`</tr>`;
 
 let counter = 0;
@@ -4490,11 +4486,9 @@ let totalPaid = 0;
 let totalRemaining = 0;
 
 ap.forEach(p=>{
-  // جمع البيانات لكل نوع عند هذا الشخص
   const pd = db.debts.filter(d=>d.person===p);
   const pp = db.payments.filter(x=>x.person===p);
   
-  // ✅ جميع الأنواع (من الديون + من التسديدات)
   const allTypes = [...new Set([
     ...pd.map(d=>d.typeName||'بدون نوع'),
     ...pp.map(x=>x.typeName||'بدون نوع')
@@ -4515,16 +4509,16 @@ ap.forEach(p=>{
     const paidAmt = tps.reduce((a,x)=>a+x.amount,0);
     const remAmt = Math.max(0, debtAmt - paidAmt);
     
-    // تاريخ آخر حركة
+    // ✅ استخرج اسم الناقل (من أول دين عنده carrier)
+    const carrierName = tds.find(d => d.carrier && d.carrier.trim())?.carrier || '—';
+    
     const allDates = [...tds.map(d=>d.date), ...tps.map(x=>x.date)];
     const lastDate = allDates.length ? allDates.sort().slice(-1)[0] : nowISO();
     
-    // ✅ الاسم أحمر إذا عليه متبقي
     const nameHtml = remAmt > 0.01 
       ? `<span style="color:#c0392b;font-weight:bold">${p}</span>` 
       : `<span style="color:#666">${p}</span>`;
     
-    // ✅ المتبقي أحمر إذا > 0
     const remHtml = remAmt > 0.01 
       ? `<span style="color:#c0392b;font-weight:bold">${money(remAmt)}</span>` 
       : `<span style="color:#888">0</span>`;
@@ -4538,6 +4532,7 @@ ap.forEach(p=>{
     h+=`<td class="num">${counter}</td>`;
     h+=`<td class="name">👤 ${nameHtml}</td>`;
     h+=`<td class="type">🌾 ${type}</td>`;
+    h+=`<td style="color:#7f8c8d;font-size:11px;text-align:center">${carrierName}</td>`;
     h+=`<td class="orig">${debtQty>0?money(debtQty):'—'}</td>`;
     h+=`<td class="money-o">${debtAmt>0?money(debtAmt):'—'}</td>`;
     h+=`<td class="used">${paidAmt>0?money(paidAmt):'—'}</td>`;
@@ -4549,7 +4544,6 @@ ap.forEach(p=>{
 
 h+=`</table>`;
 
-// ✅ الإجمالي في الأسفل
 h+=`<div style="background:#faf0e6;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px">`;
 h+=`<div>📊 <b>الإجمالي:</b></div>`;
 h+=`<div>دين: <b style="color:#c0392b">${money(totalDebt)}</b> د.ع</div>`;
