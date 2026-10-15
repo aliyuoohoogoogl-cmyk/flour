@@ -485,6 +485,30 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <input id="regEmail" type="email" placeholder="example@gmail.com">
 </div>
 <div class="field">
+<label>📍 المحافظة</label>
+<select id="regCity" style="width:100%;padding:12px 14px;border:2px solid #f0e0d0;border-radius:12px;font-size:13px;background:#fffdf9;color:#333;font-family:inherit">
+<option value="">-- اختر محافظتك --</option>
+<option value="بغداد">بغداد</option>
+<option value="البصرة">البصرة</option>
+<option value="نينوى">نينوى (الموصل)</option>
+<option value="أربيل">أربيل</option>
+<option value="النجف">النجف</option>
+<option value="كربلاء">كربلاء</option>
+<option value="الأنبار">الأنبار</option>
+<option value="ذي قار">ذي قار</option>
+<option value="السليمانية">السليمانية</option>
+<option value="بابل">بابل</option>
+<option value="ديالى">ديالى</option>
+<option value="كركوك">كركوك</option>
+<option value="واسط">واسط</option>
+<option value="ميسان">ميسان</option>
+<option value="المثنى">المثنى</option>
+<option value="القادسية">القادسية (الديوانية)</option>
+<option value="صلاح الدين">صلاح الدين</option>
+<option value="دهوك">دهوك</option>
+</select>
+</div>
+<div class="field">
 <label>🔒 كلمة المرور</label>
 <div class="pass-wrap">
 <input id="regPass" type="password" placeholder="كلمة المرور">
@@ -529,7 +553,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="sub">إدارة سهلة .. حسابات أدق</div>
 </div>
 <div class="user-info">
-<div class="bell-wrap admin-only">
+<div class="bell-wrap">
 <button class="bell-btn" onclick="openNotif()">🔔</button>
 <span class="bell-badge" id="notifBadge">0</span>
 </div>
@@ -544,6 +568,9 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <button class="btn-gray" onclick="doLogout()">🚪 خروج</button>
 </div>
 </header>
+
+<!-- شريط الاشتراك -->
+<div id="subscriptionBar" style="display:none;padding:8px 12px;text-align:center;font-size:12px;font-weight:bold"></div>
 
 <div class="tabs">
 <button class="tab" data-page="sell"><div class="tb-icon">🛒</div><div>البيع</div></button>
@@ -797,6 +824,74 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="card"><h2>📋 سجل العمليات</h2><div id="exchangesList"></div></div>
 </div>
 
+<!-- ===== المزيد — العروض التجارية ===== -->
+<div class="page" id="page-more">
+<div class="card">
+<h2>📋 المزيد — العروض التجارية</h2>
+
+<!-- حالة العروض -->
+<div id="offersStatusCard" style="background:#f0f9f2;border:2px solid #27ae60;border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;text-align:center">
+<div style="font-size:13px;color:#1e8449;font-weight:bold;margin-bottom:5px">📍 محافظتي:</div>
+<div id="myCityDisplay" style="font-size:14px;font-weight:bold;color:#8B4513">—</div>
+<div style="font-size:11px;color:#666;margin-top:4px">تختار محافظتك من الإعدادات لرؤية العروض</div>
+</div>
+
+<!-- زر إرسال عرض جديد -->
+<button onclick="showSendOfferForm()" style="width:100%;padding:12px;font-size:14px;background:#27ae60;margin-bottom:12px">➕ إرسال عرض جديد</button>
+
+<!-- نموذج إرسال عرض -->
+<div id="sendOfferForm" style="display:none;background:#fff8e6;border:2px solid #f39c12;border-radius:10px;padding:12px;margin-bottom:12px">
+
+<div class="row">
+<input id="offerTitle" placeholder="📝 العنوان (مثال: طحين صمون متوفر)" maxlength="60">
+</div>
+
+<div class="row">
+<textarea id="offerText" placeholder="📄 التفاصيل (500 كيس — سعر 25,000)" rows="3" style="width:100%;padding:10px;border:2px solid #f0e0d0;border-radius:9px;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+</div>
+
+<div class="row">
+<input id="offerPhone" type="tel" placeholder="📱 رقم الاتصال (07XX XXX XXXX)">
+</div>
+
+<div style="background:#f0f7fc;border:2px solid #3498db;border-radius:10px;padding:10px;margin-bottom:10px">
+<div style="font-size:12px;font-weight:bold;color:#2980b9;margin-bottom:8px">📍 المحافظات المستهدفة:</div>
+<div id="citiesWrap" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:280px;overflow-y:auto;padding:4px"></div>
+<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+<button type="button" class="small blue" onclick="selectAllCities()">✅ الكل</button>
+<button type="button" class="small gray" onclick="clearAllCities()">❌ مسح الكل</button>
+</div>
+<div style="margin-top:8px;font-size:11px;color:#666;text-align:center">
+المختارة: <b id="selectedCitiesCount" style="color:#8B4513">0</b> / 18
+</div>
+</div>
+
+<div style="display:flex;gap:8px">
+<button onclick="sendOffer()" style="flex:1;padding:12px;font-size:14px;background:#27ae60">📤 إرسال العرض</button>
+<button onclick="cancelSendOffer()" style="flex:0 0 100px;padding:12px;font-size:14px;background:#95a5a6">✖ إلغاء</button>
+</div>
+<div style="font-size:11px;color:#888;text-align:center;margin-top:6px" id="offerLimitInfo">💡 يمكنك إرسال 10 عروض يومياً</div>
+</div>
+
+<!-- قائمة العروض الواردة (من الآخرين) -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+<div style="font-size:14px;font-weight:bold;color:#8B4513">📢 عروض محافظتي</div>
+<button onclick="loadOffers()" class="small blue">🔄 تحديث</button>
+</div>
+<div id="offersList"></div>
+
+<!-- ✅ قسم عروضي أنا -->
+<div style="margin-top:20px;padding-top:15px;border-top:2px dashed #ddd">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+<div style="font-size:14px;font-weight:bold;color:#3498db">📤 عروضي أنا</div>
+<button onclick="loadMyOffers()" class="small blue">🔄 تحديث</button>
+</div>
+<div id="myOffersList"></div>
+</div>
+
+</div>
+</div>
+
 <!-- ===== الإعدادات ===== -->
 <div class="page" id="page-settings">
 
@@ -805,6 +900,41 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div style="width:50px;height:50px;border-radius:50%;background:#D2691E;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:22px" id="settingsAvatar">A</div>
 <div><div style="font-size:18px;font-weight:bold" id="settingsUser">—</div><div style="font-size:12px;color:#888" id="settingsSince">—</div><div id="settingsRole" style="margin-top:5px"></div></div>
 </div>
+</div>
+
+<!-- ===== قسم الاشتراك ===== -->
+<div class="card" id="subscriptionCard" style="background:#fff8e6;border:2px solid #f39c12;padding:12px">
+<h2>💳 الاشتراك</h2>
+<div id="subscriptionInfo"></div>
+<button onclick="gotoPage('subscription')" class="ok" style="width:100%;margin-top:10px;padding:12px;font-size:14px">📱 عرض تفاصيل الاشتراك</button>
+</div>
+
+<!-- ===== قسم محافظتي ===== -->
+<div class="card" style="background:#f0f9f2;border:2px solid #27ae60">
+<h2>📍 محافظتي</h2>
+<div style="font-size:12px;color:#666;margin-bottom:8px;text-align:center">اختر محافظتك لرؤية العروض التجارية القريبة منك</div>
+<select id="settingsCity" style="width:100%;padding:12px;border:2px solid #27ae60;border-radius:10px;font-size:14px;background:#fff;color:#333;font-family:inherit;font-weight:bold">
+<option value="">-- اختر محافظتك --</option>
+<option value="بغداد">بغداد</option>
+<option value="البصرة">البصرة</option>
+<option value="نينوى">نينوى (الموصل)</option>
+<option value="أربيل">أربيل</option>
+<option value="النجف">النجف</option>
+<option value="كربلاء">كربلاء</option>
+<option value="الأنبار">الأنبار</option>
+<option value="ذي قار">ذي قار</option>
+<option value="السليمانية">السليمانية</option>
+<option value="بابل">بابل</option>
+<option value="ديالى">ديالى</option>
+<option value="كركوك">كركوك</option>
+<option value="واسط">واسط</option>
+<option value="ميسان">ميسان</option>
+<option value="المثنى">المثنى</option>
+<option value="القادسية">القادسية (الديوانية)</option>
+<option value="صلاح الدين">صلاح الدين</option>
+<option value="دهوك">دهوك</option>
+</select>
+<button onclick="saveMyCity()" class="ok" style="width:100%;margin-top:10px;padding:10px;font-size:13px">💾 حفظ المحافظة</button>
 </div>
 
 <div class="card" style="background:#fffbf0;border:2px solid #f39c12">
@@ -844,7 +974,31 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <button onclick="addNewAccount()">➕ إنشاء الحساب</button>
 </div>
 
+<!-- لوحة المدير -->
 <div class="card admin-card admin-only"><h2>👑 لوحة المدير</h2><div id="adminPanel"></div></div>
+
+<!-- لوحة إدارة الاشتراكات (admin only) -->
+<div class="card admin-only" style="background:#f0e8fd;border:2px solid #9b59b6">
+<h2>💳 إدارة الاشتراكات</h2>
+
+<!-- إحصائيات المستخدمين -->
+<div id="adminUserStats" style="margin-bottom:12px"></div>
+
+<!-- إعدادات الدفع -->
+<div style="background:#fff;border:2px solid #9b59b6;border-radius:10px;padding:10px;margin-bottom:12px">
+<div style="font-size:13px;font-weight:bold;color:#9b59b6;margin-bottom:8px">⚙️ إعدادات الدفع (تظهر للمستخدمين)</div>
+<div class="row"><input id="adminQiCardNum" placeholder="رقم Qi Card (مثال: 1234 5678 9012 3456)"></div>
+<div class="row"><input id="adminQiCardName" placeholder="اسم صاحب الكارت"></div>
+<div class="row"><input id="adminWhatsapp" placeholder="رقم WhatsApp (مثال: 0770XXXXXXX)"></div>
+<div class="row"><input id="adminPrice" type="number" placeholder="السعر (دينار عراقي)" min="0"></div>
+<div class="row"><input id="adminTrialDays" type="number" placeholder="أيام التجربة (افتراضي: 15)" min="0"></div>
+<button onclick="saveAdminPaymentSettings()" class="ok" style="width:100%;padding:10px">💾 حفظ الإعدادات</button>
+</div>
+
+<!-- قائمة المستخدمين -->
+<div style="font-size:13px;font-weight:bold;color:#9b59b6;margin-bottom:8px">👥 إدارة المستخدمين:</div>
+<div id="adminUsersList"></div>
+</div>
 
 <div class="card"><h2>👥 الحسابات المسجلة</h2><div id="accountsList"></div></div>
 
@@ -860,13 +1014,21 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 
 </div>
 
+<!-- ===== صفحة الاشتراك (مفصلة) ===== -->
+<div class="page" id="page-subscription">
+<div class="card" style="background:#fff8e6;border:2px solid #f39c12">
+<h2>💳 الاشتراك</h2>
+<div id="subscriptionPageContent"></div>
+</div>
+</div>
+
 </div>
 
 <!-- ============ الشريط السفلي ============ -->
 <div class="bottom-nav" id="bottomNav">
 <button class="active" data-page="home" onclick="gotoPage('home')"><span class="bn-icon">🏠</span><span>الرئيسية</span></button>
 <button data-page="archive" onclick="gotoPage('archive')"><span class="bn-icon">📦</span><span>الأرشيف</span></button>
-<button data-page="notif" class="admin-only" onclick="openNotif()"><span class="bn-icon">🔔</span><span>الإشعارات</span></button>
+<button data-page="more" onclick="gotoPage('more')"><span class="bn-icon">📋</span><span>المزيد</span></button>
 <button data-page="settings" onclick="gotoPage('settings')"><span class="bn-icon">⚙️</span><span>الإعدادات</span></button>
 </div>
 
@@ -886,7 +1048,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="notif-body" id="notifBody"></div>
 </div><script>
 // ===== التحديث التلقائي =====
-const APP_VERSION = "1.1";
+const APP_VERSION = "1.7";
 const APP_UPDATE_URL = "https://aliyuoohoogoogl-cmyk.github.io/flour/latest.json";
 
 async function checkForUpdates(){
@@ -963,12 +1125,45 @@ let _saleItems=[];
 let _depositItems=[];
 let _exReturnItems=[];
 let _exSwapItems=[];
-let cloudUnsubscribe=null;
 let _lastCloudState=null;
 let _lastCloudServerTime=0;
 let _isReceivingUpdate=false;
 let _skipNextMerge=false;
 let _lastSyncNotificationTime=0;
+
+let cloudMetaRef=null;
+let cloudSalesRef=null;
+let cloudDebtsRef=null;
+let cloudDepositsRef=null;
+let cloudPaymentsRef=null;
+let cloudExpensesRef=null;
+let cloudExchangesRef=null;
+let cloudCashAdditionsRef=null;
+let cloudReservationsRef=null;
+let cloudBuyersRef=null;
+let cloudCustomerPricesRef=null;
+let cloudFlourTypesRef=null;
+let cloudArchiveRef=null;
+let cloudOffersRef=null;
+let cloudPaymentSettingsRef=null;
+
+let _listeners = {};
+let _migrated = false;
+
+const IRAQ_CITIES = [
+  'بغداد','البصرة','نينوى','أربيل','النجف','كربلاء','الأنبار','ذي قار',
+  'السليمانية','بابل','ديالى','كركوك','واسط','ميسان','المثنى','القادسية',
+  'صلاح الدين','دهوك'
+];
+
+const DEFAULT_PRICE = 30000;
+const DEFAULT_TRIAL_DAYS = 15;
+const MAX_OFFERS_PER_DAY = 10;
+
+const SPLIT_CATEGORIES = [
+  'sales','debts','deposits','payments','expenses','exchanges',
+  'cashAdditions','reservations','buyers','customerPrices','flourTypes','archive'
+];
 
 const _deviceId=(function(){
 try{
@@ -988,15 +1183,19 @@ const firebaseConfig={apiKey:"AIzaSyAJ8kK9KxBDg8vjfFbEYYgnlik3zgzNjQg",authDomai
 let cloudEnabled=false;
 let cloudAccountsRef=null;
 let cloudDataRef=null;
+let _firestoreDB=null;
 
 function tryInitFirebase(){
 try{
 if(typeof firebase!=='undefined'&&firebase.initializeApp&&!cloudEnabled){
 firebase.initializeApp(firebaseConfig);
 const cloudDB=firebase.firestore();
+_firestoreDB=cloudDB;
 try{if(cloudDB.enablePersistence){cloudDB.enablePersistence({synchronizeTabs:true}).then(()=>{console.log('✅ Offline persistence');}).catch(err=>{console.warn('Persistence:',err.code);});}}catch(e){}
 cloudAccountsRef=cloudDB.collection('accounts');
 cloudDataRef=cloudDB.collection('userdata');
+cloudOffersRef=cloudDB.collection('offers');
+cloudPaymentSettingsRef=cloudDB.collection('shared').doc('paymentSettings');
 try{ window._auth = firebase.auth(); }catch(e){ console.warn('Auth init:', e); }
 cloudEnabled=true;
 console.log('✅ Firebase متصل');
@@ -1006,6 +1205,25 @@ setSyncStatus('ok','☁️ متزامن');
 }
 tryInitFirebase();
 let _fbt=0;const _fbi=setInterval(()=>{_fbt++;tryInitFirebase();if(cloudEnabled||_fbt>=10)clearInterval(_fbi);},1000);
+
+function _initUserRefs(username){
+  if(!_firestoreDB || !username) return;
+  const base = _firestoreDB.collection('userdata').doc(username);
+  cloudMetaRef = base.collection('meta').doc('config');
+  cloudSalesRef = base.collection('sales');
+  cloudDebtsRef = base.collection('debts');
+  cloudDepositsRef = base.collection('deposits');
+  cloudPaymentsRef = base.collection('payments');
+  cloudExpensesRef = base.collection('expenses');
+  cloudExchangesRef = base.collection('exchanges');
+  cloudCashAdditionsRef = base.collection('cashAdditions');
+  cloudReservationsRef = base.collection('reservations');
+  cloudBuyersRef = base.collection('buyers');
+  cloudCustomerPricesRef = base.collection('customerPrices');
+  cloudFlourTypesRef = base.collection('flourTypes');
+  cloudArchiveRef = base.collection('archive');
+  console.log('✅ تم تهيئة مراجع المستخدم:', username);
+}
 
 function setSyncStatus(s,t){const c={ok:'#27ae60',err:'#c0392b',loading:'#7f8c8d',warn:'#f39c12'};const a=document.getElementById('syncIndicator');const b=document.getElementById('syncStatusBig');if(a){a.textContent=t;a.style.background=c[s]||'#7f8c8d';}if(b){b.textContent=t;b.style.background=c[s]||'#7f8c8d';}}
 
@@ -1031,7 +1249,13 @@ function hash(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i
 function getAccounts(){try{return JSON.parse(localStorage.getItem(ACC_KEY))||[];}catch(e){return[];}}
 function saveAccounts(a){localStorage.setItem(ACC_KEY,JSON.stringify(a));saveAccountsCloud(a);}
 
-function emptyDB(){return{flourTypes:[],sales:[],debts:[],deposits:[],payments:[],expenses:[],archive:[],buyers:[],reservations:[],cashAdditions:[],customerPrices:[],exchanges:[],_notifications:[],_manualOverrides:{},_lastSaved:0,_needsSync:false,_pendingUpload:false,_permanentCarry:0,_cashboxOffset:0,_deleted:{}};}
+function emptyDB(){return{
+  flourTypes:[],sales:[],debts:[],deposits:[],payments:[],expenses:[],
+  archive:[],buyers:[],reservations:[],cashAdditions:[],customerPrices:[],
+  exchanges:[],_notifications:[],_manualOverrides:{},_lastSaved:0,
+  _needsSync:false,_pendingUpload:false,_permanentCarry:0,_cashboxOffset:0,
+  _deleted:{},myOffers:[],_migratedToSplit:false
+};}
 
 function showError(m){const e=document.getElementById('authError');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),4000);}
 
@@ -1077,6 +1301,7 @@ if(!d.exchanges) d.exchanges=[];
 if(!d._notifications) d._notifications=[];
 if(!d._deleted) d._deleted={};
 if(!d._manualOverrides) d._manualOverrides={};
+if(!d.myOffers) d.myOffers=[];
 if(d._permanentCarry === undefined) d._permanentCarry=0;
 if(d._cashboxOffset === undefined) d._cashboxOffset=0;
 if(d._lastArchiveAt === undefined) d._lastArchiveAt=null;
@@ -1088,331 +1313,1258 @@ if(dep._usedMoney === undefined) dep._usedMoney=0;
 });
 }
 
-function _applyCloudDB(cloudDb){
-if(!cloudDb) return false;
-const _localBackup = db;
-try{
-_fixDBFields(cloudDb);
-const _beforeSnapshot = JSON.stringify(db);
+// ═══════════════════════════════════════════════════════════
+// ✅ نظام التقسيم
+// ═══════════════════════════════════════════════════════════
 
-if(db && db._pendingUpload === true){
-  console.log('⏸️ رفع معلّق — تم تجاهل تحديث السحابة');
-  return false;
+function _getCategoryRef(category){
+  const map = {
+    sales: cloudSalesRef, debts: cloudDebtsRef, deposits: cloudDepositsRef,
+    payments: cloudPaymentsRef, expenses: cloudExpensesRef, exchanges: cloudExchangesRef,
+    cashAdditions: cloudCashAdditionsRef, reservations: cloudReservationsRef,
+    buyers: cloudBuyersRef, customerPrices: cloudCustomerPricesRef,
+    flourTypes: cloudFlourTypesRef, archive: cloudArchiveRef
+  };
+  return map[category] || null;
 }
 
-if(cloudDb._lastActionBy === _deviceId){
-  console.log('⏭️ نفس الجهاز — تجاهل');
-  return false;
+async function _uploadSplitItem(category, item){
+  if(!cloudEnabled || !item || !item.id) return false;
+  const ref = _getCategoryRef(category);
+  if(!ref) return false;
+  try{
+    await ref.doc(item.id).set({...item, _lastActionBy: _deviceId, _uploadedAt: Date.now()});
+    return true;
+  }catch(e){ console.warn('upload split item failed:', e); return false; }
 }
 
-const _localManual = (db && db._manualOverrides) ? JSON.parse(JSON.stringify(db._manualOverrides)) : {};
+async function _uploadMetaConfig(){
+  if(!cloudEnabled || !cloudMetaRef) return false;
+  try{
+    const meta = {
+      _permanentCarry: db._permanentCarry || 0,
+      _cashboxOffset: db._cashboxOffset || 0,
+      _lastArchiveAt: db._lastArchiveAt || null,
+      _manualOverrides: db._manualOverrides || {},
+      _notifications: (db._notifications || []).slice(0, 20),
+      _lastSaved: db._lastSaved,
+      _lastActionBy: _deviceId,
+      _actionId: db._actionId,
+      _migratedToSplit: db._migratedToSplit || false,
+      _migratedAt: db._migratedAt || null,
+      _uploadedAt: Date.now()
+    };
+    await cloudMetaRef.set(meta);
+    return true;
+  }catch(e){ console.warn('upload meta failed:', e); return false; }
+}
 
-const localTime = +db._lastSaved || 0;
-const cloudTime = +cloudDb._lastSaved || 0;
+async function _loadSplitCategory(category){
+  if(!cloudEnabled) return [];
+  const ref = _getCategoryRef(category);
+  if(!ref) return [];
+  try{
+    const snap = await ref.get();
+    const items = [];
+    snap.forEach(doc => { const data = doc.data(); if(data) items.push(data); });
+    return items;
+  }catch(e){ console.warn('load split category failed:', e); return []; }
+}
 
-console.log('🔍 _applyCloudDB:', {localTime, cloudTime, cloudIsNewer: cloudTime > localTime});
-
-if(cloudTime > localTime){
-  db = Object.assign(emptyDB(), cloudDb);
-  _fixDBFields(db);
-  if(!db._manualOverrides) db._manualOverrides={};
-  Object.keys(_localManual).forEach(k=>{
-    const localTS = _localManual[k].timestamp || 0;
-    const cloudTS = (db._manualOverrides[k] && db._manualOverrides[k].timestamp) || 0;
-    if(localTS > cloudTS){
-      db._manualOverrides[k] = _localManual[k];
+async function _migrateToSplitDocs(){
+  if(!cloudEnabled || !cloudMetaRef) return false;
+  try{
+    const metaDoc = await cloudMetaRef.get();
+    if(metaDoc.exists && metaDoc.data() && metaDoc.data()._migratedToSplit === true){
+      _migrated = true;
+      db._migratedToSplit = true;
+      return true;
     }
-  });
-  try{localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db));}catch(e){}
-  console.log('✅ تم استبدال البيانات من السحابة');
-  return true;
-}
-return _beforeSnapshot !== JSON.stringify(db);
-}catch(e){
-console.error('_applyCloudDB error:', e);
-db = _localBackup;
-return false;
-}
+    
+    const oldDoc = await cloudDataRef.doc(currentUser).get();
+    if(!oldDoc.exists || !oldDoc.data() || !oldDoc.data().data){
+      await cloudMetaRef.set({
+        _migratedToSplit: true, _migratedAt: Date.now(),
+        _lastActionBy: _deviceId,
+        _permanentCarry: db._permanentCarry || 0,
+        _cashboxOffset: db._cashboxOffset || 0,
+        _manualOverrides: db._manualOverrides || {},
+        _notifications: [],
+        _lastSaved: db._lastSaved || Date.now()
+      });
+      db._migratedToSplit = true;
+      _migrated = true;
+      return true;
+    }
+    
+    const oldData = oldDoc.data().data;
+    toast('📦 جاري ترحيل البيانات...');
+    
+    let totalItems = 0;
+    for(const category of SPLIT_CATEGORIES){
+      const items = Array.isArray(oldData[category]) ? oldData[category] : [];
+      const ref = _getCategoryRef(category);
+      if(!ref) continue;
+      
+      let batchCount = 0;
+      let batch = _firestoreDB.batch();
+      for(const item of items){
+        if(!item || !item.id) continue;
+        batch.set(ref.doc(item.id), {...item, _lastActionBy: _deviceId, _uploadedAt: Date.now(), _migrated: true});
+        batchCount++; totalItems++;
+        if(batchCount >= 400){
+          await batch.commit();
+          batch = _firestoreDB.batch();
+          batchCount = 0;
+        }
+      }
+      if(batchCount > 0) await batch.commit();
+    }
+    
+    await cloudMetaRef.set({
+      _permanentCarry: oldData._permanentCarry || 0,
+      _cashboxOffset: oldData._cashboxOffset || 0,
+      _lastArchiveAt: oldData._lastArchiveAt || null,
+      _manualOverrides: oldData._manualOverrides || {},
+      _notifications: (oldData._notifications || []).slice(0, 20),
+      _lastSaved: oldData._lastSaved || Date.now(),
+      _lastActionBy: _deviceId,
+      _migratedToSplit: true,
+      _migratedAt: Date.now()
+    });
+    
+    db._migratedToSplit = true;
+    db._migratedAt = Date.now();
+    _migrated = true;
+    toast(`✅ تم الترحيل — ${totalItems} عنصر`);
+    return true;
+  }catch(e){
+    console.error('Migration failed:', e);
+    toast('⚠️ فشل الترحيل', true);
+    return false;
+  }
 }
 
-function _mergeFlourTypesList(localList, cloudList){
-const map = new Map();
-(cloudList||[]).forEach(t=>{
-if(!t || !t.id) return;
-map.set(t.id, JSON.parse(JSON.stringify(t)));
-});
-(localList||[]).forEach(t=>{
-if(!t || !t.id) return;
-if(!map.has(t.id)){
-map.set(t.id, JSON.parse(JSON.stringify(t)));
-} else {
-const cloudT = map.get(t.id);
-const lt = t._editedAt || 0;
-const ct = cloudT._editedAt || 0;
-let finalT;
-if(lt >= ct){
-finalT = JSON.parse(JSON.stringify(t));
-} else {
-finalT = JSON.parse(JSON.stringify(cloudT));
+// ═══════════════════════════════════════════════════════════
+// ✅ checkSubscription
+// ═══════════════════════════════════════════════════════════
+function checkSubscription(){
+  if(!currentAccount) return 'expired';
+  if(currentAccount.role === 'admin') return 'admin';
+  
+  if(!currentAccount.subscription){
+    const accs = getAccounts();
+    const fresh = accs.find(a => a.username === currentUser);
+    if(fresh) currentAccount = fresh;
+  }
+  
+  const sub = currentAccount.subscription || {};
+  if(sub.isFreeForever) return 'free';
+  
+  const now = Date.now();
+  if(sub.paidUntil && new Date(sub.paidUntil).getTime() > now) return 'paid';
+  if(sub.trialEndsAt && new Date(sub.trialEndsAt).getTime() > now) return 'trial';
+  return 'expired';
 }
-const localSold = +t.totalSold || 0;
-const cloudSold = +cloudT.totalSold || 0;
-if(localSold > cloudSold){
-finalT.totalSold = localSold;
+
+// ═══════════════════════════════════════════════════════════
+// ✅ renderSubscriptionInfo
+// ═══════════════════════════════════════════════════════════
+function renderSubscriptionInfo(){
+  const el = document.getElementById('subscriptionInfo');
+  if(!el) return;
+  
+  if(!currentAccount){ el.innerHTML = '<div style="text-align:center;color:#888">—</div>'; return; }
+  
+  if(!currentAccount.subscription){
+    const accs = getAccounts();
+    const idx = accs.findIndex(a => a.username === currentUser);
+    if(idx !== -1){
+      if(!accs[idx].subscription){
+        const createdAt = accs[idx].createdAt ? new Date(accs[idx].createdAt) : new Date();
+        const trialEnds = new Date(createdAt.getTime() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000);
+        accs[idx].subscription = {
+          trialEndsAt: trialEnds.toISOString(),
+          paidUntil: null,
+          isFreeForever: accs[idx].role === 'admin',
+          lastPayment: null,
+          payments: []
+        };
+        saveAccounts(accs);
+      }
+      currentAccount = accs[idx];
+    }
+  }
+  
+  const status = checkSubscription();
+  const sub = currentAccount?.subscription || {};
+  const now = Date.now();
+  
+  let h = '';
+  
+  if(status === 'admin'){
+    h = `<div style="text-align:center;padding:10px">
+      <div style="font-size:32px;margin-bottom:6px">👑</div>
+      <div style="font-size:14px;font-weight:bold;color:#8B4513">حساب المدير</div>
+      <div style="font-size:12px;color:#27ae60;margin-top:4px">✅ مجاني للأبد</div>
+    </div>`;
+  }
+  else if(status === 'free'){
+    h = `<div style="text-align:center;padding:10px">
+      <div style="font-size:32px;margin-bottom:6px">🎁</div>
+      <div style="font-size:14px;font-weight:bold;color:#27ae60">مجاني للأبد</div>
+    </div>`;
+  }
+  else if(status === 'paid'){
+    const days = Math.ceil((new Date(sub.paidUntil).getTime() - now) / (1000*60*60*24));
+    h = `<div style="text-align:center;padding:10px">
+      <div style="font-size:32px;margin-bottom:6px">✅</div>
+      <div style="font-size:14px;font-weight:bold;color:#27ae60">اشتراك نشط</div>
+      <div style="font-size:12px;color:#666;margin-top:4px">متبقي: <b style="color:#8B4513">${days} يوم</b></div>
+      <div style="font-size:11px;color:#888;margin-top:4px">ينتهي: ${fmt(sub.paidUntil)}</div>
+    </div>`;
+  }
+  else if(status === 'trial'){
+    const days = Math.ceil((new Date(sub.trialEndsAt).getTime() - now) / (1000*60*60*24));
+    h = `<div style="text-align:center;padding:10px">
+      <div style="font-size:32px;margin-bottom:6px">🎁</div>
+      <div style="font-size:14px;font-weight:bold;color:#f39c12">فترة تجريبية</div>
+      <div style="font-size:12px;color:#666;margin-top:4px">متبقي: <b style="color:#c0392b">${days} يوم</b></div>
+      <div style="font-size:11px;color:#888;margin-top:4px">ينتهي: ${fmt(sub.trialEndsAt)}</div>
+    </div>`;
+  }
+  else {
+    h = `<div style="text-align:center;padding:10px">
+      <div style="font-size:32px;margin-bottom:6px">⚠️</div>
+      <div style="font-size:14px;font-weight:bold;color:#c0392b">انتهى الاشتراك</div>
+      <div style="font-size:12px;color:#666;margin-top:4px">اشترك الآن للمزامنة</div>
+    </div>`;
+  }
+  
+  el.innerHTML = h;
 }
-map.set(t.id, finalT);
+
+function renderSubscriptionBar(){
+  const bar = document.getElementById('subscriptionBar');
+  if(!bar) return;
+  
+  const status = checkSubscription();
+  
+  if(status === 'admin' || status === 'free' || status === 'paid'){
+    bar.style.display = 'none';
+    return;
+  }
+  
+  const sub = currentAccount?.subscription || {};
+  const now = Date.now();
+  
+  if(status === 'trial'){
+    const days = Math.ceil((new Date(sub.trialEndsAt).getTime() - now) / (1000*60*60*24));
+    if(days <= 3){
+      bar.style.display = 'block';
+      bar.style.background = 'linear-gradient(135deg,#f39c12,#e67e22)';
+      bar.style.color = '#fff';
+      bar.innerHTML = `⚠️ متبقي <b>${days} يوم</b> من التجربة — <a onclick="gotoPage('subscription')" style="color:#fff;text-decoration:underline;cursor:pointer">اشترك الآن</a>`;
+    } else {
+      bar.style.display = 'none';
+    }
+  } else {
+    bar.style.display = 'block';
+    bar.style.background = 'linear-gradient(135deg,#e74c3c,#c0392b)';
+    bar.style.color = '#fff';
+    bar.innerHTML = `⚠️ <b>انتهى الاشتراك</b> — المزامنة معطلة — <a onclick="gotoPage('subscription')" style="color:#fff;text-decoration:underline;cursor:pointer">اشترك الآن</a>`;
+  }
 }
-});
-return Array.from(map.values());
+
+async function loadPaymentSettings(){
+  if(!cloudEnabled || !cloudPaymentSettingsRef) return null;
+  try{
+    const doc = await cloudPaymentSettingsRef.get();
+    if(doc.exists && doc.data()) return doc.data();
+  }catch(e){ console.warn('loadPaymentSettings:', e); }
+  return { qiCardNumber: '', qiCardName: '', whatsapp: '', price: DEFAULT_PRICE, trialDays: DEFAULT_TRIAL_DAYS };
+}
+
+async function saveAdminPaymentSettings(){
+  if(!isAdmin()) return toast('غير مصرح', true);
+  if(!cloudEnabled || !cloudPaymentSettingsRef) return toast('❌ لا يوجد اتصال', true);
+  
+  const qiCardNumber = document.getElementById('adminQiCardNum')?.value.trim() || '';
+  const qiCardName = document.getElementById('adminQiCardName')?.value.trim() || '';
+  const whatsapp = document.getElementById('adminWhatsapp')?.value.trim() || '';
+  const price = +document.getElementById('adminPrice')?.value || DEFAULT_PRICE;
+  const trialDays = +document.getElementById('adminTrialDays')?.value || DEFAULT_TRIAL_DAYS;
+  
+  try{
+    await cloudPaymentSettingsRef.set({
+      qiCardNumber, qiCardName, whatsapp, price, trialDays,
+      updatedAt: Date.now(), updatedBy: currentUser
+    });
+    toast('✅ تم حفظ الإعدادات');
+  }catch(e){ console.error(e); toast('❌ فشل الحفظ', true); }
+}
+
+async function renderSubscriptionPage(){
+  const el = document.getElementById('subscriptionPageContent');
+  if(!el) return;
+  
+  el.innerHTML = '<div style="text-align:center;padding:20px">⏳ جاري التحميل...</div>';
+  
+  const settings = await loadPaymentSettings();
+  const status = checkSubscription();
+  const sub = currentAccount?.subscription || {};
+  const now = Date.now();
+  
+  let h = '';
+  
+  if(status === 'admin' || status === 'free' || status === 'paid'){
+    let emoji = status === 'admin' ? '👑' : (status === 'free' ? '🎁' : '✅');
+    let title = status === 'admin' ? 'حساب المدير' : (status === 'free' ? 'مجاني للأبد' : 'اشتراك نشط');
+    let info = '';
+    
+    if(status === 'paid'){
+      const days = Math.ceil((new Date(sub.paidUntil).getTime() - now) / (1000*60*60*24));
+      info = `<div style="font-size:13px;color:#666;margin-top:6px">متبقي: <b style="color:#8B4513">${days} يوم</b></div>
+             <div style="font-size:11px;color:#888;margin-top:2px">ينتهي: ${fmt(sub.paidUntil)}</div>`;
+    }
+    
+    h = `<div style="text-align:center;padding:20px">
+      <div style="font-size:60px;margin-bottom:10px">${emoji}</div>
+      <div style="font-size:18px;font-weight:bold;color:#27ae60;margin-bottom:8px">${title}</div>
+      ${info}
+      <div style="font-size:13px;color:#888;margin-top:14px">ما تحتاج اشتراك حالي</div>
+    </div>`;
+    el.innerHTML = h;
+    return;
+  }
+  
+  let statusText = '';
+  if(status === 'trial'){
+    const days = Math.ceil((new Date(sub.trialEndsAt).getTime() - now) / (1000*60*60*24));
+    statusText = `<div style="background:#fff3e0;border:2px solid #f39c12;border-radius:10px;padding:12px;margin-bottom:12px;text-align:center">
+      <div style="font-size:14px;font-weight:bold;color:#e67e22">🎁 فترة تجريبية</div>
+      <div style="font-size:12px;color:#666;margin-top:4px">متبقي: <b style="color:#c0392b">${days} يوم</b></div>
+    </div>`;
+  } else {
+    statusText = `<div style="background:#ffe5e5;border:2px solid #c0392b;border-radius:10px;padding:12px;margin-bottom:12px;text-align:center">
+      <div style="font-size:14px;font-weight:bold;color:#c0392b">⚠️ انتهى الاشتراك</div>
+      <div style="font-size:12px;color:#666;margin-top:4px">المزامنة معطلة — اشترك للمتابعة</div>
+    </div>`;
+  }
+  
+  h = statusText;
+  
+  h += `<div style="text-align:center;padding:10px 0">
+    <div style="font-size:15px;font-weight:bold;color:#8B4513;margin-bottom:10px">💰 اشترك الآن</div>
+    <div style="font-size:24px;font-weight:bold;color:#c0392b">${money(settings.price)} د.ع</div>
+    <div style="font-size:12px;color:#666;margin-top:4px">20$ / شهرياً</div>
+  </div>`;
+  
+  h += `<div style="background:#f0f7fc;border:2px solid #3498db;border-radius:10px;padding:12px;margin-bottom:10px">
+    <div style="font-size:13px;font-weight:bold;color:#2980b9;margin-bottom:8px">💳 طريقة الدفع</div>
+    <div style="font-size:12px;color:#666;line-height:2;text-align:center">
+      <div>📱 <b>Qi Card:</b></div>
+      <div style="direction:ltr;font-size:14px;font-weight:bold;color:#8B4513;margin:6px 0">${settings.qiCardNumber || '— يُحدد قريباً —'}</div>
+      <div style="font-size:11px;color:#888">${settings.qiCardName || ''}</div>
+      ${settings.qiCardNumber ? `<button onclick="copyText('${settings.qiCardNumber}')" class="small blue" style="margin-top:6px">📋 نسخ الرقم</button>` : ''}
+    </div>
+  </div>`;
+  
+  h += `<div style="background:#f0f9f2;border:2px solid #27ae60;border-radius:10px;padding:12px;margin-bottom:10px">
+    <div style="font-size:13px;font-weight:bold;color:#1e8449;margin-bottom:8px">📞 بعد التحويل، أرسل:</div>
+    <div style="font-size:12px;color:#666;line-height:1.8">
+      • صورة الحوالة<br>
+      • رقم حسابك (${currentUser})<br>
+      • اسمك الكامل
+    </div>
+    ${settings.whatsapp ? `<a href="https://wa.me/${settings.whatsapp.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('مرحباً، أنا ' + (currentAccount?.fullName || currentUser) + '\nحسابي: ' + currentUser + '\nأريد تفعيل الاشتراك')}" target="_blank" style="display:block;margin-top:10px;text-align:center;background:#27ae60;color:#fff;padding:12px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:13px">📱 فتح WhatsApp</a>` : '<div style="text-align:center;color:#888;font-size:12px;padding:8px">— يُحدد رقم WhatsApp قريباً —</div>'}
+  </div>`;
+  
+  h += `<div style="background:#fff8e6;border:2px dashed #f39c12;border-radius:10px;padding:12px;text-align:center;font-size:12px;color:#8B4513;line-height:1.6">
+    ⏱️ بعد التحقق من الحوالة،<br>يتم تفعيل حسابك خلال ساعات
+  </div>`;
+  
+  el.innerHTML = h;
+}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ نظام العروض
+// ═══════════════════════════════════════════════════════════
+
+function saveMyCity(){
+  const city = document.getElementById('settingsCity')?.value;
+  if(!city) return toast('اختر محافظتك', true);
+  
+  if(!currentAccount) return;
+  const accs = getAccounts();
+  const idx = accs.findIndex(a => a.username === currentUser);
+  if(idx === -1) return toast('الحساب غير موجود', true);
+  
+  accs[idx].city = city;
+  
+  if(!accs[idx].subscription){
+    const createdAt = accs[idx].createdAt ? new Date(accs[idx].createdAt) : new Date();
+    accs[idx].subscription = {
+      trialEndsAt: new Date(createdAt.getTime() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+      paidUntil: null,
+      isFreeForever: accs[idx].role === 'admin',
+      lastPayment: null,
+      payments: []
+    };
+  }
+  
+  saveAccounts(accs);
+  currentAccount = JSON.parse(JSON.stringify(accs[idx]));
+  console.log('✅ تم حفظ المحافظة:', city, '— currentAccount.city:', currentAccount.city);
+  
+  const display = document.getElementById('myCityDisplay');
+  if(display) display.textContent = city;
+  
+  toast('✅ تم حفظ محافظتك: ' + city);
+  
+  if(typeof renderSubscriptionInfo === 'function') renderSubscriptionInfo();
+  if(typeof _listenToOffers === 'function') _listenToOffers();
+  if(typeof loadOffers === 'function') loadOffers();
+  if(typeof loadMyOffers === 'function') loadMyOffers();
+}
+
+function loadMyCity(){
+  const accs = getAccounts();
+  const fresh = accs.find(a => a.username === currentUser);
+  if(fresh) currentAccount = fresh;
+  
+  const city = currentAccount?.city || '';
+  const settingsCity = document.getElementById('settingsCity');
+  if(settingsCity) settingsCity.value = city;
+  
+  const display = document.getElementById('myCityDisplay');
+  if(display) display.textContent = city || '— لم تحدد بعد —';
+  
+  return city;
+}
+
+function renderCitiesCheckboxes(){
+  const wrap = document.getElementById('citiesWrap');
+  if(!wrap) return;
+  
+  const myCity = currentAccount?.city || '';
+  
+  let h = '';
+  IRAQ_CITIES.forEach(city => {
+    const checked = city === myCity ? ' checked' : '';
+    h += `<label style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:#fff;border:1px solid #ddd;border-radius:6px;font-size:12px;cursor:pointer">
+      <input type="checkbox" class="city-checkbox" value="${city}"${checked} onchange="updateSelectedCitiesCount()" style="width:auto;min-width:auto">
+      ${city}
+    </label>`;
+  });
+  wrap.innerHTML = h;
+  updateSelectedCitiesCount();
+}
+
+function updateSelectedCitiesCount(){
+  const count = document.querySelectorAll('.city-checkbox:checked').length;
+  const el = document.getElementById('selectedCitiesCount');
+  if(el) el.textContent = count;
+}
+
+function selectAllCities(){
+  document.querySelectorAll('.city-checkbox').forEach(cb => cb.checked = true);
+  updateSelectedCitiesCount();
+}
+
+function clearAllCities(){
+  document.querySelectorAll('.city-checkbox').forEach(cb => cb.checked = false);
+  updateSelectedCitiesCount();
+}
+
+function showSendOfferForm(){
+  const accs = getAccounts();
+  const fresh = accs.find(a => a.username === currentUser);
+  if(fresh) currentAccount = fresh;
+  
+  const myCity = currentAccount?.city || '';
+  console.log('🔍 showSendOfferForm — currentAccount.city:', myCity);
+  
+  if(!myCity){
+    return toast('⚠️ حدد محافظتك أولاً من الإعدادات', true);
+  }
+  
+  renderCitiesCheckboxes();
+  document.getElementById('sendOfferForm').style.display = 'block';
+  updateOfferLimit();
+}
+
+function cancelSendOffer(){
+  document.getElementById('sendOfferForm').style.display = 'none';
+  document.getElementById('offerTitle').value = '';
+  document.getElementById('offerText').value = '';
+  document.getElementById('offerPhone').value = '';
+  clearAllCities();
+}
+
+function updateOfferLimit(){
+  const info = document.getElementById('offerLimitInfo');
+  if(!info) return;
+  
+  const today = new Date().toDateString();
+  const myOffers = db?.myOffers || [];
+  const offersToday = myOffers.filter(o => new Date(o.date).toDateString() === today);
+  const remaining = Math.max(0, MAX_OFFERS_PER_DAY - offersToday.length);
+  
+  if(remaining === 0){
+    info.innerHTML = '⚠️ <b style="color:#c0392b">وصلت للحد الأقصى اليوم (10 عروض)</b>';
+  } else {
+    info.innerHTML = `💡 متبقي لك: <b style="color:#27ae60">${remaining}</b> عرض / ${MAX_OFFERS_PER_DAY}`;
+  }
+}
+
+async function sendOffer(){
+  const title = document.getElementById('offerTitle')?.value.trim();
+  const text = document.getElementById('offerText')?.value.trim();
+  const phone = document.getElementById('offerPhone')?.value.trim();
+  const cities = Array.from(document.querySelectorAll('.city-checkbox:checked')).map(cb => cb.value);
+  
+  if(!title) return toast('اكتب العنوان', true);
+  if(title.length > 60) return toast('العنوان طويل جداً', true);
+  if(!text) return toast('اكتب التفاصيل', true);
+  if(!phone) return toast('اكتب رقم الاتصال', true);
+  if(!/^07[0-9]{9}$/.test(phone)) return toast('رقم غير صحيح (11 رقم يبدأ بـ 07)', true);
+  if(!cities.length) return toast('اختر محافظة على الأقل', true);
+  
+  const today = new Date().toDateString();
+  const myOffers = db?.myOffers || [];
+  const offersToday = myOffers.filter(o => new Date(o.date).toDateString() === today);
+  if(offersToday.length >= MAX_OFFERS_PER_DAY){
+    return toast(`⚠️ وصلت للحد الأقصى (${MAX_OFFERS_PER_DAY} عروض/يوم)`, true);
+  }
+  
+  const offer = {
+    id: uid(),
+    from: currentUser,
+    fromName: currentAccount?.fullName || currentUser,
+    fromCity: currentAccount?.city || '',
+    title: title,
+    text: text,
+    phone: phone,
+    cities: cities,
+    date: nowISO(),
+    _editedAt: Date.now()
+  };
+  
+  try{
+    if(!cloudEnabled || !cloudOffersRef){
+      return toast('❌ لا يوجد اتصال بالإنترنت', true);
+    }
+    
+    await cloudOffersRef.doc(offer.id).set(offer);
+    
+    if(!db.myOffers) db.myOffers = [];
+    db.myOffers.push(offer);
+    save();
+    
+    cancelSendOffer();
+    updateOfferLimit();
+    
+    toast(`✅ تم إرسال العرض لـ ${cities.length} محافظة`);
+    
+    // ✅ تحديث عروضي
+    if(typeof loadMyOffers === 'function') loadMyOffers();
+    // ✅ تحديث عروض محافظتي (لأي شخص آخر)
+    loadOffers();
+  }catch(e){
+    console.error(e);
+    toast('❌ فشل الإرسال', true);
+  }
+}
+
+// ✅ عروض محافظتي (من الآخرين) — بدون Firebase Index
+async function loadOffers(){
+  const list = document.getElementById('offersList');
+  if(!list) return;
+  
+  const accs = getAccounts();
+  const fresh = accs.find(a => a.username === currentUser);
+  if(fresh) currentAccount = fresh;
+  
+  const myCity = currentAccount?.city || '';
+  if(!myCity){
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:#888;font-size:13px">📍 حدد محافظتك من الإعدادات لرؤية العروض</div>';
+    return;
+  }
+  
+  list.innerHTML = '<div style="text-align:center;padding:20px;color:#888">⏳ جاري التحميل...</div>';
+  
+  if(!cloudEnabled || !cloudOffersRef){
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:#c0392b">❌ لا يوجد اتصال بالإنترنت</div>';
+    return;
+  }
+  
+  try{
+    const snapshot = await cloudOffersRef
+      .orderBy('date', 'desc')
+      .limit(100)
+      .get();
+    
+    const offers = [];
+    const now = Date.now();
+    const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
+    
+    snapshot.forEach(doc => {
+      const offer = doc.data();
+      if(!offer) return;
+      if(new Date(offer.date).getTime() < sevenDaysAgo) return;
+      if(!Array.isArray(offer.cities)) return;
+      if(!offer.cities.includes(myCity)) return;
+      offers.push(offer);
+    });
+    
+    // ✅ استبعد عروضي (لأنها في قسم "عروضي أنا")
+    const others = offers.filter(o => o.from !== currentUser);
+    
+    if(!others.length){
+      list.innerHTML = '<div style="text-align:center;padding:20px;color:#888;font-size:13px">📭 لا توجد عروض حالياً في محافظتك</div>';
+      return;
+    }
+    
+    let h = '';
+    others.forEach(offer => {
+      const timeAgo = getTimeAgo(offer.date);
+      h += `<div style="background:#fff;border:2px solid #f39c12;border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
+          <div style="font-size:14px;font-weight:bold;color:#8B4513">${offer.title}</div>
+          <div style="font-size:10px;color:#888;white-space:nowrap">${timeAgo}</div>
+        </div>
+        <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:8px">${offer.text}</div>
+        <div style="font-size:11px;color:#666;margin-bottom:8px">
+          👤 ${offer.fromName} ${offer.fromCity ? ' — 📍 ' + offer.fromCity : ''}
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <a href="tel:${offer.phone}" style="flex:1;text-align:center;background:#27ae60;color:#fff;padding:8px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px">📞 اتصل</a>
+          <a href="https://wa.me/964${offer.phone.substring(1)}?text=${encodeURIComponent('مرحباً، شفت عرضك: ' + offer.title)}" target="_blank" style="flex:1;text-align:center;background:#25D366;color:#fff;padding:8px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px">💬 واتساب</a>
+          <button onclick="copyText('${offer.phone}')" style="flex:0 0 auto;background:#f39c12;color:#fff;padding:8px 12px;border-radius:6px;font-weight:bold;font-size:12px;border:none">📋</button>
+        </div>
+      </div>`;
+    });
+    
+    list.innerHTML = h;
+  }catch(e){
+    console.warn('loadOffers:', e);
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:#c0392b">❌ فشل تحميل العروض</div>';
+  }
+}
+
+// ✅ عروضي أنا
+async function loadMyOffers(){
+  const list = document.getElementById('myOffersList');
+  if(!list) return;
+  
+  const myOffers = db?.myOffers || [];
+  
+  if(!myOffers.length){
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:#888;font-size:13px">📭 ما عندك عروض منشورة</div>';
+    return;
+  }
+  
+  // ✅ رتب من الأحدث
+  const sorted = [...myOffers].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  
+  let h = '';
+  sorted.forEach(offer => {
+    const timeAgo = getTimeAgo(offer.date);
+    const citiesCount = (offer.cities || []).length;
+    const citiesList = (offer.cities || []).slice(0, 3).join(' ، ');
+    const moreCities = citiesCount > 3 ? ` +${citiesCount - 3}` : '';
+    
+    h += `<div style="background:#f0f7fc;border:2px solid #3498db;border-radius:10px;padding:12px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
+        <div style="font-size:14px;font-weight:bold;color:#2980b9">${offer.title}</div>
+        <div style="font-size:10px;color:#888;white-space:nowrap">${timeAgo}</div>
+      </div>
+      <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:8px">${offer.text}</div>
+      <div style="font-size:11px;color:#666;margin-bottom:4px">
+        📍 <b>${citiesCount}</b> محافظة: ${citiesList}${moreCities}
+      </div>
+      <div style="font-size:11px;color:#666;margin-bottom:8px">
+        📱 ${offer.phone}
+      </div>
+      <div style="display:flex;gap:6px">
+        <button onclick="deleteMyOffer('${offer.id}')" class="small danger" style="flex:1;padding:8px;font-size:12px">🗑️ حذف</button>
+      </div>
+    </div>`;
+  });
+  
+  list.innerHTML = h;
+}
+
+// ✅ حذف عرض
+async function deleteMyOffer(offerId){
+  if(!confirm('حذف هذا العرض نهائياً؟')) return;
+  
+  try{
+    // ✅ احذف من Firebase
+    if(cloudEnabled && cloudOffersRef){
+      await cloudOffersRef.doc(offerId).delete();
+    }
+    
+    // ✅ احذف من المحلي
+    if(db && db.myOffers){
+      db.myOffers = db.myOffers.filter(o => o.id !== offerId);
+      save();
+    }
+    
+    toast('✅ تم حذف العرض');
+    loadMyOffers();
+  }catch(e){
+    console.error(e);
+    toast('❌ فشل الحذف', true);
+  }
+}
+
+function getTimeAgo(dateStr){
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diff = now - then;
+  
+  if(diff < 60000) return 'الآن';
+  if(diff < 3600000) return `منذ ${Math.floor(diff / 60000)} دقيقة`;
+  if(diff < 86400000) return `منذ ${Math.floor(diff / 3600000)} ساعة`;
+  if(diff < 604800000) return `منذ ${Math.floor(diff / 86400000)} يوم`;
+  return fmtShort(dateStr);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ دوال المدير
+// ═══════════════════════════════════════════════════════════
+
+function loadAdminUserStats(){
+  const el = document.getElementById('adminUserStats');
+  if(!el) return;
+  
+  const accs = getAccounts();
+  let active = 0, trial = 0, expired = 0, adminCount = 0, freeCount = 0;
+  const now = Date.now();
+  
+  accs.forEach(a => {
+    if(a.role === 'admin'){ adminCount++; return; }
+    const sub = a.subscription || {};
+    if(sub.isFreeForever){ freeCount++; return; }
+    if(sub.paidUntil && new Date(sub.paidUntil).getTime() > now){ active++; return; }
+    if(sub.trialEndsAt && new Date(sub.trialEndsAt).getTime() > now){ trial++; return; }
+    expired++;
+  });
+  
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="background:#e8f2fd;border:2px solid #3498db;border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:22px;font-weight:bold;color:#2980b9">${accs.length}</div>
+        <div style="font-size:11px;color:#666;font-weight:bold">👥 إجمالي</div>
+      </div>
+      <div style="background:#e8f9ee;border:2px solid #27ae60;border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:22px;font-weight:bold;color:#1e8449">${active}</div>
+        <div style="font-size:11px;color:#666;font-weight:bold">✅ مشتركين</div>
+      </div>
+      <div style="background:#fdf5e0;border:2px solid #f39c12;border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:22px;font-weight:bold;color:#B8860B">${trial}</div>
+        <div style="font-size:11px;color:#666;font-weight:bold">🎁 تجربة</div>
+      </div>
+      <div style="background:#fdeaea;border:2px solid #c0392b;border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:22px;font-weight:bold;color:#7b241c">${expired}</div>
+        <div style="font-size:11px;color:#666;font-weight:bold">⚠️ منتهية</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#666;margin-top:8px;text-align:center">
+      👑 مديرين: ${adminCount} — 🎁 مجاني للأبد: ${freeCount}
+    </div>
+  `;
+}
+
+function loadAdminUsersList(){
+  const el = document.getElementById('adminUsersList');
+  if(!el) return;
+  
+  const accs = getAccounts();
+  const now = Date.now();
+  let h = '';
+  
+  accs.forEach(a => {
+    if(a.role === 'admin') return;
+    
+    const sub = a.subscription || {};
+    let statusBadge = '';
+    let actions = '';
+    
+    if(sub.isFreeForever){
+      statusBadge = '<span style="background:#27ae60;color:#fff;padding:2px 6px;border-radius:6px;font-size:10px">🎁 مجاني للأبد</span>';
+      actions = `<button onclick="adminRemoveFree('${a.username}')" class="small danger" style="font-size:10px">إلغاء المجاني</button>`;
+    }
+    else if(sub.paidUntil && new Date(sub.paidUntil).getTime() > now){
+      const days = Math.ceil((new Date(sub.paidUntil).getTime() - now) / (1000*60*60*24));
+      statusBadge = `<span style="background:#3498db;color:#fff;padding:2px 6px;border-radius:6px;font-size:10px">✅ متبقي ${days} يوم</span>`;
+      actions = `<button onclick="adminActivateUser('${a.username}', 30)" class="small ok" style="font-size:10px">+30 يوم</button>
+                 <button onclick="adminFreeForever('${a.username}')" class="small blue" style="font-size:10px">🎁 مجاني</button>`;
+    }
+    else if(sub.trialEndsAt && new Date(sub.trialEndsAt).getTime() > now){
+      const days = Math.ceil((new Date(sub.trialEndsAt).getTime() - now) / (1000*60*60*24));
+      statusBadge = `<span style="background:#f39c12;color:#fff;padding:2px 6px;border-radius:6px;font-size:10px">🎁 تجربة ${days} يوم</span>`;
+      actions = `<button onclick="adminActivateUser('${a.username}', 30)" class="small ok" style="font-size:10px">✅ تفعيل 30 يوم</button>
+                 <button onclick="adminFreeForever('${a.username}')" class="small blue" style="font-size:10px">🎁 مجاني</button>`;
+    }
+    else {
+      statusBadge = '<span style="background:#e74c3c;color:#fff;padding:2px 6px;border-radius:6px;font-size:10px">⚠️ منتهي</span>';
+      actions = `<button onclick="adminActivateUser('${a.username}', 30)" class="small ok" style="font-size:10px">✅ تفعيل 30 يوم</button>
+                 <button onclick="adminFreeForever('${a.username}')" class="small blue" style="font-size:10px">🎁 مجاني</button>`;
+    }
+    
+    h += `<div style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:10px;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:6px">
+        <div>
+          <div style="font-size:13px;font-weight:bold">${a.fullName || a.username}</div>
+          <div style="font-size:10px;color:#888;direction:ltr">${a.username}</div>
+          ${a.city ? '<div style="font-size:10px;color:#666">📍 ' + a.city + '</div>' : ''}
+        </div>
+        <div>${statusBadge}</div>
+      </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">${actions}</div>
+    </div>`;
+  });
+  
+  el.innerHTML = h || '<div style="text-align:center;color:#888;padding:20px">لا يوجد مستخدمين</div>';
+}
+
+function adminActivateUser(username, days){
+  if(!isAdmin()) return toast('غير مصرح', true);
+  if(!confirm(`تفعيل حساب ${username} لمدة ${days} يوم؟`)) return;
+  
+  const accs = getAccounts();
+  const idx = accs.findIndex(a => a.username === username);
+  if(idx === -1) return toast('الحساب غير موجود', true);
+  
+  if(!accs[idx].subscription) accs[idx].subscription = {};
+  const currentPaid = accs[idx].subscription.paidUntil ? new Date(accs[idx].subscription.paidUntil).getTime() : Date.now();
+  const baseTime = currentPaid > Date.now() ? currentPaid : Date.now();
+  accs[idx].subscription.paidUntil = new Date(baseTime + days * 24 * 60 * 60 * 1000).toISOString();
+  accs[idx].subscription.lastPayment = nowISO();
+  
+  saveAccounts(accs);
+  toast('✅ تم التفعيل');
+  loadAdminUsersList();
+  loadAdminUserStats();
+}
+
+function adminFreeForever(username){
+  if(!isAdmin()) return toast('غير مصرح', true);
+  if(!confirm(`جعل حساب ${username} مجاني للأبد؟`)) return;
+  
+  const accs = getAccounts();
+  const idx = accs.findIndex(a => a.username === username);
+  if(idx === -1) return toast('الحساب غير موجود', true);
+  
+  if(!accs[idx].subscription) accs[idx].subscription = {};
+  accs[idx].subscription.isFreeForever = true;
+  
+  saveAccounts(accs);
+  toast('✅ تم — مجاني للأبد');
+  loadAdminUsersList();
+  loadAdminUserStats();
+}
+
+function adminRemoveFree(username){
+  if(!isAdmin()) return toast('غير مصرح', true);
+  if(!confirm(`إلغاء "المجاني للأبد" عن ${username}؟`)) return;
+  
+  const accs = getAccounts();
+  const idx = accs.findIndex(a => a.username === username);
+  if(idx === -1) return;
+  
+  if(accs[idx].subscription) accs[idx].subscription.isFreeForever = false;
+  
+  saveAccounts(accs);
+  toast('✅ تم الإلغاء');
+  loadAdminUsersList();
+  loadAdminUserStats();
+}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ _applySplitCloudDB
+// ═══════════════════════════════════════════════════════════
+async function _applySplitCloudDB(){
+  try{
+    const metaDoc = await cloudMetaRef.get();
+    if(!metaDoc.exists) return false;
+    const meta = metaDoc.data();
+    
+    if(meta._lastActionBy === _deviceId) return false;
+    if(db && db._pendingUpload === true) return false;
+    
+    const metaTime = +meta._lastSaved || 0;
+    const localTime = +db._lastSaved || 0;
+    
+    const newDb = { ...db };
+    let hasChanges = false;
+    
+    for(const category of SPLIT_CATEGORIES){
+      const cloudItems = await _loadSplitCategory(category);
+      
+      const merged = new Map();
+      cloudItems.forEach(item => { if(item && item.id) merged.set(item.id, item); });
+      
+      (db[category] || []).forEach(localItem => {
+        if(!localItem || !localItem.id) return;
+        if(!merged.has(localItem.id)){
+          merged.set(localItem.id, localItem);
+        } else {
+          const cloudItem = merged.get(localItem.id);
+          const cTime = +cloudItem._uploadedAt || +cloudItem._editedAt || 0;
+          const lTime = +localItem._editedAt || 0;
+          if(lTime > cTime) merged.set(localItem.id, localItem);
+        }
+      });
+      
+      const mergedList = Array.from(merged.values());
+      if(JSON.stringify(mergedList) !== JSON.stringify(db[category] || [])){
+        newDb[category] = mergedList;
+        hasChanges = true;
+      }
+    }
+    
+    newDb._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : db._permanentCarry;
+    newDb._cashboxOffset = meta._cashboxOffset !== undefined ? meta._cashboxOffset : db._cashboxOffset;
+    newDb._lastArchiveAt = meta._lastArchiveAt || db._lastArchiveAt;
+    newDb._manualOverrides = meta._manualOverrides || db._manualOverrides;
+    newDb._notifications = meta._notifications || db._notifications;
+    newDb._lastSaved = Math.max(metaTime, localTime);
+    
+    db = newDb;
+    _fixDBFields(db);
+    try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
+    
+    return hasChanges || metaTime > localTime;
+  }catch(e){
+    console.error('_applySplitCloudDB error:', e);
+    return false;
+  }
+}
+
+function _listenToMeta(){
+  if(!cloudEnabled || !cloudMetaRef) return;
+  try{
+    if(_listeners.meta){ _listeners.meta(); }
+    _listeners.meta = cloudMetaRef.onSnapshot(snap => {
+      try{
+        if(snap.metadata.hasPendingWrites) return;
+        if(!snap.exists) return;
+        const meta = snap.data();
+        if(meta._lastActionBy === _deviceId) return;
+        if(db && db._pendingUpload === true) return;
+        if(_isReceivingUpdate) return;
+        
+        _isReceivingUpdate = true;
+        db._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : db._permanentCarry;
+        db._cashboxOffset = meta._cashboxOffset !== undefined ? meta._cashboxOffset : db._cashboxOffset;
+        db._lastArchiveAt = meta._lastArchiveAt || db._lastArchiveAt;
+        db._manualOverrides = meta._manualOverrides || db._manualOverrides;
+        
+        _lastCloudServerTime = meta.updatedAt && meta.updatedAt.toMillis ? meta.updatedAt.toMillis() : Date.now();
+        
+        try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
+        renderAll();
+        showSyncNotification('📥 تحديث meta', 'ok');
+        _isReceivingUpdate = false;
+      }catch(err){
+        _isReceivingUpdate = false;
+      }
+    }, err => { console.warn('meta listener err:', err); });
+  }catch(e){ console.warn('_listenToMeta error:', e); }
+}
+
+function _listenToCategory(category){
+  if(!cloudEnabled) return;
+  const ref = _getCategoryRef(category);
+  if(!ref) return;
+  
+  try{
+    if(_listeners[category]){ _listeners[category](); }
+    _listeners[category] = ref.onSnapshot(snap => {
+      try{
+        if(snap.metadata.hasPendingWrites) return;
+        if(_isReceivingUpdate) return;
+        if(db && db._pendingUpload === true) return;
+        
+        const cloudItems = [];
+        snap.forEach(doc => {
+          const item = doc.data();
+          if(item) cloudItems.push(item);
+        });
+        
+        const allFromMe = cloudItems.every(item => item._lastActionBy === _deviceId);
+        if(allFromMe) return;
+        
+        _isReceivingUpdate = true;
+        
+        const merged = new Map();
+        cloudItems.forEach(item => { if(item && item.id) merged.set(item.id, item); });
+        
+        (db[category] || []).forEach(localItem => {
+          if(!localItem || !localItem.id) return;
+          if(!merged.has(localItem.id)){
+            merged.set(localItem.id, localItem);
+          } else {
+            const cloudItem = merged.get(localItem.id);
+            const cTime = +cloudItem._uploadedAt || +cloudItem._editedAt || 0;
+            const lTime = +localItem._editedAt || 0;
+            if(lTime > cTime) merged.set(localItem.id, localItem);
+          }
+        });
+        
+        db[category] = Array.from(merged.values());
+        try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
+        renderAll();
+        showSyncNotification('📥 تحديث في ' + category, 'ok');
+        _isReceivingUpdate = false;
+      }catch(err){
+        _isReceivingUpdate = false;
+      }
+    }, err => { console.warn(category + ' listener err:', err); });
+  }catch(e){ console.warn('_listenToCategory error:', e); }
+}
+
+// ✅ _listenToOffers — بدون Firebase Index
+function _listenToOffers(){
+  if(!cloudEnabled || !cloudOffersRef) return;
+  
+  try{
+    if(_listeners.offers){ _listeners.offers(); }
+    _listeners.offers = null;
+    
+    const myCity = currentAccount?.city || '';
+    if(!myCity) return;
+    
+    const lastSeenKey = 'flour_offers_seen_' + currentUser;
+    
+    _listeners.offers = cloudOffersRef
+      .orderBy('date', 'desc')
+      .limit(30)
+      .onSnapshot(snap => {
+        try{
+          if(snap.metadata.hasPendingWrites) return;
+          
+          const lastSeen = localStorage.getItem(lastSeenKey) || '0';
+          const lastSeenTime = parseInt(lastSeen) || 0;
+          let latestSeen = lastSeenTime;
+          
+          snap.forEach(doc => {
+            const offer = doc.data();
+            if(!offer || !offer.from) return;
+            if(offer.from === currentUser) return;
+            if(!Array.isArray(offer.cities)) return;
+            if(!offer.cities.includes(myCity)) return;
+            
+            const offerTime = new Date(offer.date).getTime();
+            if(offerTime <= lastSeenTime) return;
+            
+            _addOfferNotification(offer);
+            if(offerTime > latestSeen) latestSeen = offerTime;
+          });
+          
+          if(latestSeen > lastSeenTime){
+            localStorage.setItem(lastSeenKey, String(latestSeen));
+          }
+        }catch(e){ console.warn('offers listener err:', e); }
+      }, err => { console.warn('offers listener error:', err); });
+  }catch(e){ console.warn('_listenToOffers error:', e); }
+}
+
+function _addOfferNotification(offer){
+  if(!db) return;
+  if(!db._notifications) db._notifications = [];
+  
+  const exists = db._notifications.find(n => n.type === 'offer' && n.offerId === offer.id);
+  if(exists) return;
+  
+  db._notifications.unshift({
+    id: uid(),
+    type: 'offer',
+    offerId: offer.id,
+    fullName: offer.fromName || 'تاجر',
+    identifier: offer.phone || '',
+    title: offer.title || 'عرض جديد',
+    city: offer.fromCity || '',
+    offerText: offer.text || '',
+    device: _deviceId,
+    date: nowISO(),
+    read: false,
+    _editedAt: Date.now()
+  });
+  
+  if(db._notifications.length > 100) db._notifications = db._notifications.slice(0, 100);
+  
+  try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
+  
+  if(cloudMetaRef){
+    cloudMetaRef.set({
+      _notifications: (db._notifications || []).slice(0, 20),
+      _lastActionBy: _deviceId
+    }, { merge: true }).catch(e => {});
+  }
+  
+  _updateNotifBadge();
 }
 
 function startRealtimeListener(){
-if(!cloudEnabled||!cloudDataRef||!currentUser)return;
-if(cloudUnsubscribe){try{cloudUnsubscribe();}catch(e){}cloudUnsubscribe=null;}
-console.log('🎧 بدء الاستماع الفوري...');
-console.log('🔑 جهازي:', _deviceId);
-console.log('👤 المستخدم:', currentUser);
-try{
-cloudUnsubscribe = cloudDataRef.doc(currentUser).onSnapshot(snap=>{
-try{
-console.log('📥 onSnapshot received:', {
-  exists: snap.exists,
-  hasPendingWrites: snap.metadata.hasPendingWrites,
-  fromCache: snap.metadata.fromCache,
-  lastActionBy: snap.data()?._lastActionBy,
-  myId: _deviceId,
-  lastSaved: snap.data()?.data?._lastSaved,
-  cloudTime: new Date(snap.data()?.data?._lastSaved || 0).toLocaleTimeString('ar-IQ')
-});
-if(snap.metadata.hasPendingWrites){
-  console.log('⏳ hasPendingWrites — تجاهل');
-  return;
-}
-if(!snap.exists){
-  console.log('❌ المستند غير موجود');
-  return;
-}
-const data = snap.data();
-if(!data || !data.data){
-  console.log('❌ ما في بيانات');
-  return;
-}
-const cloudDb = data.data;
-_lastCloudState = cloudDb;
-if(_isReceivingUpdate){
-  console.log('⏳ _isReceivingUpdate — تجاهل');
-  return;
-}
-if(data._lastActionBy === _deviceId) {
-  console.log('✅ نفس الجهاز — تجاهل');
-  if(data.updatedAt && data.updatedAt.toMillis) _lastCloudServerTime = data.updatedAt.toMillis();
-  return;
-}
-if(db && db._pendingUpload === true){
-  console.log('⏸️ رفع معلّق — تجاهل');
-  return;
-}
-console.log('🌟 استقبال تحديث من جهاز آخر — بدء التطبيق');
-_isReceivingUpdate = true;
-const applied = _applyCloudDB(cloudDb);
-if(applied){
-try{renderAll();renderArchive();renderSettings();renderSaleItems();renderExItems();renderDepositTypes();}catch(e){console.warn('render err:',e);}
-showSyncNotification('📥 تحديث جديد تم استقباله','ok');
-setSyncStatus('ok','☁️ متزامن');
-console.log('✅ تم تطبيق التحديث');
-}else{
-console.log('⚠️ ما تم تطبيق التحديث');
-}
-_isReceivingUpdate = false;
-}catch(err){
-console.warn('onSnapshot error:',err);
-_isReceivingUpdate = false;
-}
-}, err=>{
-console.warn('❌ onSnapshot error:',err);
-setSyncStatus('err','⚠️ انقطع الاتصال');
-});
-}catch(e){
-console.warn('startRealtimeListener error:',e);
-}
+  if(!cloudEnabled || !currentUser) return;
+  
+  const subStatus = checkSubscription();
+  if(subStatus === 'expired'){
+    console.log('⚠️ الاشتراك منتهي — المزامنة معطلة');
+    setSyncStatus('err','⚠️ الاشتراك منتهي');
+    return;
+  }
+  
+  _initUserRefs(currentUser);
+  
+  console.log('🎧 بدء المستمعين...');
+  _listenToMeta();
+  SPLIT_CATEGORIES.forEach(cat => _listenToCategory(cat));
+  _listenToOffers();
+  
+  console.log('✅ تم تفعيل ' + (SPLIT_CATEGORIES.length + 2) + ' مستمع');
 }
 
-function stopRealtimeListener(){if(cloudUnsubscribe){try{cloudUnsubscribe();}catch(e){}cloudUnsubscribe=null;console.log('🛑 تم إيقاف الاستماع');}}
+function stopRealtimeListener(){
+  Object.keys(_listeners).forEach(k => {
+    try{ _listeners[k](); }catch(e){}
+    delete _listeners[k];
+  });
+  console.log('🛑 تم إيقاف كل المستمعين');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ دوال الإشعارات — فقط إشعارات العروض
+// ═══════════════════════════════════════════════════════════
 
 async function _addNotification(type, fullName, identifier){
-if(db){
-if(!db._notifications) db._notifications=[];
-db._notifications.unshift({
-id: uid(),
-type: type,
-fullName: fullName,
-identifier: identifier,
-device: _deviceId,
-deviceInfo: (navigator.userAgent||'').substring(0,80),
-date: nowISO(),
-read: false,
-_editedAt: Date.now()
-});
-if(db._notifications.length > 100) db._notifications = db._notifications.slice(0, 100);
-if(currentUser) save();
-_updateNotifBadge();
-}
-
-if(cloudEnabled && typeof firebase!=='undefined'){
-try{
-const fs=firebase.firestore();
-const ref=fs.collection('shared').doc('notifications');
-ref.get().then(doc=>{
-let list=[];
-if(doc.exists && doc.data() && Array.isArray(doc.data().list)){
-list=doc.data().list;
-}
-list.unshift({
-id:uid(),
-type:type,
-fullName:fullName,
-identifier:identifier,
-device:_deviceId,
-deviceInfo:(navigator.userAgent||'').substring(0,80),
-date:nowISO(),
-read:false
-});
-if(list.length > 200) list=list.slice(0,200);
-ref.set({list:list,updatedAt:Date.now()}).catch(e=>console.warn('notif set err:',e));
-}).catch(e=>console.warn('notif read err:',e));
-}catch(e){console.warn('addNotif cloud:',e);}
-}
+  if(type !== 'offer') return;
+  
+  if(db){
+    if(!db._notifications) db._notifications=[];
+    db._notifications.unshift({
+      id: uid(), type: type, fullName: fullName, identifier: identifier,
+      device: _deviceId,
+      deviceInfo: (navigator.userAgent||'').substring(0,80),
+      date: nowISO(), read: false, _editedAt: Date.now()
+    });
+    if(db._notifications.length > 100) db._notifications = db._notifications.slice(0, 100);
+    if(currentUser) save();
+    _updateNotifBadge();
+  }
 }
 
 function _updateNotifBadge(){
-const badge=document.getElementById('notifBadge');
-if(!badge) return;
-if(!db || !db._notifications){badge.classList.remove('show');return;}
-const unread=db._notifications.filter(n=>!n.read).length;
-if(unread>0){badge.textContent=unread>99?'99+':unread;badge.classList.add('show');}
-else{badge.classList.remove('show');}
+  const badge=document.getElementById('notifBadge');
+  if(!badge) return;
+  
+  const offerNotifs = (db?._notifications || []).filter(n => n.type === 'offer');
+  const unread = offerNotifs.filter(n=>!n.read).length;
+  
+  if(unread>0){
+    badge.textContent=unread>99?'99+':unread;
+    badge.classList.add('show');
+  } else {
+    badge.classList.remove('show');
+  }
 }
 
 async function openNotif(){
-const panel=document.getElementById('notifPanel');
-const overlay=document.getElementById('notifOverlay');
-if(!panel||!overlay) return;
+  const panel=document.getElementById('notifPanel');
+  const overlay=document.getElementById('notifOverlay');
+  if(!panel||!overlay) return;
 
-if(cloudEnabled && typeof firebase!=='undefined'){
-try{
-const fs=firebase.firestore();
-const ref=fs.collection('shared').doc('notifications');
-const doc=await ref.get();
-if(doc.exists && doc.data() && Array.isArray(doc.data().list)){
-if(db) db._notifications=doc.data().list;
-_updateNotifBadge();
-}
-}catch(e){console.warn('loadNotif:',e);}
-}
-
-renderNotifications();
-panel.classList.add('show');
-overlay.classList.add('show');
+  renderNotifications();
+  panel.classList.add('show');
+  overlay.classList.add('show');
 }
 
 function closeNotif(){
-const panel=document.getElementById('notifPanel');
-const overlay=document.getElementById('notifOverlay');
-if(panel) panel.classList.remove('show');
-if(overlay) overlay.classList.remove('show');
+  const panel=document.getElementById('notifPanel');
+  const overlay=document.getElementById('notifOverlay');
+  if(panel) panel.classList.remove('show');
+  if(overlay) overlay.classList.remove('show');
 }
 
 function renderNotifications(){
-const body=document.getElementById('notifBody');
-if(!body) return;
-if(!db || !db._notifications || !db._notifications.length){
-body.innerHTML='<div class="notif-empty">📭 لا توجد إشعارات</div>';
-return;
-}
-const icons={login:'🔓',register:'🆕',logout:'🚪'};
-const iconClass={login:'ni-login',register:'ni-register',logout:'ni-logout'};
-const typeName={login:'دخول',register:'حساب جديد',logout:'خروج'};
-const typeClass={login:'nt-login',register:'nt-register',logout:'nt-logout'};
-let h='';
-db._notifications.forEach(n=>{
-const icon=icons[n.type]||'🔔';
-const ic=iconClass[n.type]||'ni-login';
-const tn=typeName[n.type]||n.type;
-const tc=typeClass[n.type]||'nt-login';
-h+=`<div class="notif-item${n.read?'':' unread'}" data-nid="${n.id}">
-<div class="notif-icon ${ic}">${icon}</div>
-<div class="notif-info">
-<div class="notif-title"><span class="notif-type-badge ${tc}">${tn}</span><span class="notif-name">${n.fullName||'—'}</span></div>
-<div class="notif-id">${n.identifier||''}</div>
-<div class="notif-meta">
-<span>📅 ${fmt(n.date)}</span><br>
-<span>📱 ${(n.deviceInfo||n.device||'').substring(0,40)}</span>
-</div>
-<div class="notif-actions">
-<button class="btn-mark" onclick="markNotifRead('${n.id}')">✓ مقروء</button>
-<button class="btn-del" onclick="delNotif('${n.id}')">🗑️</button>
-</div>
-</div>
-</div>`;
-});
-body.innerHTML=h;
+  const body=document.getElementById('notifBody');
+  if(!body) return;
+  
+  const allNotifs = (db?._notifications || []).filter(n => n.type === 'offer');
+  
+  if(!allNotifs.length){
+    body.innerHTML='<div class="notif-empty">📭 لا توجد إشعارات عروض</div>';
+    return;
+  }
+  
+  let h='';
+  allNotifs.forEach(n=>{
+    let extraHTML = `<div style="font-size:12px;color:#8B4513;font-weight:bold;margin-top:4px">📢 ${n.title||'عرض جديد'}</div>`;
+    if(n.city) extraHTML += `<div style="font-size:11px;color:#666">📍 ${n.city}</div>`;
+    if(n.offerText) extraHTML += `<div style="font-size:11px;color:#555;margin-top:4px">${n.offerText.substring(0,80)}${n.offerText.length>80?'...':''}</div>`;
+    
+    h+=`<div class="notif-item${n.read?'':' unread'}" data-nid="${n.id}">
+      <div class="notif-icon ni-register">📢</div>
+      <div class="notif-info">
+        <div class="notif-title">
+          <span class="notif-type-badge nt-register">عرض جديد</span>
+          <span class="notif-name">${n.fullName||'تاجر'}</span>
+        </div>
+        <div class="notif-id">${n.identifier||''}</div>
+        ${extraHTML}
+        <div class="notif-meta">
+          <span>📅 ${fmt(n.date)}</span>
+        </div>
+        <div class="notif-actions">
+          <button class="btn-mark" onclick="markNotifRead('${n.id}')">✓ مقروء</button>
+          <button class="btn-del" onclick="delNotif('${n.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  body.innerHTML=h;
 }
 
 async function markNotifRead(id){
-if(!db||!db._notifications) return;
-const n=db._notifications.find(x=>x.id===id);
-if(!n) return;
-n.read=true;n._editedAt=Date.now();
-save();
-renderNotifications();
-_updateNotifBadge();
-if(cloudEnabled && typeof firebase!=='undefined'){
-try{
-firebase.firestore().collection('shared').doc('notifications').set({list:db._notifications,updatedAt:Date.now()}).catch(e=>{});
-}catch(e){}
-}
+  if(!db||!db._notifications) return;
+  const n=db._notifications.find(x=>x.id===id);
+  if(!n) return;
+  n.read=true;n._editedAt=Date.now();
+  save();
+  renderNotifications();
+  _updateNotifBadge();
 }
 
 async function delNotif(id){
-if(!db||!db._notifications) return;
-if(!confirm('حذف هذا الإشعار؟')) return;
-markDeleted('notifications', id);
-db._notifications=db._notifications.filter(x=>x.id!==id);
-save();
-renderNotifications();
-_updateNotifBadge();
-if(cloudEnabled && typeof firebase!=='undefined'){
-try{
-firebase.firestore().collection('shared').doc('notifications').set({list:db._notifications,updatedAt:Date.now()}).catch(e=>{});
-}catch(e){}
-}
+  if(!db||!db._notifications) return;
+  if(!confirm('حذف هذا الإشعار؟')) return;
+  markDeleted('notifications', id);
+  db._notifications=db._notifications.filter(x=>x.id!==id);
+  save();
+  renderNotifications();
+  _updateNotifBadge();
 }
 
 async function markAllRead(){
-if(!db||!db._notifications) return;
-db._notifications.forEach(n=>{n.read=true;});
-save();
-renderNotifications();
-_updateNotifBadge();
-if(cloudEnabled && typeof firebase!=='undefined'){
-try{
-firebase.firestore().collection('shared').doc('notifications').set({list:db._notifications,updatedAt:Date.now()}).catch(e=>{});
-}catch(e){}
-}
+  if(!db||!db._notifications) return;
+  db._notifications.forEach(n=>{ if(n.type === 'offer') n.read=true; });
+  save();
+  renderNotifications();
+  _updateNotifBadge();
 }
 
 async function clearAllNotif(){
-if(!db||!db._notifications) return;
-if(!confirm('حذف كل الإشعارات؟')) return;
-db._notifications=[];
-save();
-renderNotifications();
-_updateNotifBadge();
-if(cloudEnabled && typeof firebase!=='undefined'){
-try{
-firebase.firestore().collection('shared').doc('notifications').set({list:[],updatedAt:Date.now()}).catch(e=>{});
-}catch(e){}
-}
+  if(!db||!db._notifications) return;
+  if(!confirm('حذف كل الإشعارات؟')) return;
+  db._notifications = db._notifications.filter(n => n.type !== 'offer');
+  save();
+  renderNotifications();
+  _updateNotifBadge();
 }
 </script><script>
 // ===== إنشاء حساب المدير الأول =====
@@ -1427,7 +2579,14 @@ if(p.length<6)return showError('كلمة المرور 6 أحرف على الأق
 if(p!==p2)return showError('كلمتا المرور غير متطابقتين');
 const accs=getAccounts();
 if(accs.find(a=>a.username===u))return showError('الرقم موجود مسبقاً');
-accs.push({username:u,password:hash(p),role:'admin',fullName:'المدير',createdAt:new Date().toISOString()});
+accs.push({
+  username:u,
+  password:hash(p),
+  role:'admin',
+  fullName:'المدير',
+  createdAt:new Date().toISOString(),
+  subscription:{ isFreeForever:true }
+});
 localStorage.setItem(ACC_KEY,JSON.stringify(accs));
 if(cloudEnabled && cloudAccountsRef){try{cloudAccountsRef.doc('shared').set({list:accs,updatedAt:Date.now()}).catch(e=>console.warn(e));}catch(e){}}
 document.getElementById('regUserAdmin').value='';
@@ -1445,6 +2604,7 @@ const name=document.getElementById('regName').value.trim();
 const birth=document.getElementById('regBirth').value;
 const phone=normalizePhone(document.getElementById('regUser').value.trim());
 const email=document.getElementById('regEmail').value.trim();
+const city=document.getElementById('regCity')?.value.trim() || '';
 const p=document.getElementById('regPass').value;
 const p2=document.getElementById('regPass2').value;
 const question=document.getElementById('regQuestion').value.trim();
@@ -1460,6 +2620,9 @@ const bd=new Date(birth);
 if(isNaN(bd.getTime()))return showError('تاريخ الميلاد غير صحيح');
 const age=(Date.now()-bd.getTime())/(365.25*24*60*60*1000);
 if(age<10||age>120)return showError('تاريخ الميلاد غير صحيح');
+
+if(!city)return showError('اختر محافظتك');
+if(!IRAQ_CITIES.includes(city))return showError('المحافظة غير صحيحة');
 
 if(!phone && !email)return showError('اكتب رقم هاتفك أو بريدك الإلكتروني');
 if(phone && !/^07[0-9]{9}$/.test(phone))return showError('رقم الهاتف لازم يبدأ بـ 07 ويكون 11 رقم');
@@ -1506,10 +2669,14 @@ if(email){
   }
 }
 
+const now = new Date();
+const trialEnds = new Date(now.getTime() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000);
+
 const newUser = {
   username: phone || email,
   phone: phone || '',
   email: email || '',
+  city: city,
   password: email ? 'firebase' : hash(p),
   role: 'user',
   fullName: name,
@@ -1517,7 +2684,14 @@ const newUser = {
   question: question || '',
   answer: answer ? hash(answer.toLowerCase()) : '',
   firebaseUid: firebaseUser ? firebaseUser.uid : '',
-  createdAt: new Date().toISOString()
+  createdAt: now.toISOString(),
+  subscription: {
+    trialEndsAt: trialEnds.toISOString(),
+    paidUntil: null,
+    isFreeForever: false,
+    lastPayment: null,
+    payments: []
+  }
 };
 
 accs.push(newUser);
@@ -1526,13 +2700,11 @@ if(cloudEnabled && cloudAccountsRef){
   try{ cloudAccountsRef.doc('shared').set({list:accs,updatedAt:Date.now()}).catch(e=>console.warn(e)); }catch(e){}
 }
 
-['regName','regBirth','regUser','regEmail','regPass','regPass2','regQuestion','regAnswer'].forEach(id=>{
+['regName','regBirth','regUser','regEmail','regCity','regPass','regPass2','regQuestion','regAnswer'].forEach(id=>{
   const e=document.getElementById(id); if(e) e.value='';
 });
 
-try{ await _addNotification('register', name, phone || email); }catch(e){}
-
-toast(email ? '✅ تم إنشاء الحساب — تحقق من بريدك' : '✅ تم إنشاء الحساب');
+toast(`✅ تم إنشاء الحساب — لديك ${DEFAULT_TRIAL_DAYS} يوم تجربة`);
 showLogin();
 document.getElementById('loginUser').value = email || phone;
 }
@@ -1607,13 +2779,20 @@ if(login.includes('@')){
     let acc = accs.find(a => a.email === login);
     if(!acc){
       const fbUser = cred.user;
+      const now = new Date();
       acc = {
         username: login,
         email: login,
         password: 'firebase',
         role: 'user',
         fullName: fbUser.displayName || 'مستخدم',
-        createdAt: new Date().toISOString()
+        createdAt: now.toISOString(),
+        subscription: {
+          trialEndsAt: new Date(now.getTime() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+          paidUntil: null,
+          isFreeForever: false,
+          payments: []
+        }
       };
       accs.push(acc);
       saveAccounts(accs);
@@ -1622,7 +2801,6 @@ if(login.includes('@')){
     currentUser = acc.username;
     currentAccount = acc;
     try{ await loadUserData(); }catch(e){ db = emptyDB(); }
-    _addNotification('login', acc.fullName || login, login);
     showApp();
     document.getElementById('loginPass').value='';
     toast('أهلاً بك 👋');
@@ -1670,7 +2848,6 @@ localStorage.setItem(CUR_KEY, u);
 currentUser = u;
 currentAccount = acc;
 try{ await loadUserData(); }catch(e){ db = emptyDB(); }
-_addNotification('login', acc.fullName || u, u);
 showApp();
 document.getElementById('loginPass').value='';
 toast('أهلاً بك 👋');
@@ -1679,9 +2856,6 @@ toast('أهلاً بك 👋');
 // ===== تسجيل الخروج =====
 function doLogout(){
 if(!confirm('تسجيل الخروج؟'))return;
-try{
-  if(currentAccount) _addNotification('logout', currentAccount.fullName || currentUser, currentUser);
-}catch(e){}
 try{ if(window._auth && currentAccount && currentAccount.email) window._auth.signOut(); }catch(e){}
 stopRealtimeListener();
 _lastCloudState=null;
@@ -1691,6 +2865,46 @@ document.getElementById('appWrap').classList.remove('show');
 document.body.classList.remove('is-admin');
 document.getElementById('authScreen').classList.remove('hidden');
 showLogin();
+}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ ترقية الحساب القديم — إضافة city + subscription
+// ═══════════════════════════════════════════════════════════
+function _upgradeAccount(){
+  if(!currentAccount) return false;
+  let changed = false;
+  
+  const accs = getAccounts();
+  const idx = accs.findIndex(a => a.username === currentUser);
+  if(idx === -1) return false;
+  
+  // ✅ إذا ما عنده اشتراك → ضيف تجربة 15 يوم من تاريخ التسجيل
+  if(!accs[idx].subscription){
+    const createdAt = accs[idx].createdAt ? new Date(accs[idx].createdAt) : new Date();
+    const trialEnds = new Date(createdAt.getTime() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000);
+    accs[idx].subscription = {
+      trialEndsAt: trialEnds.toISOString(),
+      paidUntil: null,
+      isFreeForever: accs[idx].role === 'admin',
+      lastPayment: null,
+      payments: []
+    };
+    changed = true;
+    console.log('✅ تم إضافة اشتراك للحساب القديم');
+  }
+  
+  // ✅ إذا ما عنده city → ضيف ''
+  if(accs[idx].city === undefined){
+    accs[idx].city = '';
+    changed = true;
+    console.log('✅ تم إضافة city للحساب القديم');
+  }
+  
+  if(changed){
+    saveAccounts(accs);
+    currentAccount = accs[idx];
+  }
+  return changed;
 }
 
 // ===== عرض التطبيق =====
@@ -1705,26 +2919,46 @@ document.getElementById('settingsAvatar').textContent=displayName.charAt(0);
 if(currentAccount)document.getElementById('settingsSince').textContent='منذ: '+fmt(currentAccount.createdAt);
 const badge=document.getElementById('headerBadge');
 const roleEl=document.getElementById('settingsRole');
-const bellWrap=document.querySelector('.bell-wrap');
-const notifBtn=document.querySelector('.bottom-nav button[data-page="notif"]');
 
 if(isAdmin()){
 badge.style.display='inline-block';
 document.body.classList.add('is-admin');
 roleEl.innerHTML='<span class="admin-badge">👑 مدير النظام</span>';
-if(bellWrap) bellWrap.style.display='inline-block';
-if(notifBtn) notifBtn.style.display='flex';
 }else{
 badge.style.display='none';
 document.body.classList.remove('is-admin');
 roleEl.innerHTML='<span style="background:#95a5a6;color:#fff;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:bold">👤 مستخدم</span>';
-if(bellWrap) bellWrap.style.display='none';
-if(notifBtn) notifBtn.style.display='none';
 }
 
 const myNameInput=document.getElementById('myName');
 if(myNameInput && currentAccount && currentAccount.fullName){
   myNameInput.value=currentAccount.fullName;
+}
+
+// ✅ ترقية الحساب القديم
+_upgradeAccount();
+
+// ✅ تحديث واجهات الاشتراك والعروض
+if(typeof renderSubscriptionBar === 'function') renderSubscriptionBar();
+if(typeof renderSubscriptionInfo === 'function') renderSubscriptionInfo();
+if(typeof loadMyCity === 'function') loadMyCity();
+if(typeof loadAdminUserStats === 'function') loadAdminUserStats();
+if(typeof loadAdminUsersList === 'function') loadAdminUsersList();
+if(typeof loadPaymentSettings === 'function') {
+  loadPaymentSettings().then(settings => {
+    if(settings && isAdmin()){
+      const qiNum = document.getElementById('adminQiCardNum');
+      const qiName = document.getElementById('adminQiCardName');
+      const wa = document.getElementById('adminWhatsapp');
+      const price = document.getElementById('adminPrice');
+      const trial = document.getElementById('adminTrialDays');
+      if(qiNum) qiNum.value = settings.qiCardNumber || '';
+      if(qiName) qiName.value = settings.qiCardName || '';
+      if(wa) wa.value = settings.whatsapp || '';
+      if(price) price.value = settings.price || DEFAULT_PRICE;
+      if(trial) trial.value = settings.trialDays || DEFAULT_TRIAL_DAYS;
+    }
+  });
 }
 
 if(typeof updateLinkEmailStatus==='function'){
@@ -1745,282 +2979,468 @@ _updateNotifBadge();
 startRealtimeListener();
 }
 
-// ===== تحميل بيانات المستخدم =====
-async function loadUserData(){
-const key = DATA_PREFIX+currentUser;
-let localDb = null;
-try{
-const s = localStorage.getItem(key);
-if(s){ localDb = Object.assign(emptyDB(), JSON.parse(s)); }
-}catch(e){ localDb = null; }
-setSyncStatus('loading','☁️ جاري المزامنة...');
-if(!cloudEnabled || !cloudDataRef){
-setSyncStatus('err','📱 محلي فقط');
-db = localDb || emptyDB();
-_fixDBFields(db);
-return;
-}
-let cloudDb = null;
-try{
-const fetchP = cloudDataRef.doc(currentUser).get();
-const timeoutP = new Promise((_,rej)=>setTimeout(()=>rej(new Error('TIMEOUT')), 6000));
-const doc = await Promise.race([fetchP, timeoutP]);
-if(doc.exists && doc.data() && doc.data().data){
-cloudDb = doc.data().data;
-_lastCloudState = cloudDb;
-if(doc.data().updatedAt && doc.data().updatedAt.toMillis) _lastCloudServerTime = doc.data().updatedAt.toMillis();
-}
-}catch(e){
-console.warn('cloud fetch err:', e);
-setSyncStatus('err','⚠️ غير متزامن');
-}
-
-console.log('🔍 loadUserData:', {
-  hasCloud: !!cloudDb,
-  hasLocal: !!localDb,
-  cloudSaved: cloudDb?._lastSaved,
-  localSaved: localDb?._lastSaved
-});
-
-if(cloudDb && localDb){
+// ═══════════════════════════════════════════════════════════
+// 🧠 الدمج الذكي
+// ═══════════════════════════════════════════════════════════
+function mergeSmart(localDb, cloudDb){
+  if(!localDb && !cloudDb) return emptyDB();
+  if(!localDb) return JSON.parse(JSON.stringify(cloudDb));
+  if(!cloudDb) return JSON.parse(JSON.stringify(localDb));
+  
+  const result = JSON.parse(JSON.stringify(cloudDb));
+  
+  const listKeys = ['sales','debts','deposits','payments','expenses','buyers',
+                    'reservations','cashAdditions','customerPrices','exchanges',
+                    'flourTypes','archive','myOffers'];
+  
+  listKeys.forEach(key => {
+    const localList = Array.isArray(localDb[key]) ? localDb[key] : [];
+    const cloudList = Array.isArray(result[key]) ? result[key] : [];
+    
+    if(!localList.length && !cloudList.length){
+      result[key] = [];
+      return;
+    }
+    
+    const map = new Map();
+    cloudList.forEach(item => { if(item && item.id) map.set(item.id, item); });
+    localList.forEach(item => {
+      if(!item || !item.id) return;
+      if(!map.has(item.id)){
+        map.set(item.id, item);
+      } else {
+        const cloudItem = map.get(item.id);
+        const cloudEdit = +cloudItem._editedAt || 0;
+        const localEdit = +item._editedAt || 0;
+        if(localEdit > cloudEdit) map.set(item.id, item);
+      }
+    });
+    result[key] = Array.from(map.values());
+  });
+  
   const cloudTime = +cloudDb._lastSaved || 0;
   const localTime = +localDb._lastSaved || 0;
+  const newer = localTime > cloudTime ? localDb : cloudDb;
   
-  console.log('🔍 مقارنة:', {cloudTime, localTime, cloudIsNewerOrEqual: cloudTime >= localTime});
+  result._permanentCarry = newer._permanentCarry ?? result._permanentCarry ?? 0;
+  result._cashboxOffset = newer._cashboxOffset ?? result._cashboxOffset ?? 0;
+  result._lastArchiveAt = newer._lastArchiveAt ?? result._lastArchiveAt ?? null;
   
-  // ✅ التعديل 2: قبول السحابة لو الفرق أقل من 5 ثواني
-  if(cloudTime >= localTime - 5000){
-    db = Object.assign(emptyDB(), cloudDb);
-    _fixDBFields(db);
-    // ✅ دمج التعديلات اليدوية
-    const _localManual = localDb._manualOverrides || {};
-    Object.keys(_localManual).forEach(k=>{
-      const localTS = _localManual[k].timestamp || 0;
-      const cloudTS = (db._manualOverrides[k] && db._manualOverrides[k].timestamp) || 0;
-      if(localTS > cloudTS){ db._manualOverrides[k] = _localManual[k]; }
-    });
-    localStorage.setItem(key, JSON.stringify(db));
-    setSyncStatus('ok','☁️ متزامن');
-    console.log('✅ السحابة أحدث أو نفس الوقت — استقبلنا من السحابة');
-  } else {
-    db = localDb;
-    _fixDBFields(db);
-    setSyncStatus('ok','☁️ متزامن');
-    console.log('📤 المحلي أحدث — نرفع للسحابة');
-    setTimeout(()=>save(), 500);
-  }
-} else if(cloudDb){
-  db = Object.assign(emptyDB(), cloudDb);
-  _fixDBFields(db);
-  localStorage.setItem(key, JSON.stringify(db));
-  setSyncStatus('ok','☁️ متزامن');
-  console.log('✅ استقبلنا من السحابة (ما في محلي)');
-} else if(localDb){
-  db = localDb;
-  _fixDBFields(db);
-  _setLocalTimestamp();
-  try{
-    await cloudDataRef.doc(currentUser).set({
-      data: db,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      _lastActionBy: _deviceId
-    });
-    setSyncStatus('ok','☁️ متزامن');
-    console.log('📤 رفعنا المحلي للسحابة');
-  }catch(e){ setSyncStatus('err','⚠️'); }
-} else {
-  db = emptyDB();
-  setSyncStatus('ok','☁️ متزامن');
-  console.log('🆕 مستخدم جديد');
-}
+  const cloudManual = cloudDb._manualOverrides || {};
+  const localManual = localDb._manualOverrides || {};
+  const mergedManual = {};
+  const allKeys = new Set([...Object.keys(cloudManual), ...Object.keys(localManual)]);
+  allKeys.forEach(k => {
+    const cT = (cloudManual[k] && cloudManual[k].timestamp) || 0;
+    const lT = (localManual[k] && localManual[k].timestamp) || 0;
+    mergedManual[k] = cT >= lT ? cloudManual[k] : localManual[k];
+  });
+  result._manualOverrides = mergedManual;
+  
+  const cloudNotifs = cloudDb._notifications || [];
+  const localNotifs = localDb._notifications || [];
+  const notifMap = new Map();
+  cloudNotifs.forEach(n => { if(n && n.id) notifMap.set(n.id, n); });
+  localNotifs.forEach(n => {
+    if(!n || !n.id) return;
+    if(!notifMap.has(n.id)) notifMap.set(n.id, n);
+  });
+  result._notifications = Array.from(notifMap.values()).slice(0, 100);
+  
+  const cloudDel = cloudDb._deleted || {};
+  const localDel = localDb._deleted || {};
+  const mergedDel = {};
+  const delKeys = new Set([...Object.keys(cloudDel), ...Object.keys(localDel)]);
+  delKeys.forEach(k => {
+    const c = cloudDel[k] || [];
+    const l = localDel[k] || [];
+    mergedDel[k] = [...new Set([...c, ...l])];
+  });
+  result._deleted = mergedDel;
+  
+  return result;
 }
 
-// ===== حفظ =====
+// ═══════════════════════════════════════════════════════════
+// 📥 loadUserData — نسخة مقسّمة
+// ═══════════════════════════════════════════════════════════
+async function loadUserData(){
+  const key = DATA_PREFIX+currentUser;
+  let localDb = null;
+  try{
+    const s = localStorage.getItem(key);
+    if(s){ localDb = Object.assign(emptyDB(), JSON.parse(s)); }
+  }catch(e){ localDb = null; }
+  
+  setSyncStatus('loading','☁️ جاري المزامنة...');
+  
+  if(!cloudEnabled || !cloudDataRef){
+    setSyncStatus('err','📱 محلي فقط');
+    db = localDb || emptyDB();
+    _fixDBFields(db);
+    return;
+  }
+  
+  _initUserRefs(currentUser);
+  
+  let migrationNeeded = false;
+  try{
+    const metaDoc = await cloudMetaRef.get();
+    if(!metaDoc.exists || !metaDoc.data() || metaDoc.data()._migratedToSplit !== true){
+      migrationNeeded = true;
+    }
+  }catch(e){
+    console.warn('check migration failed:', e);
+    migrationNeeded = true;
+  }
+  
+  if(migrationNeeded){
+    if(localDb){
+      db = localDb;
+      _fixDBFields(db);
+    } else {
+      try{
+        const oldDoc = await cloudDataRef.doc(currentUser).get();
+        if(oldDoc.exists && oldDoc.data() && oldDoc.data().data){
+          db = Object.assign(emptyDB(), oldDoc.data().data);
+          _fixDBFields(db);
+        } else {
+          db = emptyDB();
+        }
+      }catch(e){
+        db = emptyDB();
+      }
+    }
+    
+    const migOk = await _migrateToSplitDocs();
+    if(!migOk){
+      setSyncStatus('warn','⚠️ فشل الترحيل');
+      if(localDb) db = localDb;
+      _fixDBFields(db);
+      return;
+    }
+    
+    await _reloadFromSplitDocs();
+  } else {
+    await _reloadFromSplitDocs();
+  }
+  
+  try{ localStorage.setItem(key, JSON.stringify(db)); }catch(e){}
+  
+  setSyncStatus('ok','☁️ متزامن');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ إعادة تحميل البيانات من المستندات المقسّمة
+// ═══════════════════════════════════════════════════════════
+async function _reloadFromSplitDocs(){
+  try{
+    const metaDoc = await cloudMetaRef.get();
+    if(metaDoc.exists && metaDoc.data()){
+      const meta = metaDoc.data();
+      db._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : 0;
+      db._cashboxOffset = meta._cashboxOffset !== undefined ? meta._cashboxOffset : 0;
+      db._lastArchiveAt = meta._lastArchiveAt || null;
+      db._manualOverrides = meta._manualOverrides || {};
+      db._notifications = meta._notifications || [];
+      db._lastSaved = meta._lastSaved || Date.now();
+      db._migratedToSplit = true;
+      _migrated = true;
+    }
+  }catch(e){ console.warn('read meta failed:', e); }
+  
+  for(const category of SPLIT_CATEGORIES){
+    try{
+      const items = await _loadSplitCategory(category);
+      if(items.length || !(db[category]||[]).length){
+        db[category] = items;
+      }
+    }catch(e){ console.warn('read ' + category + ' failed:', e); }
+  }
+  
+  _fixDBFields(db);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 💾 save — نسخة مقسّمة
+// ═══════════════════════════════════════════════════════════
 let _saveTimer = null;
+let _pendingCategories = new Set();
 
 function save(){
-if(!currentUser) return;
-const now = Date.now();
-['sales','debts','deposits','payments','expenses','buyers','reservations','cashAdditions','customerPrices','exchanges','flourTypes'].forEach(key=>{
-if(Array.isArray(db[key])){ db[key].forEach(item=>{if(item&&!item._editedAt)item._editedAt=now;}); }
-});
-db._lastSaved = now;
-db._lastActionBy = _deviceId;
-db._actionId = _deviceId + '_' + now + '_' + Math.random().toString(36).slice(2,7);
-db._pendingUpload = true;
-
-try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){ toast('⚠️ المساحة ممتلئة', true); }
-
-if(cloudEnabled && cloudDataRef && navigator.onLine){
-  if(_saveTimer) clearTimeout(_saveTimer);
-  // ✅ التعديل 1: رفع أسرع (300ms بدل 1000ms)
-  _saveTimer = setTimeout(_doUpload, 300);
-} else {
-  db._needsSync = true;
-  setSyncStatus('warn','📱 محلي');
-}
-}
-
-function _doUpload(){
-if(!currentUser || !cloudEnabled || !cloudDataRef){
-  if(db) db._pendingUpload = false;
-  return;
-}
-if(!navigator.onLine){
-  if(db) db._pendingUpload = false;
-  setSyncStatus('warn','📱 محلي');
-  return;
-}
-setSyncStatus('loading','⏳ جاري الحفظ...');
-console.log('📤 بدء الرفع للسحابة...');
-try{
-  const _clean = JSON.parse(JSON.stringify(db));
-  delete _clean._deleted;
-  delete _clean._needsSync;
-  delete _clean._pendingUpload;
-  if(_clean._notifications && _clean._notifications.length > 20){
-    _clean._notifications = _clean._notifications.slice(0, 20);
-  }
-  const _snapshot = JSON.parse(JSON.stringify(_clean));
-  const _size = JSON.stringify(_snapshot).length;
-  console.log('📤 حجم البيانات:', Math.round(_size/1024), 'KB');
+  if(!currentUser) return;
+  const now = Date.now();
   
-  cloudDataRef.doc(currentUser).set({
-    data: _snapshot,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    _lastActionBy: _deviceId
-  }).then(()=>{
-    db._pendingUpload = false;
-    setSyncStatus('ok','☁️ متزامن');
-    _lastCloudServerTime = Date.now();
-    _lastCloudState = _snapshot;
-    console.log('✅ تم الرفع بنجاح');
-  }).catch(e=>{
-    console.warn('save upload err:', e);
-    db._pendingUpload = false;
-    setSyncStatus('err','⚠️ فشل الرفع');
+  ['sales','debts','deposits','payments','expenses','buyers','reservations',
+   'cashAdditions','customerPrices','exchanges','flourTypes','archive'].forEach(key=>{
+    if(Array.isArray(db[key])){
+      db[key].forEach(item=>{if(item && !item._editedAt) item._editedAt = now;});
+    }
   });
-}catch(e){
-  db._pendingUpload = false;
-  console.warn('_doUpload err:', e);
-}
+  
+  db._lastSaved = now;
+  db._lastActionBy = _deviceId;
+  db._actionId = _deviceId + '_' + now + '_' + Math.random().toString(36).slice(2,7);
+  db._pendingUpload = true;
+  
+  try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){ toast('⚠️ المساحة ممتلئة', true); }
+  
+  const subStatus = checkSubscription();
+  if(subStatus === 'expired'){
+    db._pendingUpload = false;
+    setSyncStatus('warn','📱 محلي فقط');
+    return;
+  }
+  
+  if(cloudEnabled && navigator.onLine){
+    if(_saveTimer) clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(_doUpload, 100);
+  } else {
+    db._needsSync = true;
+    setSyncStatus('warn','📱 محلي');
+  }
 }
 
-window.addEventListener('beforeunload', function(){
-  if(_saveTimer && currentUser && cloudEnabled && cloudDataRef && navigator.onLine){
-    clearTimeout(_saveTimer);
-    try{
+function saveCategory(category){
+  if(!currentUser) return;
+  if(!_pendingCategories) _pendingCategories = new Set();
+  _pendingCategories.add(category);
+  save();
+}
+
+// ═══════════════════════════════════════════════════════════
+// 📤 _doUpload — رفع المستندات المقسّمة
+// ═══════════════════════════════════════════════════════════
+async function _doUpload(){
+  if(!currentUser || !cloudEnabled){
+    if(db) db._pendingUpload = false;
+    return;
+  }
+  if(!navigator.onLine){
+    if(db) db._pendingUpload = false;
+    setSyncStatus('warn','📱 محلي');
+    return;
+  }
+  
+  const subStatus = checkSubscription();
+  if(subStatus === 'expired'){
+    if(db) db._pendingUpload = false;
+    setSyncStatus('warn','⚠️ الاشتراك منتهي');
+    return;
+  }
+  
+  setSyncStatus('loading','⏳ جاري الحفظ...');
+  
+  try{
+    await _uploadMetaConfig();
+    
+    if(!_migrated || !db._migratedToSplit){
       const _clean = JSON.parse(JSON.stringify(db));
       delete _clean._deleted;
+      delete _clean._needsSync;
       delete _clean._pendingUpload;
-      cloudDataRef.doc(currentUser).set({
+      if(_clean._notifications && _clean._notifications.length > 20){
+        _clean._notifications = _clean._notifications.slice(0, 20);
+      }
+      await cloudDataRef.doc(currentUser).set({
         data: _clean,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         _lastActionBy: _deviceId
       });
+      db._pendingUpload = false;
+      setSyncStatus('ok','☁️ متزامن');
+      return;
+    }
+    
+    // ✅ رفع الأقسام اللي تغيرت فقط (إذا محدد) — وإلا كل الأقسام
+    const categoriesToUpload = _pendingCategories.size > 0 
+      ? Array.from(_pendingCategories)
+      : SPLIT_CATEGORIES;
+    
+    for(const category of categoriesToUpload){
+      const items = db[category] || [];
+      const ref = _getCategoryRef(category);
+      if(!ref) continue;
+      
+      // ✅ احذف العناصر المحذوفة
+      const deletedItems = (db._deleted && db._deleted[category]) || [];
+      for(const delId of deletedItems){
+        try{ await ref.doc(delId).delete(); }catch(e){}
+      }
+      
+      // ✅ ارفع العناصر بـ Batch
+      let batchCount = 0;
+      let batch = _firestoreDB.batch();
+      for(const item of items){
+        if(!item || !item.id) continue;
+        batch.set(ref.doc(item.id), {
+          ...item,
+          _lastActionBy: _deviceId,
+          _uploadedAt: Date.now()
+        });
+        batchCount++;
+        
+        if(batchCount >= 400){
+          await batch.commit();
+          batch = _firestoreDB.batch();
+          batchCount = 0;
+        }
+      }
+      if(batchCount > 0) await batch.commit();
+    }
+    
+    _pendingCategories.clear();
+    db._pendingUpload = false;
+    setSyncStatus('ok','☁️ متزامن');
+    _lastCloudServerTime = Date.now();
+    
+  }catch(e){
+    console.error('_doUpload error:', e);
+    db._pendingUpload = false;
+    setSyncStatus('err','⚠️ فشل الرفع');
+  }
+}
+
+window.addEventListener('beforeunload', function(){
+  if(_saveTimer && currentUser && cloudEnabled && navigator.onLine){
+    clearTimeout(_saveTimer);
+    try{
+      _uploadMetaConfig();
     }catch(e){}
   }
 });
 
-// ===== مزامنة تلقائية =====
+// ═══════════════════════════════════════════════════════════
+// 🔄 مزامنة تلقائية
+// ═══════════════════════════════════════════════════════════
 async function autoSyncOnConnect(){
-if(!currentUser || !cloudEnabled || !cloudDataRef) return;
-if(!navigator.onLine) return;
-try {
-setSyncStatus('loading','☁️ مزامنة تلقائية...');
-const doc = await cloudDataRef.doc(currentUser).get();
-const cloudDb = (doc.exists&&doc.data()&&doc.data().data)?doc.data().data:null;
-if(cloudDb){
-_lastCloudState = cloudDb;
-if(doc.data().updatedAt && doc.data().updatedAt.toMillis) _lastCloudServerTime = doc.data().updatedAt.toMillis();
-const cloudTime = +cloudDb._lastSaved || 0;
-const localTime = +db._lastSaved || 0;
-// ✅ التعديل 2: قبول الفرق الصغير
-if(cloudTime >= localTime - 5000){
-  db = Object.assign(emptyDB(), cloudDb);
-  _fixDBFields(db);
-  try{localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db));}catch(e){}
-  renderAll();renderArchive();renderSettings();
-  showSyncNotification('📥 تمت المزامنة','ok');
-} else if(localTime > cloudTime){
-  await cloudDataRef.doc(currentUser).set({
-    data: db,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    _lastActionBy: _deviceId
-  });
-}
-setSyncStatus('ok','☁️ متزامن');
-} else {
-setSyncStatus('ok','☁️ متزامن');
-}
-} catch(e) {
-setSyncStatus('err','⚠️ فشل');
-}
+  if(!currentUser || !cloudEnabled || !navigator.onLine) return;
+  
+  const subStatus = checkSubscription();
+  if(subStatus === 'expired') return;
+  
+  try{
+    setSyncStatus('loading','☁️ مزامنة تلقائية...');
+    if(_migrated && db._migratedToSplit){
+      await _reloadFromSplitDocs();
+      renderAll();renderArchive();renderSettings();
+      setSyncStatus('ok','☁️ متزامن');
+    } else {
+      const doc = await cloudDataRef.doc(currentUser).get();
+      const cloudDb = (doc.exists&&doc.data()&&doc.data().data)?doc.data().data:null;
+      if(cloudDb){
+        const merged = mergeSmart(db, cloudDb);
+        _fixDBFields(merged);
+        db = merged;
+        localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db));
+        renderAll();renderArchive();renderSettings();
+      }
+      setSyncStatus('ok','☁️ متزامن');
+    }
+  }catch(e){
+    setSyncStatus('err','⚠️ فشل');
+  }
 }
 
 async function forceSync(){
-if(!currentUser)return;
-if(!cloudEnabled||!cloudDataRef){toast('📱 محلي',true);return;}
-toast('جاري المزامنة... ⏳');
-try{
-const doc=await cloudDataRef.doc(currentUser).get();
-const cloudDb=(doc.exists&&doc.data()&&doc.data().data)?doc.data().data:null;
-if(doc.data()&&doc.data().updatedAt&&doc.data().updatedAt.toMillis) _lastCloudServerTime=doc.data().updatedAt.toMillis();
-if(cloudDb){
-  const cloudTime = +cloudDb._lastSaved || 0;
-  const localTime = +db._lastSaved || 0;
-  if(cloudTime >= localTime - 5000){
-    db = Object.assign(emptyDB(), cloudDb);
-    _fixDBFields(db);
-  } else {
-    await cloudDataRef.doc(currentUser).set({data:db,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),_lastActionBy:_deviceId});
+  if(!currentUser) return;
+  if(!cloudEnabled){ toast('📱 محلي', true); return; }
+  
+  const subStatus = checkSubscription();
+  if(subStatus === 'expired'){
+    toast('⚠️ اشترك أولاً للمزامنة', true);
+    gotoPage('subscription');
+    return;
   }
-}
-localStorage.setItem(DATA_PREFIX+currentUser,JSON.stringify(db));
-renderAll();renderArchive();renderSettings();
-setSyncStatus('ok','☁️ متزامن');
-toast('✅ تمت المزامنة');
-}catch(e){toast('❌ فشل',true);}
+  
+  toast('جاري المزامنة... ⏳');
+  try{
+    if(_migrated && db._migratedToSplit){
+      await _reloadFromSplitDocs();
+    } else {
+      const doc = await cloudDataRef.doc(currentUser).get();
+      const cloudDb = (doc.exists&&doc.data()&&doc.data().data)?doc.data().data:null;
+      if(cloudDb){
+        db = mergeSmart(db, cloudDb);
+        _fixDBFields(db);
+      }
+    }
+    localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db));
+    renderAll();renderArchive();renderSettings();
+    setSyncStatus('ok','☁️ متزامن');
+    toast('✅ تمت المزامنة');
+  }catch(e){ toast('❌ فشل', true); }
 }
 
 async function sendMyData(){
-if(!currentUser)return;
-if(!cloudEnabled||!cloudDataRef){toast('❌ لا يوجد اتصال',true);return;}
-if(!confirm('⚠️ سيتم إرسال بيانات هذا الجهاز كأحدث نسخة.\n\nمتابعة؟'))return;
-try{
-_setLocalTimestamp();
-db._needsSync = false;
-localStorage.setItem(DATA_PREFIX+currentUser,JSON.stringify(db));
-await cloudDataRef.doc(currentUser).set({
-data: db,
-updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-_lastActionBy: _deviceId
-});
-setSyncStatus('ok','☁️ متزامن');
-toast('✅ تم الإرسال');
-}catch(e){toast('❌ فشل',true);}
+  if(!currentUser) return;
+  if(!cloudEnabled){ toast('❌ لا يوجد اتصال', true); return; }
+  
+  const subStatus = checkSubscription();
+  if(subStatus === 'expired'){
+    toast('⚠️ اشترك أولاً للمزامنة', true);
+    gotoPage('subscription');
+    return;
+  }
+  
+  if(!confirm('📤 سيتم دمج بياناتك مع السحابة\n\n✅ ما راح تنمسح أي بيانات\n✅ بدون تكرار\n\nمتابعة؟')) return;
+  
+  try{
+    setSyncStatus('loading','🔀 جاري الدمج...');
+    
+    if(!_migrated || !db._migratedToSplit){
+      await _migrateToSplitDocs();
+    }
+    
+    db._lastSaved = Date.now() + 1000;
+    db._lastActionBy = _deviceId;
+    await _uploadMetaConfig();
+    
+    _pendingCategories = new Set(SPLIT_CATEGORIES);
+    await _doUpload();
+    
+    renderAll();renderArchive();renderSettings();
+    setSyncStatus('ok','☁️ متزامن');
+    toast('✅ تم الدمج بنجاح');
+  }catch(e){
+    console.error(e);
+    toast('❌ فشل الدمج', true);
+    setSyncStatus('err','⚠️ فشل');
+  }
 }
 
 async function receiveFromCloud(){
-if(!currentUser)return;
-if(!cloudEnabled||!cloudDataRef){toast('❌ لا يوجد اتصال',true);return;}
-if(!confirm('⚠️ سيتم استقبال البيانات من السحابة.\n\nمتابعة؟'))return;
-try{
-const doc = await cloudDataRef.doc(currentUser).get();
-if(doc.exists && doc.data() && doc.data().data){
-const cloudDb = doc.data().data;
-_lastCloudState = cloudDb;
-if(doc.data().updatedAt && doc.data().updatedAt.toMillis) _lastCloudServerTime = doc.data().updatedAt.toMillis();
-db = Object.assign(emptyDB(), cloudDb);
-_fixDBFields(db);
-localStorage.setItem(DATA_PREFIX+currentUser,JSON.stringify(db));
-renderAll();renderArchive();renderSettings();renderSaleItems();renderExItems();renderDepositTypes();
-setSyncStatus('ok','☁️ متزامن');
-toast('✅ تم استقبال بيانات السحابة');
-} else {
-toast('ما موجود بيانات',true);
-}
-}catch(e){console.error(e);toast('❌ فشل',true);}
+  if(!currentUser) return;
+  if(!cloudEnabled){ toast('❌ لا يوجد اتصال', true); return; }
+  
+  const subStatus = checkSubscription();
+  if(subStatus === 'expired'){
+    toast('⚠️ اشترك أولاً للمزامنة', true);
+    gotoPage('subscription');
+    return;
+  }
+  
+  if(!confirm('📥 سيتم دمج السحابة مع بياناتك\n\n✅ ما راح تنمسح أي بيانات\n✅ بدون تكرار\n\nمتابعة؟')) return;
+  
+  try{
+    if(_migrated && db._migratedToSplit){
+      await _reloadFromSplitDocs();
+    } else {
+      const doc = await cloudDataRef.doc(currentUser).get();
+      if(doc.exists && doc.data() && doc.data().data){
+        const cloudDb = doc.data().data;
+        db = mergeSmart(db, cloudDb);
+        _fixDBFields(db);
+      }
+    }
+    localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db));
+    renderAll();renderArchive();renderSettings();renderSaleItems();renderExItems();renderDepositTypes();
+    setSyncStatus('ok','☁️ متزامن');
+    toast('✅ تم الدمج مع السحابة');
+  }catch(e){
+    console.error(e);
+    toast('❌ فشل', true);
+  }
 }
 </script><script>
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
@@ -3042,43 +4462,102 @@ const allPayments=db.payments.filter(x=>x.person===p).reduce((a,x)=>a+x.amount,0
 return Math.max(0,debtSum-allPayments);
 }
 
+// ═══════════════════════════════════════════════════════════
+// ✅ renderDebt الجديدة — جدول نظيف (بدون مجموعات)
+// ═══════════════════════════════════════════════════════════
 function renderDebt(){
 const el=document.getElementById('debtList');
+if(!el) return;
 const flourNames = new Set((db.flourTypes||[]).map(t => _cleanType(t.name)));
 const allPersons=[...new Set([...db.debts.map(d=>d.person),...db.payments.map(p=>p.person)])]
   .filter(p => !flourNames.has(_cleanType(p)));
 const ap=allPersons.filter(p=>debtBalance(p)>0.01);
 if(!ap.length){el.innerHTML='<div class="empty">لا توجد ديون</div>';return;}
-let h='';let gtr=0;
-ap.forEach(p=>{
-const pd=db.debts.filter(d=>d.person===p);
-const pp=db.payments.filter(x=>x.person===p);
-const td=pd.reduce((a,d)=>a+d.amount,0);
-const tp=pp.reduce((a,x)=>a+x.amount,0);
-const rem=debtBalance(p);
-gtr+=Math.max(rem,0);
-const allTypes=[...new Set([...pd.map(d=>d.typeName||'بدون نوع'),...pp.map(x=>x.typeName||'بدون نوع')])];
-const ts=allTypes.filter(type=>{const tds=pd.filter(d=>(d.typeName||'بدون نوع')===type);const da=tds.reduce((a,d)=>a+d.amount,0);const dq=tds.reduce((a,d)=>a+(d.qty||0),0);return da>0.01||dq>0;});
-if(!ts.length)return;
-const ld=[...pd.map(d=>d.date),...pp.map(x=>x.date)];
-const ldt=ld.length?ld.sort().slice(-1)[0]:nowISO();
-h+=`<div class="buyer-group"><div class="buyer-head" style="cursor:default"><div class="name">👤 <b>${p}</b><br><span style="font-size:11px;color:#888">${fmt(ldt)}</span></div><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="total" style="background:#c0392b">دين: ${money(td)}</span>${tp>0?`<span class="total" style="background:#27ae60">مسدد: ${money(tp)}</span>`:''}<span class="total" style="background:#e67e22">متبقي: ${money(rem)}</span></div></div><div class="buyer-body open">`;
-ts.forEach(type=>{
-const tds=pd.filter(d=>(d.typeName||'بدون نوع')===type);
-const tps=pp.filter(x=>(x.typeName||'بدون نوع')===type);
-const da=tds.reduce((a,d)=>a+d.amount,0);
-const dq=tds.reduce((a,d)=>a+(d.qty||0),0);
-const pa=tps.reduce((a,x)=>a+x.amount,0);
-const pq=tps.reduce((a,x)=>a+(x.qty||0),0);
-const ra=da-pa;const rq=dq-pq;
-h+=`<div class="type-debt-box"><div class="type-debt-header"><b>🌾 ${type}</b></div><div class="type-debt-stats"><span>📦 مأخوذ: <b style="color:#c0392b">${money(dq)}</b></span><span>💵 قيمته: <b style="color:#c0392b">${money(da)}</b></span>${pq>0?`<span>✅ مسدد: <b style="color:#27ae60">${money(pq)}</b></span>`:''}${pa>0?`<span>💰: <b style="color:#27ae60">${money(pa)}</b></span>`:''}${rq>0?`<span style="background:#ffe5e5;color:#c0392b">⏳ باقي: <b>${money(rq)}</b></span>`:''}${ra>0?`<span style="background:#ffe5e5;color:#c0392b">💸 باقي: <b>${money(ra)}</b></span>`:''}</div><table style="margin-top:6px;font-size:10px"><tr><th>التاريخ</th><th>الحركة</th><th>الكمية</th><th>المبلغ</th><th></th></tr>`;
-tds.forEach(d=>{h+=`<tr><td style="font-size:10px">${fmtShort(d.date)}</td><td style="color:#c0392b">📝 دين${d.manual?' (يدوي)':''}</td><td>${d.qty?money(d.qty):'—'}</td><td style="color:#c0392b;font-weight:bold">${money(d.amount)}</td><td><button class="blue small" onclick="editDebt('${d.id}')" style="padding:2px 6px;font-size:10px">✏️</button> <button class="gold small" onclick="editDateTime('debt','${d.id}')" style="padding:2px 6px;font-size:10px">⏰</button> <button class="danger small" onclick="delDebt('${d.id}')" style="padding:2px 6px;font-size:10px">🗑️</button></td></tr>`;});
-tps.forEach(x=>{h+=`<tr><td style="font-size:10px">${fmtShort(x.date)}</td><td style="color:#27ae60">✅ تسديد</td><td>${x.qty?money(x.qty):'—'}</td><td style="color:#27ae60;font-weight:bold">${money(x.amount)}</td><td><button class="blue small" onclick="editPayment('${x.id}')" style="padding:2px 6px;font-size:10px">✏️</button> <button class="gold small" onclick="editDateTime('payment','${x.id}')" style="padding:2px 6px;font-size:10px">⏰</button> <button class="danger small" onclick="delPayment('${x.id}')" style="padding:2px 6px;font-size:10px">🗑️</button></td></tr>`;});
-h+=`</table></div>`;
-});
+const dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+let h=`<div class="deposit-table-card">`;
+h+=`<div class="card-header">`;
+h+=`<div class="title">📋 المطلوبين (الديون)</div>`;
+h+=`<div class="date-row">`;
+h+=`<div><b>📅:</b> ${fmt(nowISO())}</div><div><b>📆:</b> ${dayNames[new Date().getDay()]}</div>`;
 h+=`</div></div>`;
+h+=`<table class="deposit-table"><tr>`;
+h+=`<th>#</th><th>الاسم</th><th>النوع</th><th>📦 مأخوذ</th><th>💵 قيمته</th><th>✅ مسدد</th><th>💰 متبقي</th><th>📅 التاريخ</th>`;
+h+=`</tr>`;
+
+let counter = 0;
+let totalDebt = 0;
+let totalPaid = 0;
+let totalRemaining = 0;
+
+ap.forEach(p=>{
+  // جمع البيانات لكل نوع عند هذا الشخص
+  const pd = db.debts.filter(d=>d.person===p);
+  const pp = db.payments.filter(x=>x.person===p);
+  
+  // ✅ جميع الأنواع (من الديون + من التسديدات)
+  const allTypes = [...new Set([
+    ...pd.map(d=>d.typeName||'بدون نوع'),
+    ...pp.map(x=>x.typeName||'بدون نوع')
+  ])].filter(t => {
+    const tds = pd.filter(d=>(d.typeName||'بدون نوع')===t);
+    const tps = pp.filter(x=>(x.typeName||'بدون نوع')===t);
+    const da = tds.reduce((a,d)=>a+d.amount,0);
+    const pa = tps.reduce((a,x)=>a+x.amount,0);
+    return (da - pa) > 0.01 || da > 0.01;
+  });
+  
+  allTypes.forEach((type, idx)=>{
+    const tds = pd.filter(d=>(d.typeName||'بدون نوع')===type);
+    const tps = pp.filter(x=>(x.typeName||'بدون نوع')===type);
+    
+    const debtQty = tds.reduce((a,d)=>a+(d.qty||0),0);
+    const debtAmt = tds.reduce((a,d)=>a+d.amount,0);
+    const paidAmt = tps.reduce((a,x)=>a+x.amount,0);
+    const remAmt = Math.max(0, debtAmt - paidAmt);
+    
+    // تاريخ آخر حركة
+    const allDates = [...tds.map(d=>d.date), ...tps.map(x=>x.date)];
+    const lastDate = allDates.length ? allDates.sort().slice(-1)[0] : nowISO();
+    
+    // ✅ الاسم أحمر إذا عليه متبقي
+    const nameHtml = remAmt > 0.01 
+      ? `<span style="color:#c0392b;font-weight:bold">${p}</span>` 
+      : `<span style="color:#666">${p}</span>`;
+    
+    // ✅ المتبقي أحمر إذا > 0
+    const remHtml = remAmt > 0.01 
+      ? `<span style="color:#c0392b;font-weight:bold">${money(remAmt)}</span>` 
+      : `<span style="color:#888">0</span>`;
+    
+    counter++;
+    totalDebt += debtAmt;
+    totalPaid += paidAmt;
+    totalRemaining += remAmt;
+    
+    h+=`<tr class="deposit-row">`;
+    h+=`<td class="num">${counter}</td>`;
+    h+=`<td class="name">👤 ${nameHtml}</td>`;
+    h+=`<td class="type">🌾 ${type}</td>`;
+    h+=`<td class="orig">${debtQty>0?money(debtQty):'—'}</td>`;
+    h+=`<td class="money-o">${debtAmt>0?money(debtAmt):'—'}</td>`;
+    h+=`<td class="used">${paidAmt>0?money(paidAmt):'—'}</td>`;
+    h+=`<td class="money-r">${remHtml}</td>`;
+    h+=`<td class="time">${fmtShort(lastDate)}</td>`;
+    h+=`</tr>`;
+  });
 });
-h+=`<div class="card" style="background:#faf0e6;margin-top:12px"><table><tr><th>المجموع الكلي للديون المتبقية</th><th style="color:#c0392b;font-size:16px">${money(gtr)} د.ع</th></tr></table></div>`;
+
+h+=`</table>`;
+
+// ✅ الإجمالي في الأسفل
+h+=`<div style="background:#faf0e6;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px">`;
+h+=`<div>📊 <b>الإجمالي:</b></div>`;
+h+=`<div>دين: <b style="color:#c0392b">${money(totalDebt)}</b> د.ع</div>`;
+h+=`<div>مسدد: <b style="color:#27ae60">${money(totalPaid)}</b> د.ع</div>`;
+h+=`<div>متبقي: <b style="color:#e67e22;font-size:14px">${money(totalRemaining)}</b> د.ع</div>`;
+h+=`</div>`;
+
+h+=`</div>`;
 el.innerHTML=h;
 }
 
@@ -3256,8 +4735,8 @@ reportTotal += paid;
 });
 reportTotal += db.payments.reduce((a,p)=>a+p.amount,0);
 reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-// ✅ التعديل: حذف d.legacy — الإيداع "قديم" يظهر في الصندوق
-reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
+// ✅ التعديل: رجعنا d.legacy — رصيد قديم + كمية فقط ما يُحسبون
+reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
 reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
 const gs=db.sales.filter(s=>s.method==='هدية').reduce((a,s)=>a+(s.qty||0),0);
 const _debtPersons=[...new Set(db.debts.map(d=>d.person))];
@@ -3658,8 +5137,8 @@ db.payments.forEach(p=>{rows.push({date:p.date,type:p.typeName||'—',qty:p.qty|
 db.debts.filter(d=>d.manual && !d.fromSale && !d.fromDeposit && !d.fromExchange).forEach(d=>{
 rows.push({date:d.date,type:d.typeName||'دين يدوي',qty:'',unitPrice:d.amount,buyer:d.person,carrier:'—',amount:0,displayAmount:0,method:'دين يدوي',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});
 });
-// ✅ التعديل: حذف d.legacy — الإيداع "قديم" يظهر في سجل المطابقة
-db.deposits.filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).forEach(d=>{rows.push({date:d.date,type:d.typeName||'💵 مبلغ حر',qty:d.originalQty||d.qty||'',unitPrice:d.unitPrice||'',buyer:d.person,carrier:d.carrier||'—',amount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,displayAmount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,method:'إيداع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+// ✅ التعديل 2: رجعنا d.legacy — رصيد قديم + كمية فقط ما يُحسبون
+db.deposits.filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).forEach(d=>{rows.push({date:d.date,type:d.typeName||'💵 مبلغ حر',qty:d.originalQty||d.qty||'',unitPrice:d.unitPrice||'',buyer:d.person,carrier:d.carrier||'—',amount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,displayAmount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,method:'إيداع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
 (db.cashAdditions||[]).filter(c=>!c.isCarry&&!c.fromExchange).forEach(c=>{rows.push({date:c.date,type:'—',qty:'',unitPrice:'',buyer:c.note||'إضافة صندوق',carrier:'—',amount:c.amount,displayAmount:c.amount,method:'إضافات',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
 (db.exchanges||[]).forEach(e=>{
 (e.returnItems||[]).forEach(ri=>{rows.push({date:e.date,type:ri.typeName,qty:ri.qty,unitPrice:ri.unitPrice||0,buyer:e.buyer,carrier:e.carrier||'—',amount:0,displayAmount:0,method:'استرجاع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
@@ -3742,8 +5221,8 @@ _reportTotal += paid;
 });
 _reportTotal += db.payments.reduce((a,p)=>a+p.amount,0);
 _reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-// ✅ التعديل 2: حذف d.legacy — الإيداع "قديم" يُحسب في الإجمالي
-_reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
+// ✅ التعديل 2: رجعنا d.legacy
+_reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
 _reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
 const _te=db.expenses.reduce((a,e)=>a+e.amount,0);
 let _carry=0;
@@ -4056,6 +5535,10 @@ datesSorted.forEach(dateKey=>{
     deposits: dayData.deposits,
     reservations: [],
     cashboxAtArchive: dayTotal - dayExpenses,
+    // ✅ التعديل 8: إضافة السجلات كاملة للأرشيف
+    allDeposits: JSON.parse(JSON.stringify(db.deposits || [])),
+    allDebts: JSON.parse(JSON.stringify(db.debts || [])),
+    allFlourTypes: JSON.parse(JSON.stringify(db.flourTypes || [])),
     _editedAt: Date.now()
   };
   db.archive.unshift(archiveDoc);
@@ -4072,9 +5555,37 @@ db.buyers.forEach(x=>markDeleted('buyers',x.id));
 db._lastArchiveAt=_archiveTime;
 db._permanentCarry=currentCashbox;
 db._cashboxOffset=0;
+// ✅ التعديل 3: إصلاح كمية الطحين بعد الأرشفة — احترام التعديل اليدوي
 db.flourTypes.forEach(t=>{
-t.additions=[{qty:t.qty,date:_archiveTime,note:'بعد الأرشفة'}];
-t.totalSold=0;t.updatedAt=_archiveTime;t._visibleFrom=_archiveTime;t._manualOverride=null;t._editedAt=Date.now();
+  const currentQty = +t.qty || 0;
+  const currentUnitPrice = +t.unitPrice || 0;
+  
+  // ✅ الأصلية الجديدة = الباقية
+  t.additions = [{
+    qty: currentQty,
+    date: _archiveTime,
+    note: '📦 بعد الأرشفة'
+  }];
+  
+  // ✅ الكمية الحالية = الباقية
+  t.qty = currentQty;
+  t.totalSold = 0;
+  
+  // ✅ التعديل اليدوي يتحدّث (بدل ما يمسح)
+  t._manualOverride = Date.now();
+  t._manualOriginal = currentQty;
+  t._manualQty = currentQty;
+  
+  // ✅ حدّث الخريطة
+  if(!db._manualOverrides) db._manualOverrides = {};
+  const cleanName = _cleanType(t.name);
+  db._manualOverrides[cleanName] = {
+    original: currentQty,
+    timestamp: Date.now()
+  };
+  
+  t._visibleFrom = _archiveTime;
+  t._editedAt = Date.now();
 });
 db.sales=[];db.payments=[];db.expenses=[];db.buyers=[];db.cashAdditions=[];db.exchanges=[];
 db.deposits=keptDeposits;
@@ -4125,7 +5636,9 @@ if(q){
   const nameMatch = (a.sales||[]).some(s=>s.buyer&&s.buyer.toLowerCase().includes(q)) ||
                     (a.payments||[]).some(p=>p.person&&p.person.toLowerCase().includes(q)) ||
                     (a.deposits||[]).some(d=>d.person&&d.person.toLowerCase().includes(q)) ||
-                    (a.debts||[]).some(d=>d.person&&d.person.toLowerCase().includes(q));
+                    (a.debts||[]).some(d=>d.person&&d.person.toLowerCase().includes(q)) ||
+                    (a.allDeposits||[]).some(d=>d.person&&d.person.toLowerCase().includes(q)) ||
+                    (a.allDebts||[]).some(d=>d.person&&d.person.toLowerCase().includes(q));
   const dateMatch = a.dateKey && a.dateKey.toLowerCase().includes(q);
   const arabicMatch = a.dateArabic && a.dateArabic.toLowerCase().includes(q);
   const dayMatch = a.dayName && a.dayName.toLowerCase().includes(q);
@@ -4228,22 +5741,52 @@ toast('✅ تم حذف الوثيقة — البيانات الحالية سلي
 
 function viewArchive(){window._printRowLimit=25;window._autoFontSize=false;const c=document.getElementById('archiveList').innerHTML;if(!c||c.trim()===''||!db.archive.length){toast('لا يوجد أرشيف',true);return;}_currentViewHTML=c;currentReportImages=[];_finalCashbox=0;_finalTotal=0;_finalExpenses=0;openOverlay('📦 كل الأرشيف',c,'#8e44ad');}
 
+// ═══════════════════════════════════════════════════════════
+// ✅ viewSingleArchive — يضيف سجل الإيداعات + المطلوبين + الطحين
+// ═══════════════════════════════════════════════════════════
 function viewSingleArchive(id){
 window._printRowLimit=25;window._autoFontSize=false;
 const a=db.archive.find(x=>x.id===id);
 if(!a){toast('لا يوجد',true);return;}
 
+// ═══════════════════════════════════════════
+// ✅ إذا فيه savedReportHTML → استخدمه وأضف السجلات الثلاثة
+// ═══════════════════════════════════════════
 if(a.savedReportHTML && a.savedReportHTML.trim()){
   _finalTotal = a.savedFinalTotal || 0;
   _finalExpenses = a.savedFinalExpenses || 0;
   _finalCashbox = a.savedFinalCashbox || 0;
-  _currentViewHTML = a.savedReportHTML;
+  
+  let fullHTML = a.savedReportHTML;
+  
+  // ✅ 1. سجل الإيداعات
+  const archDeposits = a.allDeposits || [];
+  if(archDeposits.length){
+    fullHTML += renderArchiveDepositsSection(archDeposits);
+  }
+  
+  // ✅ 2. سجل المطلوبين
+  const archDebts = a.allDebts || [];
+  if(archDebts.length){
+    fullHTML += renderArchiveDebtsSection(archDebts, a.payments || []);
+  }
+  
+  // ✅ 3. سجل الطحين
+  const archFlour = a.allFlourTypes || [];
+  if(archFlour.length){
+    fullHTML += renderArchiveFlourSection(archFlour);
+  }
+  
+  _currentViewHTML = fullHTML;
   currentReportImages = [];
   const title = a.dateArabic || ('أرشيف ' + fmt(a.archivedAt));
-  openOverlay('📦 ' + title, a.savedReportHTML, '#8e44ad');
+  openOverlay('📦 ' + title, fullHTML, '#8e44ad');
   return;
 }
 
+// ═══════════════════════════════════════════
+// من هنا الكود الأصلي (للأرشيفات القديمة بدون savedReportHTML)
+// ═══════════════════════════════════════════
 let c='';
 if(a.type==='flour'){
 const ff=(a.flourTypes||[]);
@@ -4352,6 +5895,150 @@ _finalExpenses=_te2;
 _finalCashbox=a.cashboxAtArchive!==undefined?a.cashboxAtArchive:(_finalTotal-_finalExpenses);
 _currentViewHTML=c;currentReportImages=[];
 openOverlay('📦 أرشيف '+(a.dateArabic||fmt(a.archivedAt)),c,'#8e44ad');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ دوال مساعدة لبناء أقسام الأرشيف الثلاثة الجديدة
+// ═══════════════════════════════════════════════════════════
+function renderArchiveDepositsSection(deps){
+if(!deps || !deps.length) return '';
+let h = `<div class="card" style="background:#fff8e6;border:2px solid #f39c12;margin-top:10px;padding:10px">`;
+h += `<div style="text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #f39c12">`;
+h += `<b style="color:#8B4513;font-size:14px">💰 سجل الإيداعات (وقت الأرشفة)</b>`;
+h += `</div>`;
+h += `<table style="font-size:10px;width:100%"><tr>`;
+h += `<th>#</th><th>الاسم</th><th>الناقل 🚛</th><th>النوع</th><th>📦 الأصلي</th><th>📦 المستخدم</th><th>📦 المتبقي</th><th>💰 الأصلي</th><th>💰 المستخدم</th><th>💰 المتبقي</th><th>📅 التاريخ</th>`;
+h += `</tr>`;
+let counter = 0;
+deps.forEach(dep=>{
+  const dType = dep.typeName || '💵 مبلغ حر';
+  const origQty = +dep.originalQty || +dep.qty || 0;
+  const origAmt = +dep.originalAmount || +dep.amount || 0;
+  const usedQty = +dep._usedQty || 0;
+  const usedAmt = +dep._usedMoney || 0;
+  const remQty = Math.max(0, origQty - usedQty);
+  const remAmt = Math.max(0, origAmt - usedAmt);
+  const finished = (remQty <= 0 && remAmt <= 0);
+  counter++;
+  h += `<tr style="${finished?'background:#f5f5f5;opacity:0.7':''}">`;
+  h += `<td style="text-align:center">${counter}</td>`;
+  h += `<td style="color:#8B4513;font-weight:bold">👤 ${dep.person}</td>`;
+  h += `<td style="color:#7f8c8d;font-size:9px">${dep.carrier || '—'}</td>`;
+  h += `<td><b>${dType}</b>${dep.legacy?' <span style="background:#f39c12;color:#fff;padding:1px 4px;border-radius:4px;font-size:8px">📜 قديم</span>':''}</td>`;
+  h += `<td style="color:#2980b9;font-weight:bold">${origQty>0?money(origQty):'—'}</td>`;
+  h += `<td style="color:#e67e22;font-weight:bold">${usedQty>0?money(usedQty):'—'}</td>`;
+  h += `<td style="color:${remQty<=0?'#8b0000':'#c0392b'};font-weight:bold">${origQty>0?(remQty<=0?'انتهى':money(remQty)):'—'}</td>`;
+  h += `<td style="color:#2980b9;font-weight:bold">${origAmt>0?money(origAmt):'—'}</td>`;
+  h += `<td style="color:#e67e22;font-weight:bold">${usedAmt>0?money(usedAmt):'—'}</td>`;
+  h += `<td style="color:${remAmt<=0?'#8b0000':'#c0392b'};font-weight:bold">${origAmt>0?(remAmt<=0?'انتهى':money(remAmt)):'—'}</td>`;
+  h += `<td style="font-size:9px;color:#666">${fmtShort(dep.date)}</td>`;
+  h += `</tr>`;
+});
+h += `</table></div>`;
+return h;
+}
+
+function renderArchiveDebtsSection(debts, payments){
+if(!debts || !debts.length) return '';
+const flourNames = new Set((db.flourTypes||[]).map(t => _cleanType(t.name)));
+const allPersons=[...new Set([...debts.map(d=>d.person),...(payments||[]).map(p=>p.person)])]
+  .filter(p => !flourNames.has(_cleanType(p)));
+let h = `<div class="card" style="background:#fff5f5;border:2px solid #c0392b;margin-top:10px;padding:10px">`;
+h += `<div style="text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #c0392b">`;
+h += `<b style="color:#c0392b;font-size:14px">📋 سجل المطلوبين (وقت الأرشفة)</b>`;
+h += `</div>`;
+h += `<table style="font-size:10px;width:100%"><tr>`;
+h += `<th>#</th><th>الاسم</th><th>النوع</th><th>📦 مأخوذ</th><th>💵 قيمته</th><th>✅ مسدد</th><th>💰 متبقي</th><th>📅 التاريخ</th>`;
+h += `</tr>`;
+let counter = 0;
+let totalDebt = 0, totalPaid = 0, totalRemaining = 0;
+allPersons.forEach(p=>{
+  const pd = debts.filter(d=>d.person===p);
+  const pp = (payments||[]).filter(x=>x.person===p);
+  const allTypes = [...new Set([
+    ...pd.map(d=>d.typeName||'بدون نوع'),
+    ...pp.map(x=>x.typeName||'بدون نوع')
+  ])].filter(t => {
+    const tds = pd.filter(d=>(d.typeName||'بدون نوع')===t);
+    const tps = pp.filter(x=>(x.typeName||'بدون نوع')===t);
+    const da = tds.reduce((a,d)=>a+d.amount,0);
+    const pa = tps.reduce((a,x)=>a+x.amount,0);
+    return (da - pa) > 0.01 || da > 0.01;
+  });
+  allTypes.forEach(type=>{
+    const tds = pd.filter(d=>(d.typeName||'بدون نوع')===type);
+    const tps = pp.filter(x=>(x.typeName||'بدون نوع')===type);
+    const debtQty = tds.reduce((a,d)=>a+(d.qty||0),0);
+    const debtAmt = tds.reduce((a,d)=>a+d.amount,0);
+    const paidAmt = tps.reduce((a,x)=>a+x.amount,0);
+    const remAmt = Math.max(0, debtAmt - paidAmt);
+    const allDates = [...tds.map(d=>d.date), ...tps.map(x=>x.date)];
+    const lastDate = allDates.length ? allDates.sort().slice(-1)[0] : nowISO();
+    counter++;
+    totalDebt += debtAmt;
+    totalPaid += paidAmt;
+    totalRemaining += remAmt;
+    const nameHtml = remAmt > 0.01 
+      ? `<span style="color:#c0392b;font-weight:bold">${p}</span>` 
+      : `<span style="color:#666">${p}</span>`;
+    h += `<tr>`;
+    h += `<td style="text-align:center">${counter}</td>`;
+    h += `<td>👤 ${nameHtml}</td>`;
+    h += `<td>🌾 ${type}</td>`;
+    h += `<td style="color:#2980b9;font-weight:bold">${debtQty>0?money(debtQty):'—'}</td>`;
+    h += `<td style="color:#c0392b;font-weight:bold">${debtAmt>0?money(debtAmt):'—'}</td>`;
+    h += `<td style="color:#27ae60;font-weight:bold">${paidAmt>0?money(paidAmt):'—'}</td>`;
+    h += `<td style="color:${remAmt>0.01?'#c0392b':'#888'};font-weight:bold">${money(remAmt)}</td>`;
+    h += `<td style="font-size:9px;color:#666">${fmtShort(lastDate)}</td>`;
+    h += `</tr>`;
+  });
+});
+h += `</table>`;
+h += `<div style="background:#ffe5e5;border-radius:6px;padding:8px;margin-top:8px;font-size:10px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px">`;
+h += `<div>📊 <b>الإجمالي:</b></div>`;
+h += `<div>دين: <b style="color:#c0392b">${money(totalDebt)}</b></div>`;
+h += `<div>مسدد: <b style="color:#27ae60">${money(totalPaid)}</b></div>`;
+h += `<div>متبقي: <b style="color:#e67e22">${money(totalRemaining)}</b></div>`;
+h += `</div>`;
+h += `</div>`;
+return h;
+}
+
+function renderArchiveFlourSection(flourTypes){
+if(!flourTypes || !flourTypes.length) return '';
+let h = `<div class="card" style="background:#f0f9f2;border:2px solid #27ae60;margin-top:10px;padding:10px">`;
+h += `<div style="text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #27ae60">`;
+h += `<b style="color:#1e8449;font-size:14px">🌾 سجل الطحين (وقت الأرشفة)</b>`;
+h += `</div>`;
+h += `<table style="font-size:10px;width:100%"><tr>`;
+h += `<th>#</th><th>النوع</th><th>الأصلي</th><th>المباع</th><th>الباقية</th><th>💵 السعر</th><th>💰 الكلي</th>`;
+h += `</tr>`;
+let totalMoney = 0;
+flourTypes.forEach((t,i)=>{
+  const qty = +t.qty || 0;
+  const sold = +t.totalSold || 0;
+  const original = qty + sold;
+  const up = +t.unitPrice || 0;
+  const lineTotal = qty * up;
+  totalMoney += lineTotal;
+  const finished = qty <= 0;
+  h += `<tr style="${finished?'background:#fff5f5':''}">`;
+  h += `<td style="text-align:center">${i+1}</td>`;
+  h += `<td><b>${t.name}</b>${finished?' <span style="background:#e74c3c;color:#fff;padding:1px 5px;border-radius:6px;font-size:8px">منتهي</span>':''}</td>`;
+  h += `<td style="color:#2980b9;font-weight:bold">${money(original)}</td>`;
+  h += `<td style="color:#c0392b;font-weight:bold">${money(sold)}</td>`;
+  h += `<td style="color:${finished?'#c0392b':'#27ae60'};font-weight:bold">${money(qty)}</td>`;
+  h += `<td style="color:#8B4513;font-weight:bold">${up?money(up):'—'}</td>`;
+  h += `<td style="color:#8B4513;font-weight:bold">${money(lineTotal)}</td>`;
+  h += `</tr>`;
+});
+h += `</table>`;
+h += `<div style="background:linear-gradient(135deg,#27ae60,#1e8449);color:#fff;padding:10px 14px;border-radius:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:11px">`;
+h += `<div>💰 المبلغ الكلي للمخزون</div>`;
+h += `<div style="font-size:16px">${money(totalMoney)} د.ع</div>`;
+h += `</div>`;
+h += `</div>`;
+return h;
 }
 </script><script>
 function renderExItems(){
@@ -4670,12 +6357,71 @@ acc.fullName=n;saveAccounts(accs);currentAccount=acc;
 showApp();toast('✅ تم حفظ الاسم');
 }
 
-function renderSettings(){renderAccountsList();renderAdminPanel();}
+function renderSettings(){
+  renderAccountsList();
+  renderAdminPanel();
+  if(typeof renderSubscriptionInfo === 'function') renderSubscriptionInfo();
+  if(typeof loadMyCity === 'function') loadMyCity();
+  if(isAdmin()){
+    if(typeof loadAdminUserStats === 'function') loadAdminUserStats();
+    if(typeof loadAdminUsersList === 'function') loadAdminUsersList();
+    if(typeof loadPaymentSettings === 'function'){
+      loadPaymentSettings().then(settings => {
+        if(settings){
+          const qiNum = document.getElementById('adminQiCardNum');
+          const qiName = document.getElementById('adminQiCardName');
+          const wa = document.getElementById('adminWhatsapp');
+          const price = document.getElementById('adminPrice');
+          const trial = document.getElementById('adminTrialDays');
+          if(qiNum) qiNum.value = settings.qiCardNumber || '';
+          if(qiName) qiName.value = settings.qiCardName || '';
+          if(wa) wa.value = settings.whatsapp || '';
+          if(price) price.value = settings.price || DEFAULT_PRICE;
+          if(trial) trial.value = settings.trialDays || DEFAULT_TRIAL_DAYS;
+        }
+      });
+    }
+  }
+}
+
 function renderAccountsList(){const el=document.getElementById('accountsList');const a=getAccounts();let h='';a.forEach(x=>{const c=x.username===currentUser;const ad=x.role==='admin';const disp=x.fullName||x.username;h+=`<div class="account-item ${c?'current':''}"><div class="avatar-sm">${disp.charAt(0)}</div><div class="info"><b>${disp} ${c?'✓':''} ${ad?'👑':''}</b><small>${c?'الحساب الحالي':(x.email||'منذ '+fmt(x.createdAt))}</small></div><div class="actions">${!c?`<button class="small blue" onclick="switchAccount('${x.username}')">🔁 تبديل</button>`:''}${!c&&isAdmin()?`<button class="small danger" onclick="delAccountByName('${x.username}')">🗑️</button>`:''}</div></div>`;});el.innerHTML=h;}
 function renderAdminPanel(){if(!isAdmin())return;const el=document.getElementById('adminPanel');const a=getAccounts();let h=`<table><tr><th>المستخدم</th><th>الدور</th><th>إجراءات</th></tr>`;a.forEach(x=>{const m=x.username===currentUser;h+=`<tr><td><b>${x.fullName||x.username}</b> ${m?'(أنت)':''}<br><span style="font-size:10px;color:#888">${x.username}</span></td><td>${x.role==='admin'?'👑 مدير':'👤 مستخدم'}</td><td>${!m?`<button class="small blue" onclick="resetPassword('${x.username}')">🔑</button>`:''}${!m?`<button class="small danger" onclick="delAccountByName('${x.username}')">🗑️</button>`:''}</td></tr>`;});h+=`</table>`;el.innerHTML=h;}
 function resetPassword(u){if(!isAdmin())return toast('غير مصرح',true);const np=prompt('كلمة مرور جديدة:');if(!np||np.length<6)return;const a=getAccounts();const x=a.find(y=>y.username===u);if(x){x.password=hash(np);saveAccounts(a);toast('✅');}}
 function changePassword(){const op=document.getElementById('oldPass').value;const np=document.getElementById('newPass').value;const np2=document.getElementById('newPass2').value;const a=getAccounts();const ac=a.find(x=>x.username===currentUser);if(!ac)return;if(ac.password!=='firebase'){if(ac.password!==hash(op))return toast('كلمة المرور الحالية غلط',true);}if(!np||np.length<6)return toast('6 أحرف على الأقل',true);if(np!==np2)return toast('غير متطابقتين',true);ac.password=hash(np);saveAccounts(a);currentAccount=ac;document.getElementById('oldPass').value='';document.getElementById('newPass').value='';document.getElementById('newPass2').value='';toast('✅');}
-function addNewAccount(){const u=normalizePhone(document.getElementById('newAccUser').value.trim());const p=document.getElementById('newAccPass').value;const p2=document.getElementById('newAccPass2').value;const ad=isAdmin()&&document.getElementById('newAccAdmin').checked;if(!u)return toast('اكتب الرقم',true);if(!/^07[0-9]{9}$/.test(u))return toast('رقم غير صحيح',true);if(!p||p.length<6)return toast('6 أحرف على الأقل',true);if(p!==p2)return toast('غير متطابقتين',true);const a=getAccounts();if(a.find(x=>x.username===u))return toast('موجود',true);a.push({username:u,password:hash(p),role:ad?'admin':'user',fullName:'مستخدم',createdAt:new Date().toISOString()});saveAccounts(a);document.getElementById('newAccUser').value='';document.getElementById('newAccPass').value='';document.getElementById('newAccPass2').value='';document.getElementById('newAccAdmin').checked=false;renderAccountsList();renderAdminPanel();toast('✅');}
+function addNewAccount(){
+  const u=normalizePhone(document.getElementById('newAccUser').value.trim());
+  const p=document.getElementById('newAccPass').value;
+  const p2=document.getElementById('newAccPass2').value;
+  const ad=isAdmin()&&document.getElementById('newAccAdmin').checked;
+  if(!u)return toast('اكتب الرقم',true);
+  if(!/^07[0-9]{9}$/.test(u))return toast('رقم غير صحيح',true);
+  if(!p||p.length<6)return toast('6 أحرف على الأقل',true);
+  if(p!==p2)return toast('غير متطابقتين',true);
+  const a=getAccounts();
+  if(a.find(x=>x.username===u))return toast('موجود',true);
+  const now = new Date();
+  a.push({
+    username:u,
+    password:hash(p),
+    role:ad?'admin':'user',
+    fullName:'مستخدم',
+    createdAt:now.toISOString(),
+    subscription: {
+      trialEndsAt: new Date(now.getTime() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+      paidUntil: null,
+      isFreeForever: false,
+      payments: []
+    }
+  });
+  saveAccounts(a);
+  document.getElementById('newAccUser').value='';
+  document.getElementById('newAccPass').value='';
+  document.getElementById('newAccPass2').value='';
+  document.getElementById('newAccAdmin').checked=false;
+  renderAccountsList();
+  renderAdminPanel();
+  toast('✅');
+}
 async function switchAccount(u){if(!confirm('التبديل إلى '+u+'؟'))return;stopRealtimeListener();localStorage.setItem(CUR_KEY,u);currentUser=u;const a=getAccounts();currentAccount=a.find(x=>x.username===u);await loadUserData();showApp();toast('تم');}
 function delAccountByName(u){if(!isAdmin()&&u!==currentUser)return toast('غير مصرح',true);if(u===currentUser)return deleteAccount();if(!confirm('حذف '+u+'؟'))return;const a=getAccounts().filter(x=>x.username!==u);saveAccounts(a);localStorage.removeItem(DATA_PREFIX+u);if(cloudDataRef){try{cloudDataRef.doc(u).delete().catch(e=>console.warn(e));}catch(e){}}renderAccountsList();renderAdminPanel();toast('تم');}
 function deleteAccount(){const a=getAccounts();if(!confirm('حذف حسابك؟'))return;if(!confirm('تأكيد نهائي؟'))return;stopRealtimeListener();const r=a.filter(x=>x.username!==currentUser);if(r.length>0&&currentAccount.role==='admin'&&!r.find(x=>x.role==='admin'))r[0].role='admin';saveAccounts(r);localStorage.removeItem(DATA_PREFIX+currentUser);localStorage.removeItem(CUR_KEY);if(cloudDataRef){try{cloudDataRef.doc(currentUser).delete().catch(e=>console.warn(e));}catch(e){}}currentUser=null;currentAccount=null;db=null;document.getElementById('appWrap').classList.remove('show');document.body.classList.remove('is-admin');document.getElementById('authScreen').classList.remove('hidden');showLogin();}
@@ -4683,9 +6429,39 @@ function exportData(){const d={user:currentUser,role:currentAccount?currentAccou
 function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=(ev)=>{try{const p=JSON.parse(ev.target.result);const d=p.data||p;if(!confirm('استيراد؟'))return;db=Object.assign(emptyDB(),d);_fixDBFields(db);save();renderAll();renderArchive();renderSettings();toast('تم ✅');}catch(err){toast('ملف غير صالح',true);}};r.readAsText(f);e.target.value='';}
 function clearAll(){if(!confirm('حذف كل البيانات؟'))return;if(!confirm('تأكيد؟'))return;db=emptyDB();save();renderAll();renderArchive();toast('تم');}
 
-// ✅ recalculateAll — يقرأ التعديل اليدوي من _manualOverrides
-function recalculateAll(){
-if(!confirm('🔄 سيتم إعادة حساب كل الأرقام.\nمتابعة؟'))return;
+// ═══════════════════════════════════════════════════════════
+// ✅ recalculateAll — يجلب السحابة أولاً
+// ═══════════════════════════════════════════════════════════
+async function recalculateAll(){
+if(!confirm('🔄 سيتم تحديث الأرقام.\n\n✅ يجلب أحدث البيانات من السحابة أولاً\n\nمتابعة؟'))return;
+
+if(typeof cloudEnabled !== 'undefined' && cloudEnabled && navigator.onLine){
+  try{
+    setSyncStatus('loading','📥 جاري جلب أحدث بيانات...');
+    if(_migrated && db._migratedToSplit){
+      await _reloadFromSplitDocs();
+    } else if(cloudDataRef){
+      const doc = await cloudDataRef.doc(currentUser).get();
+      if(doc.exists && doc.data()?.data){
+        const cloudDb = doc.data().data;
+        const cloudTime = +cloudDb._lastSaved || 0;
+        const localTime = +db._lastSaved || 0;
+        if(cloudTime > localTime){
+          if(typeof mergeSmart === 'function'){
+            db = mergeSmart(db, cloudDb);
+          } else {
+            db = Object.assign(emptyDB(), cloudDb);
+          }
+          _fixDBFields(db);
+          db._lastSaved = Math.max(localTime, cloudTime);
+        }
+      }
+    }
+    try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
+  }catch(e){
+    console.warn('fetch before recalc failed:', e);
+  }
+}
 
 const _overlay=document.createElement('div');
 _overlay.id='recalcLoading';
@@ -4707,7 +6483,6 @@ if(d._usedQty === undefined) d._usedQty = 0;
 if(d._usedMoney === undefined) d._usedMoney = 0;
 });
 
-// ✅ تأكد إن الخريطة موجودة
 if(!db._manualOverrides) db._manualOverrides={};
 
 db.flourTypes.forEach(t=>{
@@ -4729,23 +6504,19 @@ else if(s.typeName===t.name)newSold+=(s.qty||0);
 newSold=Math.max(0,newSold);
 t.totalSold=newSold;
 
-// ✅ ابحث عن التعديل اليدوي في الخريطة (أول مصدر)
 const _cleanName = _cleanType(t.name);
 const _mo = db._manualOverrides[_cleanName];
 let originalQty;
 if(_mo && _mo.original !== undefined && _mo.original !== null){
-  // ✅ الخريطة عندها التعديل → استخدمه
   originalQty = +_mo.original || 0;
   t._manualOverride = t._manualOverride || _mo.timestamp || Date.now();
   t._manualOriginal = _mo.original;
   respectedManual++;
 } else if(t._manualOverride && t._manualOriginal !== undefined && t._manualOriginal !== null){
-  // ✅ قديم — نحفظه بالخريطة للمرة القادمة
   originalQty = +t._manualOriginal || 0;
   db._manualOverrides[_cleanName] = {original: t._manualOriginal, timestamp: t._manualOverride};
   respectedManual++;
 } else {
-  // ✅ لا يوجد تعديل يدوي → احسب من الإضافات
   originalQty = (t.additions||[]).reduce((a,x)=>a+(x.qty||0),0);
 }
 
@@ -4758,7 +6529,6 @@ if(oldSold!==newSold)fixedSold++;
 db.buyers.forEach(b=>{const tr=db.sales.filter(s=>s.buyer===b.name);b.totalQty=tr.reduce((a,s)=>a+(s.qty||0),0);b.totalAmount=tr.reduce((a,s)=>a+(s.total||0),0);});
 db.reservations.forEach(r=>{r.usedQty=Math.max(0,Math.min(r.usedQty||0,r.totalQty));});
 
-// ✅ حفظ محلي + علامة رفع معلّق
 const now=Date.now();
 db._lastSaved=now;
 db._lastActionBy=_deviceId;
@@ -4766,18 +6536,16 @@ db._actionId=_deviceId+'_'+now+'_'+Math.random().toString(36).slice(2,7);
 db._pendingUpload=true;
 try{localStorage.setItem(DATA_PREFIX+currentUser,JSON.stringify(db));}catch(e){}
 
-// ✅ رفع بالخلفية
 if(typeof _doUpload==='function'){
   setSyncStatus('loading','⏳ جاري الرفع...');
   setTimeout(_doUpload, 100);
 }
 
-// ✅ رسم الصفحة الحالية فقط
 renderHome();
 const activePage=document.querySelector('.page.active');
 if(activePage){
   const id=activePage.id;
-  if(id==='page-home'){/* تم */}
+  if(id==='page-home'){}
   else if(id==='page-flour')renderFlour();
   else if(id==='page-sell'){renderSell();renderSaleItems();}
   else if(id==='page-buyers')renderBuyers();
@@ -4946,6 +6714,14 @@ if(name==='exchange')renderExItems();
 if(name==='deposit')renderDepositTypes();
 if(name==='flour')renderFlour();
 if(name==='buyers')renderBuyers();
+if(name==='more'){
+  if(typeof loadMyCity === 'function') loadMyCity();
+  if(typeof loadOffers === 'function') loadOffers();
+  if(typeof updateOfferLimit === 'function') updateOfferLimit();
+}
+if(name==='subscription'){
+  if(typeof renderSubscriptionPage === 'function') renderSubscriptionPage();
+}
 window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -4955,7 +6731,7 @@ window.addEventListener('online', function(){
 console.log('🌐 رجع النت');
 setSyncStatus('loading','☁️ رجع النت...');
 setTimeout(autoSyncOnConnect, 1500);
-if(currentUser && cloudEnabled && cloudDataRef){setTimeout(()=>{if(!cloudUnsubscribe)startRealtimeListener();},2000);}
+if(currentUser && cloudEnabled){setTimeout(()=>{if(!Object.keys(_listeners).length)startRealtimeListener();},2000);}
 });
 
 window.addEventListener('offline', function(){
@@ -4963,32 +6739,62 @@ console.log('📴 النت قطع');
 setSyncStatus('err','📱 محلي');
 });
 
-setInterval(function(){
-if(navigator.onLine && currentUser && cloudEnabled && cloudDataRef && !_isReceivingUpdate){
-if(db && db._pendingUpload === true) return;
-cloudDataRef.doc(currentUser).get().then(doc=>{
-if(!doc.exists || !doc.data() || !doc.data().data) return;
-const cloudDb=doc.data().data;
-const serverTime=doc.data().updatedAt && doc.data().updatedAt.toMillis ? doc.data().updatedAt.toMillis() : 0;
-if(doc.data()._lastActionBy === _deviceId){
-if(serverTime)_lastCloudServerTime=serverTime;
-return;
-}
-if(serverTime && serverTime <= _lastCloudServerTime) return;
-_lastCloudServerTime=serverTime;
-_lastCloudState=cloudDb;
-_isReceivingUpdate=true;
-const applied = _applyCloudDB(cloudDb);
-if(applied){
-renderAll(); renderArchive(); renderSettings();
-_updateNotifBadge();
-showSyncNotification('📥 تحديث جديد من جهاز آخر', 'ok');
-setSyncStatus('ok', '☁️ متزامن');
-}
-_isReceivingUpdate=false;
-}).catch(e=>console.warn('periodic:', e));
-}
-}, 15000);
+// ✅ الفحص الدوري — نسخة مقسّمة
+setInterval(async function(){
+  if(!navigator.onLine || !currentUser || !cloudEnabled) return;
+  if(_isReceivingUpdate) return;
+  if(db && db._pendingUpload === true) return;
+  
+  try{
+    if(_migrated && db._migratedToSplit){
+      // ✅ افحص meta
+      if(cloudMetaRef){
+        const metaDoc = await cloudMetaRef.get();
+        if(metaDoc.exists){
+          const meta = metaDoc.data();
+          if(meta._lastActionBy !== _deviceId){
+            const metaTime = +meta._lastSaved || 0;
+            const localTime = +db._lastSaved || 0;
+            if(metaTime > localTime){
+              _isReceivingUpdate = true;
+              await _reloadFromSplitDocs();
+              renderAll();renderArchive();renderSettings();
+              _updateNotifBadge();
+              showSyncNotification('📥 تحديث من جهاز آخر','ok');
+              setSyncStatus('ok','☁️ متزامن');
+              _isReceivingUpdate = false;
+            }
+          }
+        }
+      }
+    } else {
+      // ✅ الطريقة القديمة
+      if(cloudDataRef){
+        const doc = await cloudDataRef.doc(currentUser).get();
+        if(doc.exists && doc.data() && doc.data().data){
+          const cloudDb = doc.data().data;
+          const serverTime = doc.data().updatedAt && doc.data().updatedAt.toMillis ? doc.data().updatedAt.toMillis() : 0;
+          if(doc.data()._lastActionBy === _deviceId){
+            if(serverTime)_lastCloudServerTime=serverTime;
+            return;
+          }
+          if(serverTime && serverTime <= _lastCloudServerTime) return;
+          _lastCloudServerTime=serverTime;
+          _lastCloudState=cloudDb;
+          _isReceivingUpdate=true;
+          const applied = _applyCloudDB(cloudDb);
+          if(applied){
+            renderAll(); renderArchive(); renderSettings();
+            _updateNotifBadge();
+            showSyncNotification('📥 تحديث جديد من جهاز آخر', 'ok');
+            setSyncStatus('ok', '☁️ متزامن');
+          }
+          _isReceivingUpdate=false;
+        }
+      }
+    }
+  }catch(e){ console.warn('periodic:', e); }
+}, 5000);
 
 document.addEventListener('input', function(e){
   if(e.target && e.target.id === 'exDiffTotal'){
@@ -4996,66 +6802,72 @@ document.addEventListener('input', function(e){
   }
 });
 
+// ═══════════════════════════════════════════════════════════
+// ✅ init — مع الترحيل التلقائي
+// ═══════════════════════════════════════════════════════════
 (async function init(){
-const s=localStorage.getItem(CUR_KEY);
-const localAccounts = getAccounts();
-if(s && localAccounts.find(x=>x.username===s)){
-  currentUser = s;
-  currentAccount = localAccounts.find(x=>x.username===s);
-  const localData = localStorage.getItem(DATA_PREFIX+currentUser);
-  if(localData){
-    try{
-      db = Object.assign(emptyDB(), JSON.parse(localData));
-      _fixDBFields(db);
-    }catch(e){ db = emptyDB(); }
-    showApp();
-    setTimeout(async function(){
+  const s=localStorage.getItem(CUR_KEY);
+  const localAccounts = getAccounts();
+  
+  if(s && localAccounts.find(x=>x.username===s)){
+    currentUser = s;
+    currentAccount = localAccounts.find(x=>x.username===s);
+    
+    // ✅ حمّل البيانات المحلية أولاً (سريع)
+    const localData = localStorage.getItem(DATA_PREFIX+currentUser);
+    if(localData){
       try{
-        const cloudAccounts = await loadAccountsCloud();
-        const freshAcc = cloudAccounts.find(x=>x.username===currentUser);
-        if(freshAcc) currentAccount = freshAcc;
-        if(navigator.onLine && cloudEnabled && cloudDataRef){
-          const doc = await cloudDataRef.doc(currentUser).get();
-          if(doc.exists && doc.data() && doc.data().data){
-            const cloudDb = doc.data().data;
-            _lastCloudState = cloudDb;
-            if(doc.data().updatedAt && doc.data().updatedAt.toMillis){
-              _lastCloudServerTime = doc.data().updatedAt.toMillis();
-            }
-            const applied = _applyCloudDB(cloudDb);
-            if(applied){
-              renderAll(); renderArchive(); renderSettings();
-              renderSaleItems(); renderExItems(); renderDepositTypes();
-              _updateNotifBadge();
-              showSyncNotification('📥 تم تحديث البيانات من السحابة','ok');
-            }
-            setSyncStatus('ok','☁️ متزامن');
+        db = Object.assign(emptyDB(), JSON.parse(localData));
+        _fixDBFields(db);
+      }catch(e){ db = emptyDB(); }
+      showApp();
+      
+      // ✅ بعدين اتزامن بالسحابة (بالخلفية)
+      setTimeout(async function(){
+        try{
+          const cloudAccounts = await loadAccountsCloud();
+          const freshAcc = cloudAccounts.find(x=>x.username===currentUser);
+          if(freshAcc) currentAccount = freshAcc;
+          
+          // ✅ حمّل من السحابة (مع الترحيل التلقائي)
+          await loadUserData();
+          
+          // ✅ أعد الرسم
+          renderAll(); renderArchive(); renderSettings();
+          renderSaleItems(); renderExItems(); renderDepositTypes();
+          _updateNotifBadge();
+          
+          if(navigator.onLine && cloudEnabled){
+            startRealtimeListener();
+            showSyncNotification('📥 تم تحديث البيانات','ok');
           }
-        }
-        startRealtimeListener();
-        normalizeDeposits();
-        const _dedupAuto = deduplicateFlourTypes();
-        if(_dedupAuto > 0){ try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){} }
-      }catch(e){ console.warn('background sync err:', e); }
-    }, 500);
+          
+          normalizeDeposits();
+          const _dedupAuto = deduplicateFlourTypes();
+          if(_dedupAuto > 0){ try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){} }
+        }catch(e){ console.warn('background sync err:', e); }
+      }, 500);
+      return;
+    }
+    
+    // ✅ ما في محلي — حمّل من السحابة
+    await loadUserData();
+    normalizeDeposits();
+    showApp();
     return;
   }
-  await loadUserData();
-  normalizeDeposits();
-  showApp();
-  return;
-}
-await loadAccountsCloud();
-const a=getAccounts();
-if(s && a.find(x=>x.username===s)){
-  currentUser=s;
-  currentAccount=a.find(x=>x.username===s);
-  await loadUserData();
-  normalizeDeposits();
-  showApp();
-} else {
-  if(!a.length)showRegister();
-}
+  
+  await loadAccountsCloud();
+  const a=getAccounts();
+  if(s && a.find(x=>x.username===s)){
+    currentUser=s;
+    currentAccount=a.find(x=>x.username===s);
+    await loadUserData();
+    normalizeDeposits();
+    showApp();
+  } else {
+    if(!a.length)showRegister();
+  }
 })();
 </script>
 </body>
