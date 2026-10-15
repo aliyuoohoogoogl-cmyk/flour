@@ -6337,7 +6337,6 @@ if(idx===-1)return toast('الحساب غير موجود',true);
 accs[idx].email=email;
 saveAccounts(accs);
 currentAccount=accs[idx];
-try{ _addNotification('register', currentAccount.fullName || currentUser, email); }catch(e){}
 toast('✅ تم ربط البريد بنجاح');
 document.getElementById('linkEmailPass').value='';
 updateLinkEmailStatus();
@@ -6430,7 +6429,7 @@ function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileRe
 function clearAll(){if(!confirm('حذف كل البيانات؟'))return;if(!confirm('تأكيد؟'))return;db=emptyDB();save();renderAll();renderArchive();toast('تم');}
 
 // ═══════════════════════════════════════════════════════════
-// ✅ recalculateAll — يجلب السحابة أولاً
+// ✅ recalculateAll — مع التعديل (يرفع flourTypes فقط)
 // ═══════════════════════════════════════════════════════════
 async function recalculateAll(){
 if(!confirm('🔄 سيتم تحديث الأرقام.\n\n✅ يجلب أحدث البيانات من السحابة أولاً\n\nمتابعة؟'))return;
@@ -6528,6 +6527,9 @@ if(oldSold!==newSold)fixedSold++;
 
 db.buyers.forEach(b=>{const tr=db.sales.filter(s=>s.buyer===b.name);b.totalQty=tr.reduce((a,s)=>a+(s.qty||0),0);b.totalAmount=tr.reduce((a,s)=>a+(s.total||0),0);});
 db.reservations.forEach(r=>{r.usedQty=Math.max(0,Math.min(r.usedQty||0,r.totalQty));});
+
+// ✅ التعديل: حدد الأقسام اللي تغيرت فقط (flourTypes + buyers + deposits + reservations)
+_pendingCategories = new Set(['flourTypes', 'buyers', 'deposits', 'reservations', 'sales', 'exchanges', 'debts']);
 
 const now=Date.now();
 db._lastSaved=now;
@@ -6717,6 +6719,7 @@ if(name==='buyers')renderBuyers();
 if(name==='more'){
   if(typeof loadMyCity === 'function') loadMyCity();
   if(typeof loadOffers === 'function') loadOffers();
+  if(typeof loadMyOffers === 'function') loadMyOffers();
   if(typeof updateOfferLimit === 'function') updateOfferLimit();
 }
 if(name==='subscription'){
@@ -6739,7 +6742,7 @@ console.log('📴 النت قطع');
 setSyncStatus('err','📱 محلي');
 });
 
-// ✅ الفحص الدوري — نسخة مقسّمة
+// ✅ الفحص الدوري كل 5 ثواني
 setInterval(async function(){
   if(!navigator.onLine || !currentUser || !cloudEnabled) return;
   if(_isReceivingUpdate) return;
@@ -6747,7 +6750,6 @@ setInterval(async function(){
   
   try{
     if(_migrated && db._migratedToSplit){
-      // ✅ افحص meta
       if(cloudMetaRef){
         const metaDoc = await cloudMetaRef.get();
         if(metaDoc.exists){
@@ -6768,7 +6770,6 @@ setInterval(async function(){
         }
       }
     } else {
-      // ✅ الطريقة القديمة
       if(cloudDataRef){
         const doc = await cloudDataRef.doc(currentUser).get();
         if(doc.exists && doc.data() && doc.data().data){
@@ -6813,7 +6814,6 @@ document.addEventListener('input', function(e){
     currentUser = s;
     currentAccount = localAccounts.find(x=>x.username===s);
     
-    // ✅ حمّل البيانات المحلية أولاً (سريع)
     const localData = localStorage.getItem(DATA_PREFIX+currentUser);
     if(localData){
       try{
@@ -6822,17 +6822,14 @@ document.addEventListener('input', function(e){
       }catch(e){ db = emptyDB(); }
       showApp();
       
-      // ✅ بعدين اتزامن بالسحابة (بالخلفية)
       setTimeout(async function(){
         try{
           const cloudAccounts = await loadAccountsCloud();
           const freshAcc = cloudAccounts.find(x=>x.username===currentUser);
           if(freshAcc) currentAccount = freshAcc;
           
-          // ✅ حمّل من السحابة (مع الترحيل التلقائي)
           await loadUserData();
           
-          // ✅ أعد الرسم
           renderAll(); renderArchive(); renderSettings();
           renderSaleItems(); renderExItems(); renderDepositTypes();
           _updateNotifBadge();
@@ -6850,7 +6847,6 @@ document.addEventListener('input', function(e){
       return;
     }
     
-    // ✅ ما في محلي — حمّل من السحابة
     await loadUserData();
     normalizeDeposits();
     showApp();
