@@ -218,7 +218,6 @@ transition:all 0.2s;font-family:inherit;
 }
 .auth-box .field input:focus{outline:none;border-color:#D2691E;background:#fff;box-shadow:0 0 0 4px rgba(210,105,30,0.15)}
 
-/* ✅ حقل كلمة المرور — الزر على اليمين (مثل التصميم العام) */
 .auth-box .pass-wrap input{padding-right:45px !important;padding-left:14px !important}
 
 .auth-box .btn-login{
@@ -375,14 +374,188 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
   #reportArea,#flourList{overflow-x:auto !important;-webkit-overflow-scrolling:touch !important}
   .badge{font-size:8px !important;padding:2px 5px !important}
 }
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ✅ [تعديل 1] Responsive للجداول — scroll أفقي على الموبايل */
+/* ═══════════════════════════════════════════════════════════ */
+.deposit-table-card,
+#debtList,
+#payList,
+#depositList,
+#salesList,
+#buyersList2,
+#customerPricesList,
+#exchangesList,
+#expenseList,
+#recent,
+#reportArea,
+#archiveList{
+  overflow-x:auto !important;
+  -webkit-overflow-scrolling:touch !important;
+  max-width:100% !important;
+}
+
+.deposit-table-card table,
+#debtList table,
+#payList table,
+#depositList table,
+#salesList table,
+#buyersList2 table,
+#customerPricesList table,
+#exchangesList table,
+#expenseList table,
+#recent table{
+  min-width:max-content !important;
+  white-space:nowrap;
+}
+
+#debtList td button,
+#payList td button{
+  margin:1px;
+  padding:5px 7px !important;
+  font-size:11px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ✅ [تعديل 2] Popup Modal — لتعديل المطلوبين */
+/* ═══════════════════════════════════════════════════════════ */
+.edit-modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.6);
+  z-index:99999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:15px;
+  animation:fadeIn 0.2s ease;
+}
+@keyframes fadeIn{
+  from{opacity:0}
+  to{opacity:1}
+}
+.edit-modal-box{
+  background:#fffdf9;
+  border-radius:16px;
+  width:100%;
+  max-width:420px;
+  max-height:90vh;
+  overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,0.4);
+  direction:rtl;
+  animation:slideUp 0.3s ease;
+}
+@keyframes slideUp{
+  from{transform:translateY(30px);opacity:0}
+  to{transform:translateY(0);opacity:1}
+}
+.edit-modal-head{
+  background:linear-gradient(135deg,#D2691E,#8B4513);
+  color:#fff;
+  padding:14px 18px;
+  border-radius:16px 16px 0 0;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-weight:bold;
+  font-size:15px;
+}
+.edit-modal-head button{
+  background:rgba(255,255,255,0.2);
+  border:none;
+  color:#fff;
+  width:32px;
+  height:32px;
+  border-radius:50%;
+  font-size:16px;
+  cursor:pointer;
+}
+.edit-modal-body{
+  padding:18px;
+}
+.edit-modal-body .field{
+  margin-bottom:12px;
+}
+.edit-modal-body .field label{
+  display:block;
+  font-size:12px;
+  color:#8B4513;
+  font-weight:bold;
+  margin-bottom:5px;
+}
+.edit-modal-body .field input{
+  width:100%;
+  padding:11px 13px;
+  border:2px solid #f0e0d0;
+  border-radius:9px;
+  font-size:14px;
+  background:#fff;
+  color:#333;
+  font-family:inherit;
+}
+.edit-modal-body .field input:focus{
+  outline:none;
+  border-color:#D2691E;
+  box-shadow:0 0 0 3px rgba(210,105,30,0.15);
+}
+.edit-modal-actions{
+  display:flex;
+  gap:8px;
+  margin-top:15px;
+  padding-top:15px;
+  border-top:1px solid #f0e0d0;
+}
+.edit-modal-actions button{
+  flex:1;
+  padding:12px;
+  border-radius:10px;
+  border:none;
+  font-weight:bold;
+  font-size:14px;
+  cursor:pointer;
+  font-family:inherit;
+}
+.edit-modal-actions .btn-save{
+  background:linear-gradient(135deg,#27ae60,#229954);
+  color:#fff;
+}
+.edit-modal-actions .btn-cancel{
+  background:#95a5a6;
+  color:#fff;
+}
+.edit-modal-actions .btn-delete{
+  flex:0 0 50px;
+  background:#e74c3c;
+  color:#fff;
+}
+
+/* ✅ [تعديل 3] زر ✏️ في الصفوف */
+.debt-edit-btn{
+  background:#3498db;
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  padding:5px 10px;
+  font-size:12px;
+  cursor:pointer;
+  font-family:inherit;
+  font-weight:bold;
+}
+.debt-edit-btn:active{
+  transform:scale(0.96);
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ✅ [تعديل 4] صف المجموع في المطلوبين */
+/* ═══════════════════════════════════════════════════════════ */
+.debt-summary-row td{
+  font-weight:bold !important;
+  font-size:12px !important;
+  padding:8px 5px !important;
+}
 </style>
 </head>
-<body>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><!-- ============ الافتتاحية ============ -->
+<body><!-- ============ الافتتاحية ============ -->
 <div id="splashScreen">
 <div class="splash-inner">
 <div class="splash-icon">🌾</div>
@@ -438,7 +611,6 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <!-- ===== نموذج التسجيل ===== -->
 <div id="registerForm" class="hidden">
 
-<!-- حساب المدير الأول -->
 <div id="adminRegMode" class="hidden">
 <div class="field">
 <label>📱 رقم الهاتف (المدير)</label>
@@ -466,7 +638,6 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 </div>
 
-<!-- حساب المستخدم العادي -->
 <div id="userRegMode">
 <div class="field">
 <label>👤 الاسم الكامل (ثنائي أو ثلاثي)</label>
@@ -569,7 +740,6 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 </header>
 
-<!-- شريط الاشتراك -->
 <div id="subscriptionBar" style="display:none;padding:8px 12px;text-align:center;font-size:12px;font-weight:bold"></div>
 
 <div class="tabs">
@@ -686,20 +856,45 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 
 <!-- ===== الإيداع ===== -->
 <div class="page" id="page-deposit">
+
+<!-- ✅ [تعديل] صندوق توضيحي -->
+<div class="card" style="background:#fff8e6;border:2px solid #f39c12;padding:10px">
+<div style="font-size:12px;color:#8B4513;line-height:1.8;text-align:center">
+💡 <b>آلية الحساب التلقائي:</b><br>
+🔹 <b>المبلغ</b> = النقد اللي انطاك الزبون<br>
+🔹 <b>الباقي نقد</b> = المبلغ − قيمة الأنواع<br>
+🔹 <b>يخصم الدين</b> من الباقي (إذا موجود)<br>
+🔹 <b>الباقي</b> يصير إيداع حر تلقائياً<br>
+🔹 إذا الباقي <b>سالب</b> → يروح للمطلوبين
+</div>
+</div>
+
 <div class="card"><h2>💰 إيداع جديد</h2>
 <div class="row"><input id="dPerson" placeholder="اسم الشخص" list="depBuyersList"><datalist id="depBuyersList"></datalist></div>
 <div class="row"><input id="dCarrier" placeholder="اسم الناقل 🚛 (اختياري)"></div>
+
+<!-- ✅ [تعديل] المبلغ -->
 <div class="row">
-<input id="dAmount" type="number" placeholder="💵 مبلغ حر" min="0" style="background:#f0f9f2;border-color:#27ae60">
+<input id="dAmount" type="number" placeholder="💵 المبلغ" min="0" style="background:#f0f9f2;border-color:#27ae60">
 <input id="dDiscount" type="number" placeholder="🏷️ خصم (اختياري)" min="0" style="background:#f0f9f2;border-color:#27ae60">
 </div>
+
 <div style="background:#f0f7fc;border:2px solid #3498db;border-radius:10px;padding:10px;margin-bottom:10px">
 <div style="font-size:13px;font-weight:bold;color:#2980b9;margin-bottom:8px">🌾 الأنواع (اختياري)</div>
 <div id="multiDepRows"></div>
 <div class="row"><button onclick="addDepositTypeRow()" class="blue" style="width:100%">➕ إضافة نوع آخر</button></div>
 <div style="text-align:center;margin-top:8px;font-size:12px;color:#2980b9">المجموع: <b id="multiDepSum" style="color:#8B4513;font-size:14px">0 د.ع</b></div>
 </div>
-<div class="row"><input id="dRemaining" type="number" placeholder="💰 الباقي عليه (اختياري)" min="0" style="background:#fff3e0;border-color:#f39c12"></div>
+<div class="row"><input id="dRemaining" type="number" placeholder="💰 الباقي الكلي (اختياري)" min="0" style="background:#fff3e0;border-color:#f39c12"></div>
+
+<!-- ✅ [تعديل] استبدال checkbox "خصم الدين تلقائياً" -->
+<div style="background:#f0f9f2;border:2px solid #27ae60;border-radius:10px;padding:10px;margin-top:8px;font-size:12px;color:#1e8449;text-align:center;font-weight:bold">
+💳 الخصم تلقائي — يُحسب من المبلغ بعد الأنواع
+</div>
+<div style="font-size:11px;color:#888;text-align:center;margin-bottom:8px;margin-top:6px">
+💡 الدين يُخصم تلقائياً من الباقي — والباقي يصير إيداع حر
+</div>
+
 <div class="row"><label style="display:flex;align-items:center;gap:8px;font-size:13px;min-width:auto;background:#fff3e0;padding:8px 12px;border-radius:8px;border:2px solid #f39c12"><input type="checkbox" id="dLegacy" style="width:auto;min-width:auto"> 📜 رصيد قديم</label></div>
 <div class="row" style="flex-wrap:wrap">
 <label style="flex:0 0 100%;font-size:12px;color:#2980b9;font-weight:bold">📅 التاريخ والوقت (اختياري)</label>
@@ -829,17 +1024,14 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="card">
 <h2>📋 المزيد — العروض التجارية</h2>
 
-<!-- حالة العروض -->
 <div id="offersStatusCard" style="background:#f0f9f2;border:2px solid #27ae60;border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;text-align:center">
 <div style="font-size:13px;color:#1e8449;font-weight:bold;margin-bottom:5px">📍 محافظتي:</div>
 <div id="myCityDisplay" style="font-size:14px;font-weight:bold;color:#8B4513">—</div>
 <div style="font-size:11px;color:#666;margin-top:4px">تختار محافظتك من الإعدادات لرؤية العروض</div>
 </div>
 
-<!-- زر إرسال عرض جديد -->
 <button onclick="showSendOfferForm()" style="width:100%;padding:12px;font-size:14px;background:#27ae60;margin-bottom:12px">➕ إرسال عرض جديد</button>
 
-<!-- نموذج إرسال عرض -->
 <div id="sendOfferForm" style="display:none;background:#fff8e6;border:2px solid #f39c12;border-radius:10px;padding:12px;margin-bottom:12px">
 
 <div class="row">
@@ -873,14 +1065,12 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div style="font-size:11px;color:#888;text-align:center;margin-top:6px" id="offerLimitInfo">💡 يمكنك إرسال 10 عروض يومياً</div>
 </div>
 
-<!-- قائمة العروض الواردة (من الآخرين) -->
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
 <div style="font-size:14px;font-weight:bold;color:#8B4513">📢 عروض محافظتي</div>
 <button onclick="loadOffers()" class="small blue">🔄 تحديث</button>
 </div>
 <div id="offersList"></div>
 
-<!-- ✅ قسم عروضي أنا -->
 <div style="margin-top:20px;padding-top:15px;border-top:2px dashed #ddd">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
 <div style="font-size:14px;font-weight:bold;color:#3498db">📤 عروضي أنا</div>
@@ -902,14 +1092,12 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 </div>
 
-<!-- ===== قسم الاشتراك ===== -->
 <div class="card" id="subscriptionCard" style="background:#fff8e6;border:2px solid #f39c12;padding:12px">
 <h2>💳 الاشتراك</h2>
 <div id="subscriptionInfo"></div>
 <button onclick="gotoPage('subscription')" class="ok" style="width:100%;margin-top:10px;padding:12px;font-size:14px">📱 عرض تفاصيل الاشتراك</button>
 </div>
 
-<!-- ===== قسم محافظتي ===== -->
 <div class="card" style="background:#f0f9f2;border:2px solid #27ae60">
 <h2>📍 محافظتي</h2>
 <div style="font-size:12px;color:#666;margin-bottom:8px;text-align:center">اختر محافظتك لرؤية العروض التجارية القريبة منك</div>
@@ -974,17 +1162,13 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <button onclick="addNewAccount()">➕ إنشاء الحساب</button>
 </div>
 
-<!-- لوحة المدير -->
 <div class="card admin-card admin-only"><h2>👑 لوحة المدير</h2><div id="adminPanel"></div></div>
 
-<!-- لوحة إدارة الاشتراكات (admin only) -->
 <div class="card admin-only" style="background:#f0e8fd;border:2px solid #9b59b6">
 <h2>💳 إدارة الاشتراكات</h2>
 
-<!-- إحصائيات المستخدمين -->
 <div id="adminUserStats" style="margin-bottom:12px"></div>
 
-<!-- إعدادات الدفع -->
 <div style="background:#fff;border:2px solid #9b59b6;border-radius:10px;padding:10px;margin-bottom:12px">
 <div style="font-size:13px;font-weight:bold;color:#9b59b6;margin-bottom:8px">⚙️ إعدادات الدفع (تظهر للمستخدمين)</div>
 <div class="row"><input id="adminQiCardNum" placeholder="رقم Qi Card (مثال: 1234 5678 9012 3456)"></div>
@@ -995,7 +1179,6 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <button onclick="saveAdminPaymentSettings()" class="ok" style="width:100%;padding:10px">💾 حفظ الإعدادات</button>
 </div>
 
-<!-- قائمة المستخدمين -->
 <div style="font-size:13px;font-weight:bold;color:#9b59b6;margin-bottom:8px">👥 إدارة المستخدمين:</div>
 <div id="adminUsersList"></div>
 </div>
@@ -1014,7 +1197,6 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 
 </div>
 
-<!-- ===== صفحة الاشتراك (مفصلة) ===== -->
 <div class="page" id="page-subscription">
 <div class="card" style="background:#fff8e6;border:2px solid #f39c12">
 <h2>💳 الاشتراك</h2>
@@ -1024,7 +1206,6 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 
 </div>
 
-<!-- ============ الشريط السفلي ============ -->
 <div class="bottom-nav" id="bottomNav">
 <button class="active" data-page="home" onclick="gotoPage('home')"><span class="bn-icon">🏠</span><span>الرئيسية</span></button>
 <button data-page="archive" onclick="gotoPage('archive')"><span class="bn-icon">📦</span><span>الأرشيف</span></button>
@@ -1046,7 +1227,13 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 </div>
 <div class="notif-body" id="notifBody"></div>
-</div><script>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><script>
 // ===== التحديث التلقائي =====
 const APP_VERSION = "1.7";
 const APP_UPDATE_URL = "https://aliyuoohoogoogl-cmyk.github.io/flour/latest.json";
@@ -1313,10 +1500,6 @@ if(dep._usedMoney === undefined) dep._usedMoney=0;
 });
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ نظام التقسيم
-// ═══════════════════════════════════════════════════════════
-
 function _getCategoryRef(category){
   const map = {
     sales: cloudSalesRef, debts: cloudDebtsRef, deposits: cloudDepositsRef,
@@ -1445,9 +1628,6 @@ async function _migrateToSplitDocs(){
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ checkSubscription
-// ═══════════════════════════════════════════════════════════
 function checkSubscription(){
   if(!currentAccount) return 'expired';
   if(currentAccount.role === 'admin') return 'admin';
@@ -1467,9 +1647,6 @@ function checkSubscription(){
   return 'expired';
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ renderSubscriptionInfo
-// ═══════════════════════════════════════════════════════════
 function renderSubscriptionInfo(){
   const el = document.getElementById('subscriptionInfo');
   if(!el) return;
@@ -1687,10 +1864,6 @@ async function renderSubscriptionPage(){
   el.innerHTML = h;
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ نظام العروض
-// ═══════════════════════════════════════════════════════════
-
 function saveMyCity(){
   const city = document.getElementById('settingsCity')?.value;
   if(!city) return toast('اختر محافظتك', true);
@@ -1867,9 +2040,7 @@ async function sendOffer(){
     
     toast(`✅ تم إرسال العرض لـ ${cities.length} محافظة`);
     
-    // ✅ تحديث عروضي
     if(typeof loadMyOffers === 'function') loadMyOffers();
-    // ✅ تحديث عروض محافظتي (لأي شخص آخر)
     loadOffers();
   }catch(e){
     console.error(e);
@@ -1877,7 +2048,6 @@ async function sendOffer(){
   }
 }
 
-// ✅ عروض محافظتي (من الآخرين) — بدون Firebase Index
 async function loadOffers(){
   const list = document.getElementById('offersList');
   if(!list) return;
@@ -1918,7 +2088,6 @@ async function loadOffers(){
       offers.push(offer);
     });
     
-    // ✅ استبعد عروضي (لأنها في قسم "عروضي أنا")
     const others = offers.filter(o => o.from !== currentUser);
     
     if(!others.length){
@@ -1953,7 +2122,6 @@ async function loadOffers(){
   }
 }
 
-// ✅ عروضي أنا
 async function loadMyOffers(){
   const list = document.getElementById('myOffersList');
   if(!list) return;
@@ -1965,7 +2133,6 @@ async function loadMyOffers(){
     return;
   }
   
-  // ✅ رتب من الأحدث
   const sorted = [...myOffers].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   
   let h = '';
@@ -1996,17 +2163,14 @@ async function loadMyOffers(){
   list.innerHTML = h;
 }
 
-// ✅ حذف عرض
 async function deleteMyOffer(offerId){
   if(!confirm('حذف هذا العرض نهائياً؟')) return;
   
   try{
-    // ✅ احذف من Firebase
     if(cloudEnabled && cloudOffersRef){
       await cloudOffersRef.doc(offerId).delete();
     }
     
-    // ✅ احذف من المحلي
     if(db && db.myOffers){
       db.myOffers = db.myOffers.filter(o => o.id !== offerId);
       save();
@@ -2031,10 +2195,6 @@ function getTimeAgo(dateStr){
   if(diff < 604800000) return `منذ ${Math.floor(diff / 86400000)} يوم`;
   return fmtShort(dateStr);
 }
-
-// ═══════════════════════════════════════════════════════════
-// ✅ دوال المدير
-// ═══════════════════════════════════════════════════════════
 
 function loadAdminUserStats(){
   const el = document.getElementById('adminUserStats');
@@ -2184,9 +2344,6 @@ function adminRemoveFree(username){
   loadAdminUserStats();
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ _applySplitCloudDB
-// ═══════════════════════════════════════════════════════════
 async function _applySplitCloudDB(){
   try{
     const metaDoc = await cloudMetaRef.get();
@@ -2328,7 +2485,6 @@ function _listenToCategory(category){
   }catch(e){ console.warn('_listenToCategory error:', e); }
 }
 
-// ✅ _listenToOffers — بدون Firebase Index
 function _listenToOffers(){
   if(!cloudEnabled || !cloudOffersRef) return;
   
@@ -2437,10 +2593,6 @@ function stopRealtimeListener(){
   });
   console.log('🛑 تم إيقاف كل المستمعين');
 }
-
-// ═══════════════════════════════════════════════════════════
-// ✅ دوال الإشعارات — فقط إشعارات العروض
-// ═══════════════════════════════════════════════════════════
 
 async function _addNotification(type, fullName, identifier){
   if(type !== 'offer') return;
@@ -2868,7 +3020,7 @@ showLogin();
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ ترقية الحساب القديم — إضافة city + subscription
+// ✅ ترقية الحساب القديم
 // ═══════════════════════════════════════════════════════════
 function _upgradeAccount(){
   if(!currentAccount) return false;
@@ -2878,7 +3030,6 @@ function _upgradeAccount(){
   const idx = accs.findIndex(a => a.username === currentUser);
   if(idx === -1) return false;
   
-  // ✅ إذا ما عنده اشتراك → ضيف تجربة 15 يوم من تاريخ التسجيل
   if(!accs[idx].subscription){
     const createdAt = accs[idx].createdAt ? new Date(accs[idx].createdAt) : new Date();
     const trialEnds = new Date(createdAt.getTime() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000);
@@ -2890,14 +3041,11 @@ function _upgradeAccount(){
       payments: []
     };
     changed = true;
-    console.log('✅ تم إضافة اشتراك للحساب القديم');
   }
   
-  // ✅ إذا ما عنده city → ضيف ''
   if(accs[idx].city === undefined){
     accs[idx].city = '';
     changed = true;
-    console.log('✅ تم إضافة city للحساب القديم');
   }
   
   if(changed){
@@ -2935,10 +3083,8 @@ if(myNameInput && currentAccount && currentAccount.fullName){
   myNameInput.value=currentAccount.fullName;
 }
 
-// ✅ ترقية الحساب القديم
 _upgradeAccount();
 
-// ✅ تحديث واجهات الاشتراك والعروض
 if(typeof renderSubscriptionBar === 'function') renderSubscriptionBar();
 if(typeof renderSubscriptionInfo === 'function') renderSubscriptionInfo();
 if(typeof loadMyCity === 'function') loadMyCity();
@@ -3062,7 +3208,7 @@ function mergeSmart(localDb, cloudDb){
 }
 
 // ═══════════════════════════════════════════════════════════
-// 📥 loadUserData — نسخة مقسّمة
+// 📥 loadUserData
 // ═══════════════════════════════════════════════════════════
 async function loadUserData(){
   const key = DATA_PREFIX+currentUser;
@@ -3162,7 +3308,7 @@ async function _reloadFromSplitDocs(){
 }
 
 // ═══════════════════════════════════════════════════════════
-// 💾 save — نسخة مقسّمة
+// 💾 save
 // ═══════════════════════════════════════════════════════════
 let _saveTimer = null;
 let _pendingCategories = new Set();
@@ -3229,6 +3375,15 @@ async function _doUpload(){
     return;
   }
   
+  if(!cloudMetaRef){
+    _initUserRefs(currentUser);
+  }
+  if(!cloudMetaRef){
+    if(db) db._pendingUpload = false;
+    setSyncStatus('err','❌ مراجع مفقودة');
+    return;
+  }
+  
   setSyncStatus('loading','⏳ جاري الحفظ...');
   
   try{
@@ -3252,7 +3407,6 @@ async function _doUpload(){
       return;
     }
     
-    // ✅ رفع الأقسام اللي تغيرت فقط (إذا محدد) — وإلا كل الأقسام
     const categoriesToUpload = _pendingCategories.size > 0 
       ? Array.from(_pendingCategories)
       : SPLIT_CATEGORIES;
@@ -3262,13 +3416,11 @@ async function _doUpload(){
       const ref = _getCategoryRef(category);
       if(!ref) continue;
       
-      // ✅ احذف العناصر المحذوفة
       const deletedItems = (db._deleted && db._deleted[category]) || [];
       for(const delId of deletedItems){
         try{ await ref.doc(delId).delete(); }catch(e){}
       }
       
-      // ✅ ارفع العناصر بـ Batch
       let batchCount = 0;
       let batch = _firestoreDB.batch();
       for(const item of items){
@@ -3296,7 +3448,7 @@ async function _doUpload(){
     
   }catch(e){
     console.error('_doUpload error:', e);
-    db._pendingUpload = false;
+    if(db) db._pendingUpload = false;
     setSyncStatus('err','⚠️ فشل الرفع');
   }
 }
@@ -3569,12 +3721,10 @@ mergedIds.forEach(id => markDeleted('flourTypes', id));
 return removed;
 }
 
-// ✅ _mergeTwoFlourTypes — معدّلة: تحترم التعديل اليدوي
 function _mergeTwoFlourTypes(a, b){
 const newer = (a._editedAt||0) >= (b._editedAt||0) ? a : b;
 const older = newer === a ? b : a;
 const merged = Object.assign({}, newer);
-// ✅ جمع الكميات والمباع
 merged.qty = (+newer.qty || 0) + (+older.qty || 0);
 merged.totalSold = (+newer.totalSold || 0) + (+older.totalSold || 0);
 merged.unitPrice = +newer.unitPrice || +older.unitPrice || 0;
@@ -3582,23 +3732,19 @@ const newerManual = newer._manualOverride || 0;
 const olderManual = older._manualOverride || 0;
 merged._manualOverride = Math.max(newerManual, olderManual) || null;
 if(merged._manualOverride){
-// ✅ إذا واحد عنده تعديل يدوي → احترمه كامل
 const newerHasManual = (newer._manualOverride||0) > 0;
 const olderHasManual = (older._manualOverride||0) > 0;
 if(newerHasManual && !olderHasManual){
-// فقط الأحدث عنده تعديل — استخدمه
 merged.qty = +newer.qty || 0;
 merged.totalSold = +newer.totalSold || 0;
 merged.unitPrice = +newer.unitPrice || 0;
 if(newer._manualOriginal !== undefined) merged._manualOriginal = newer._manualOriginal;
 } else if(olderHasManual && !newerHasManual){
-// فقط الأقدم عنده تعديل — استخدمه
 merged.qty = +older.qty || 0;
 merged.totalSold = +older.totalSold || 0;
 merged.unitPrice = +older.unitPrice || 0;
 if(older._manualOriginal !== undefined) merged._manualOriginal = older._manualOriginal;
 } else {
-// الاثنين عندهم manual — خذ الأحدث
 if((newer._manualOverride||0) >= (older._manualOverride||0)){
 merged.qty = +newer.qty || 0;
 merged.totalSold = +newer.totalSold || 0;
@@ -4106,7 +4252,7 @@ if(wasselRemByType){saleRecord.remByType=wasselRemByType;}
 db.sales.push(saleRecord);
 wasselWithdrawals.forEach(w=>{w.saleId=saleRecord.id;db.deposits.push(w);});
 if(currentMethod==='دين'){
-saleItems.forEach(it=>{const ratio=grossTotal>0?(it.total/grossTotal):0;const itemDebt=netTotal*ratio;db.debts.push({id:uid(),person:buyer,amount:itemDebt,typeName:it.typeName,qty:it.qty,date:d,carrier:carrier,fromSale:true,saleId:saleRecord.id,_editedAt:Date.now()});});
+saleItems.forEach(it=>{const ratio=grossTotal>0?(it.total/grossTotal):0;const itemDebt=netTotal*ratio;db.debts.push({id:uid(),person:buyer,amount:itemDebt,typeName:it.typeName,qty:it.qty,unitPrice:it.unitPrice||0,date:d,carrier:carrier,fromSale:true,saleId:saleRecord.id,_editedAt:Date.now()});});
 }
 if(currentMethod==='واصل'){
 saleItems.forEach(it=>{const r=db.reservations.find(x=>_cleanPerson(x.person)===_cleanPerson(buyer)&&_cleanType(x.typeName)===_cleanType(it.typeName)&&(x.totalQty-x.usedQty)>0);if(r){r.usedQty+=it.qty;r._editedAt=Date.now();}});
@@ -4449,7 +4595,7 @@ renderFlour();
 toast('✅ تم حذف '+n+' — الكميات رجعت والإيداعات محفوظة');
 }
 
-function addManualDebt(){const p=document.getElementById('mdPerson').value.trim();const a=+document.getElementById('mdAmount').value;if(!p)return toast('اكتب الاسم',true);if(!a||a<=0)return toast('اكتب المبلغ',true);db.debts.push({id:uid(),person:p,amount:a,typeName:'دين يدوي',qty:0,date:nowISO(),manual:true,_editedAt:Date.now()});save();renderAll();document.getElementById('mdPerson').value='';document.getElementById('mdAmount').value='';toast('✅');}
+function addManualDebt(){const p=document.getElementById('mdPerson').value.trim();const a=+document.getElementById('mdAmount').value;if(!p)return toast('اكتب الاسم',true);if(!a||a<=0)return toast('اكتب المبلغ',true);db.debts.push({id:uid(),person:p,amount:a,typeName:'دين يدوي',qty:0,unitPrice:0,date:nowISO(),manual:true,_editedAt:Date.now()});save();renderAll();document.getElementById('mdPerson').value='';document.getElementById('mdAmount').value='';toast('✅');}
 
 function debtBalance(p){
 const debtSum=db.debts.filter(x=>x.person===p).reduce((a,x)=>a+x.amount,0);
@@ -4458,7 +4604,7 @@ return Math.max(0,debtSum-allPayments);
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ renderDebt — مع عمود "🚛 الناقل" + استخراج ذكي
+// ✅ [تعديل] renderDebt — زر ✏️ + popup + صف المجموع
 // ═══════════════════════════════════════════════════════════
 function renderDebt(){
 const el=document.getElementById('debtList');
@@ -4476,7 +4622,7 @@ h+=`<div class="date-row">`;
 h+=`<div><b>📅:</b> ${fmt(nowISO())}</div><div><b>📆:</b> ${dayNames[new Date().getDay()]}</div>`;
 h+=`</div></div>`;
 h+=`<table class="deposit-table"><tr>`;
-h+=`<th>#</th><th>الاسم</th><th>النوع</th><th>🚛 الناقل</th><th>📦 مأخوذ</th><th>💵 قيمته</th><th>✅ مسدد</th><th>💰 متبقي</th><th>📅 التاريخ</th>`;
+h+=`<th>#</th><th>الاسم</th><th>النوع</th><th>🚛 الناقل</th><th>📦 مأخوذ</th><th>💵 سعر المفرد</th><th>💰 قيمته</th><th>✅ مسدد</th><th>💰 متبقي</th><th>📅 التاريخ</th><th></th>`;
 h+=`</tr>`;
 
 let counter = 0;
@@ -4499,7 +4645,13 @@ ap.forEach(p=>{
     return (da - pa) > 0.01 || da > 0.01;
   });
   
-  allTypes.forEach((type, idx)=>{
+  let pQty = 0;
+  let pDebtAmt = 0;
+  let pPaidAmt = 0;
+  let pRemAmt = 0;
+  let pTypeCount = 0;
+  
+  allTypes.forEach((type)=>{
     const tds = pd.filter(d=>(d.typeName||'بدون نوع')===type);
     const tps = pp.filter(x=>(x.typeName||'بدون نوع')===type);
     
@@ -4508,10 +4660,14 @@ ap.forEach(p=>{
     const paidAmt = tps.reduce((a,x)=>a+x.amount,0);
     const remAmt = Math.max(0, debtAmt - paidAmt);
     
-    // ✅ استخرج اسم الناقل (1) من الدين مباشرة
-    let carrierName = tds.find(d => d.carrier && d.carrier.trim())?.carrier;
+    let unitPrice = 0;
+    if(debtQty > 0){
+      unitPrice = debtAmt / debtQty;
+    } else if(tds.length > 0 && tds[0].unitPrice){
+      unitPrice = +tds[0].unitPrice || 0;
+    }
     
-    // ✅ (2) إذا ما موجود — ابحث في البيع المرتبط
+    let carrierName = tds.find(d => d.carrier && d.carrier.trim())?.carrier;
     if(!carrierName){
       const saleId = tds.find(d => d.saleId)?.saleId;
       if(saleId){
@@ -4519,8 +4675,6 @@ ap.forEach(p=>{
         if(sale && sale.carrier && sale.carrier.trim()) carrierName = sale.carrier;
       }
     }
-    
-    // ✅ (3) إذا ما موجود — خليه —
     if(!carrierName) carrierName = '—';
     
     const allDates = [...tds.map(d=>d.date), ...tps.map(x=>x.date)];
@@ -4534,23 +4688,53 @@ ap.forEach(p=>{
       ? `<span style="color:#c0392b;font-weight:bold">${money(remAmt)}</span>` 
       : `<span style="color:#888">0</span>`;
     
+    const firstDebt = tds[0];
+    const debtId = firstDebt ? firstDebt.id : '';
+    
     counter++;
     totalDebt += debtAmt;
     totalPaid += paidAmt;
     totalRemaining += remAmt;
     
-    h+=`<tr class="deposit-row">`;
+    pQty += debtQty;
+    pDebtAmt += debtAmt;
+    pPaidAmt += paidAmt;
+    pRemAmt += remAmt;
+    pTypeCount++;
+    
+    // ✅ صف عادي — مع زر ✏️
+    h+=`<tr class="deposit-row" data-debt-id="${debtId}" data-person="${p.replace(/"/g,'&quot;')}" data-type="${type.replace(/"/g,'&quot;')}">`;
     h+=`<td class="num">${counter}</td>`;
     h+=`<td class="name">👤 ${nameHtml}</td>`;
     h+=`<td class="type">🌾 ${type}</td>`;
     h+=`<td style="color:#7f8c8d;font-size:11px;text-align:center">${carrierName}</td>`;
     h+=`<td class="orig">${debtQty>0?money(debtQty):'—'}</td>`;
+    h+=`<td style="color:#27ae60;font-weight:bold;text-align:center">${unitPrice>0?money(Math.round(unitPrice*100)/100):'—'}</td>`;
     h+=`<td class="money-o">${debtAmt>0?money(debtAmt):'—'}</td>`;
     h+=`<td class="used">${paidAmt>0?money(paidAmt):'—'}</td>`;
     h+=`<td class="money-r">${remHtml}</td>`;
     h+=`<td class="time">${fmtShort(lastDate)}</td>`;
+    // ✅ زر ✏️
+    h+=`<td style="text-align:center"><button class="debt-edit-btn" onclick="openDebtEditModal('${debtId}','${p.replace(/'/g,"\\'")}','${type.replace(/'/g,"\\'")}')">✏️</button></td>`;
     h+=`</tr>`;
   });
+  
+  // ✅ صف المجموع
+  if(pTypeCount > 1){
+    h+=`<tr class="debt-summary-row" style="background:#fff3e0;border-top:2px solid #f39c12">`;
+    h+=`<td style="text-align:center;color:#f39c12;font-size:14px">📊</td>`;
+    h+=`<td style="color:#8B4513">${p}</td>`;
+    h+=`<td style="color:#f39c12">المجموع</td>`;
+    h+=`<td style="color:#ccc">—</td>`;
+    h+=`<td style="color:#2980b9;text-align:center;font-size:13px">${money(pQty)}</td>`;
+    h+=`<td style="color:#ccc;text-align:center">—</td>`;
+    h+=`<td style="color:#c0392b;text-align:center;font-size:13px">${money(pDebtAmt)}</td>`;
+    h+=`<td style="color:#27ae60;text-align:center;font-size:13px">${pPaidAmt>0?money(pPaidAmt):'—'}</td>`;
+    h+=`<td style="color:#e67e22;text-align:center;font-size:14px">${money(pRemAmt)}</td>`;
+    h+=`<td style="color:#ccc">—</td>`;
+    h+=`<td style="color:#ccc">—</td>`;
+    h+=`</tr>`;
+  }
 });
 
 h+=`</table>`;
@@ -4566,6 +4750,173 @@ h+=`</div>`;
 el.innerHTML=h;
 }
 
+// ═══════════════════════════════════════════════════════════
+// ✅ [تعديل] openDebtEditModal + saveDebtEdit + deleteDebtEdit
+// ═══════════════════════════════════════════════════════════
+function openDebtEditModal(debtId, person, typeName){
+  const matchingDebts = db.debts.filter(d => 
+    d.person === person && 
+    (d.typeName || 'بدون نوع') === typeName
+  );
+  
+  if(!matchingDebts.length){
+    toast('❌ ما وجدت السجلات', true);
+    return;
+  }
+  
+  const firstDebt = matchingDebts[0];
+  const debtQty = matchingDebts.reduce((a,d)=>a+(d.qty||0),0);
+  const debtAmt = matchingDebts.reduce((a,d)=>a+d.amount,0);
+  const unitPrice = debtQty > 0 ? (debtAmt / debtQty) : (firstDebt.unitPrice || 0);
+  
+  const oldModal = document.getElementById('debtEditModal');
+  if(oldModal) oldModal.remove();
+  
+  const modal = document.createElement('div');
+  modal.id = 'debtEditModal';
+  modal.className = 'edit-modal-backdrop';
+  modal.onclick = (e) => { if(e.target === modal) closeDebtEditModal(); };
+  
+  modal.innerHTML = `
+    <div class="edit-modal-box">
+      <div class="edit-modal-head">
+        <span>✏️ تعديل المطلوبين</span>
+        <button onclick="closeDebtEditModal()">✕</button>
+      </div>
+      <div class="edit-modal-body">
+        <div class="field">
+          <label>👤 الاسم</label>
+          <input id="debtEditPerson" type="text" value="${person.replace(/"/g,'&quot;')}">
+        </div>
+        <div class="field">
+          <label>🌾 النوع</label>
+          <input id="debtEditType" type="text" value="${typeName.replace(/"/g,'&quot;')}">
+        </div>
+        <div class="field">
+          <label>📦 الكمية</label>
+          <input id="debtEditQty" type="number" min="0" value="${debtQty||''}" oninput="autoCalcDebtEdit('qty')">
+        </div>
+        <div class="field">
+          <label>💵 سعر المفرد</label>
+          <input id="debtEditPrice" type="number" min="0" step="0.01" value="${unitPrice ? Math.round(unitPrice*100)/100 : ''}" oninput="autoCalcDebtEdit('price')">
+        </div>
+        <div class="field">
+          <label>💰 الإجمالي</label>
+          <input id="debtEditAmount" type="number" min="0" value="${debtAmt||''}" oninput="autoCalcDebtEdit('amount')">
+        </div>
+        <div class="edit-modal-actions">
+          <button class="btn-delete" onclick="deleteDebtEdit('${debtId}','${person.replace(/'/g,"\\'")}','${typeName.replace(/'/g,"\\'")}')">🗑️</button>
+          <button class="btn-cancel" onclick="closeDebtEditModal()">✖ إلغاء</button>
+          <button class="btn-save" onclick="saveDebtEdit('${person.replace(/'/g,"\\'")}','${typeName.replace(/'/g,"\\'")}')">💾 حفظ</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  modal._origPerson = person;
+  modal._origType = typeName;
+}
+
+function closeDebtEditModal(){
+  const modal = document.getElementById('debtEditModal');
+  if(modal) modal.remove();
+}
+
+function autoCalcDebtEdit(source){
+  const qtyEl = document.getElementById('debtEditQty');
+  const priceEl = document.getElementById('debtEditPrice');
+  const amountEl = document.getElementById('debtEditAmount');
+  if(!qtyEl || !priceEl || !amountEl) return;
+  
+  const qty = parseFloat(qtyEl.value) || 0;
+  const price = parseFloat(priceEl.value) || 0;
+  const amount = parseFloat(amountEl.value) || 0;
+  
+  if(source === 'qty' || source === 'price'){
+    amountEl.value = Math.round(qty * price * 100) / 100;
+  } else if(source === 'amount'){
+    if(qty > 0){
+      priceEl.value = Math.round((amount / qty) * 100) / 100;
+    }
+  }
+}
+
+function saveDebtEdit(origPerson, origType){
+  const newPerson = (document.getElementById('debtEditPerson')?.value || '').trim();
+  const newType = (document.getElementById('debtEditType')?.value || '').trim();
+  const newQty = parseFloat(document.getElementById('debtEditQty')?.value) || 0;
+  const newPrice = parseFloat(document.getElementById('debtEditPrice')?.value) || 0;
+  const newAmount = parseFloat(document.getElementById('debtEditAmount')?.value) || 0;
+  
+  if(!newPerson){ toast('❌ اكتب اسم صحيح', true); return; }
+  if(!newType){ toast('❌ اكتب نوع صحيح', true); return; }
+  if(newAmount <= 0){ toast('❌ الإجمالي لازم أكبر من صفر', true); return; }
+  
+  const matchingDebts = db.debts.filter(d => 
+    d.person === origPerson && 
+    (d.typeName || 'بدون نوع') === origType
+  );
+  
+  if(!matchingDebts.length){
+    toast('❌ ما وجدت السجلات', true);
+    return;
+  }
+  
+  if(matchingDebts.length === 1){
+    const d = matchingDebts[0];
+    d.person = newPerson;
+    d.typeName = newType;
+    d.qty = newQty;
+    d.unitPrice = newPrice;
+    d.amount = newAmount;
+    d._editedAt = Date.now();
+  } else {
+    const totalQty = matchingDebts.reduce((a,d)=>a+(d.qty||0),0);
+    matchingDebts.forEach(d => {
+      d.person = newPerson;
+      d.typeName = newType;
+      if(totalQty > 0){
+        const ratio = (d.qty || 0) / totalQty;
+        d.qty = newQty * ratio;
+        d.unitPrice = newPrice;
+        d.amount = newAmount * ratio;
+      } else {
+        d.qty = newQty / matchingDebts.length;
+        d.unitPrice = newPrice;
+        d.amount = newAmount / matchingDebts.length;
+      }
+      d._editedAt = Date.now();
+    });
+  }
+  
+  save();
+  closeDebtEditModal();
+  renderDebt();
+  renderHome();
+  toast('✅ تم حفظ التعديل');
+}
+
+function deleteDebtEdit(debtId, origPerson, origType){
+  if(!confirm('حذف كل الديون لهذا الشخص/النوع؟')) return;
+  
+  const matchingDebts = db.debts.filter(d => 
+    d.person === origPerson && 
+    (d.typeName || 'بدون نوع') === origType
+  );
+  
+  matchingDebts.forEach(d => markDeleted('debts', d.id));
+  db.debts = db.debts.filter(d => 
+    !(d.person === origPerson && (d.typeName || 'بدون نوع') === origType)
+  );
+  
+  save();
+  closeDebtEditModal();
+  renderDebt();
+  renderHome();
+  toast('✅ تم الحذف');
+}
+
 function delDebt(id){if(!confirm('حذف؟'))return;markDeleted('debts',id);db.debts=db.debts.filter(x=>x.id!==id);save();renderAll();toast('تم');}
 function delPayment(id){if(!confirm('حذف؟'))return;markDeleted('payments',id);db.payments=db.payments.filter(x=>x.id!==id);save();renderAll();}
 function delDeposit(id){if(!confirm('حذف؟'))return;markDeleted('deposits',id);db.deposits=db.deposits.filter(x=>x.id!==id);save();renderAll();}
@@ -4573,6 +4924,14 @@ function delRsv(id){if(!confirm('حذف؟'))return;markDeleted('reservations',id
 function delCashAmount(id){if(!confirm('حذف؟'))return;markDeleted('cashAdditions',id);db.cashAdditions=db.cashAdditions.filter(x=>x.id!==id);save();renderAll();toast('تم');}
 function delExpense(id){if(!confirm('حذف؟'))return;markDeleted('expenses',id);db.expenses=db.expenses.filter(x=>x.id!==id);save();renderAll();}
 function delRecent(t,id){if(t==='sale')return delSale(id);if(t==='deposit')return delDeposit(id);if(t==='payment')return delPayment(id);if(t==='expense')return delExpense(id);if(t==='cash')return delCashAmount(id);if(t==='exchange')return delExchange(id);}
+
+// ✅ دعم ESC لإغلاق النافذة
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    const modal = document.getElementById('debtEditModal');
+    if(modal) closeDebtEditModal();
+  }
+});
 </script><script>
 function editDateTime(type,id){
 let coll=null;
@@ -4659,7 +5018,7 @@ if(!newItems.length){toast('❌ لم تُدخل أي نوع',true);save();render
 const newTotal=newItems.reduce((a,i)=>a+i.total,0);
 newItems.forEach(it=>{const t=db.flourTypes.find(x=>x.name===it.typeName);if(t){t.qty-=it.qty;t.totalSold=(t.totalSold||0)+it.qty;t._editedAt=Date.now();}});
 s.buyer=nb;s.method=nm;s.carrier=nc;s.items=newItems;s.qty=newItems.reduce((a,i)=>a+i.qty,0);s.grossTotal=newTotal;s.total=newTotal;s._editedAt=Date.now();
-if(nm==='دين'){newItems.forEach(it=>{db.debts.push({id:uid(),person:nb,amount:it.total,typeName:it.typeName,qty:it.qty,date:s.date,fromSale:true,saleId:s.id,_editedAt:Date.now()});});}
+if(nm==='دين'){newItems.forEach(it=>{db.debts.push({id:uid(),person:nb,amount:it.total,typeName:it.typeName,qty:it.qty,unitPrice:it.unitPrice||0,date:s.date,carrier:nc,fromSale:true,saleId:s.id,_editedAt:Date.now()});});}
 save();renderAll();toast('✅');
 }
 
@@ -4738,9 +5097,8 @@ else if(s.method==='هدية'){paid=0;}
 reportTotal += paid;
 });
 });
-reportTotal += db.payments.reduce((a,p)=>a+p.amount,0);
+reportTotal += db.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0);
 reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-// ✅ التعديل: رجعنا d.legacy — رصيد قديم + كمية فقط ما يُحسبون
 reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
 reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
 const gs=db.sales.filter(s=>s.method==='هدية').reduce((a,s)=>a+(s.qty||0),0);
@@ -4809,7 +5167,6 @@ const all=[...db.sales.map(s=>({date:s.date,type:'sale',id:s.id,isCarry:false,tx
 document.getElementById('recent').innerHTML=all.length?'<table>'+all.map(x=>`<tr><td style="width:180px;color:#888;font-size:11px">${fmt(x.date)}</td><td style="font-size:12px">${x.txt}</td><td style="width:120px;white-space:nowrap"><button class="blue small" onclick="editRecent('${x.type}','${x.id}')">✏️</button> <button class="gold small" onclick="editDateTime('${x.type}','${x.id}')">⏰</button> <button class="danger small" onclick="delRecent('${x.type}','${x.id}')">🗑️</button></td></tr>`).join('')+'</table>':'<div class="empty">لا توجد عمليات</div>';
 }
 
-// ✅ دالة زر التحديث في صفحة الطحين
 function refreshFlourView(){
 _matchedFlourIds.clear();
 renderFlour();
@@ -4840,77 +5197,412 @@ _skipNextMerge=true;
 save();renderHome();toast('✅');
 }
 
+// ═══════════════════════════════════════════════════════════
+// ✅ [تعديل] addDeposit — النسخة النهائية
+// ═══════════════════════════════════════════════════════════
+// المنطق:
+//   - لو الشخص ما عنده دين → السلوك الأصلي (صفوف منفصلة):
+//     * مبلغ حر → صف واحد
+//     * كل نوع → صف منفصل
+//   - لو الشخص عنده دين → صف واحد فقط (مع التفاصيل):
+//     * المبلغ الكامل في originalAmount
+//     * _usedMoney = itemsValue + debtDeducted
+//     * amount = freeDisplay (الباقي الفعلي)
+//     * _lastDepositInfo فيه itemsList + debtBefore + ...
+//     * الأنواع تُسجّل في reservations فقط
+//     * الدين يُخصم
+// ═══════════════════════════════════════════════════════════
 function addDeposit(){
 const p=document.getElementById('dPerson').value.trim();
 const carrier=document.getElementById('dCarrier')?document.getElementById('dCarrier').value.trim():'';
-let freeAmount=+document.getElementById('dAmount').value||0;
+let amountEntered=+document.getElementById('dAmount').value||0;
 const _discEl=document.getElementById('dDiscount');
 let remainingDiscount=_discEl?+_discEl.value||0:0;
 const originalDiscount=remainingDiscount;
 const rem=+document.getElementById('dRemaining').value||0;
 const isLegacy=document.getElementById('dLegacy')&&document.getElementById('dLegacy').checked;
+
 if(!p)return toast('اكتب اسم الشخص',true);
 const flourNames = new Set((db.flourTypes||[]).map(t => _cleanType(t.name)));
 if(flourNames.has(_cleanPerson(p)) || flourNames.has(_cleanType(p)))return toast('❌ هذا اسم نوع طحين، وليس اسم شخص',true);
+
 let d=nowISO();
 const dtInput=document.getElementById('dDateTime');
 if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(parsed.getTime())){d=parsed.toISOString();}}catch(e){}}
+
 const validItems=_depositItems.filter(it=>it.typeId&&(+it.qty>0));
-if(freeAmount<=0 && validItems.length===0 && rem<=0){
+if(amountEntered<=0 && validItems.length===0 && rem<=0){
 return toast('اكتب مبلغ أو كمية',true);
 }
+
 const bC = _cleanPerson(p);
 
-if(remainingDiscount>0 && freeAmount>0){
-  const applied=Math.min(freeAmount, remainingDiscount);
-  freeAmount -= applied;
-  remainingDiscount -= applied;
-}
-
-if(freeAmount>0){
-let freeDep = db.deposits.find(x => _cleanPerson(x.person) === bC && (!x.typeName || x.typeName === '') && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && !!x.legacy === !!isLegacy);
-if(freeDep){
-freeDep.amount = (+freeDep.amount || 0) + freeAmount;
-freeDep.originalAmount = (+freeDep.originalAmount || 0) + freeAmount;
-freeDep._editedAt = Date.now();
-} else {
-db.deposits.push({id:uid(),person:p,carrier:carrier,amount:freeAmount,originalAmount:freeAmount,typeName:'',qty:0,originalQty:0,unitPrice:0,totalPrice:0,date:d,legacy:isLegacy,note:'💵 مبلغ حر',_usedQty:0,_usedMoney:0,_editedAt:Date.now()});
-}
-}
-
-validItems.forEach(it=>{
-const t=db.flourTypes.find(x=>x.id===it.typeId);
-if(!t)return;
-const qty=+it.qty||0;
-const price=+it.price||0;
-let total=qty*price;
-
-if(remainingDiscount>0 && total>0){
-  const applied=Math.min(total, remainingDiscount);
-  total -= applied;
-  remainingDiscount -= applied;
-}
-
-const tC = _cleanType(t.name);
-let dep = db.deposits.find(x => _cleanPerson(x.person) === bC && _cleanType(x.typeName) === tC && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && x.originalQty !== undefined && !!x.legacy === !!isLegacy);
-if(dep){
-dep.originalQty = (+dep.originalQty || 0) + qty;
-dep.qty = (+dep.qty || 0) + qty;
-if(total > 0){
-dep.originalAmount = (+dep.originalAmount || 0) + total;
-dep.amount = (+dep.amount || 0) + total;
-}
-if(price > 0) dep.unitPrice = price;
-dep._editedAt = Date.now();
-} else {
-db.deposits.push({id:uid(),person:p,carrier:carrier,amount:total,originalAmount:total,typeName:t.name,qty:qty,originalQty:qty,unitPrice:price,totalPrice:total,date:d,legacy:isLegacy,note:total>0?'💰+🌾':'📦 كمية فقط',_usedQty:0,_usedMoney:0,_editedAt:Date.now()});
-}
-let r=db.reservations.find(x=>_cleanPerson(x.person)===bC&&_cleanType(x.typeName)===tC&&(x.totalQty-x.usedQty)>0);
-if(r){r.totalQty+=qty;r.lastDate=d;r._editedAt=Date.now();}
-else db.reservations.push({id:uid(),person:p,typeName:t.name,totalQty:qty,usedQty:0,date:d,lastDate:d,_editedAt:Date.now()});
+// ✅ 1. احسب قيمة الأنواع
+let itemsValue = 0;
+const itemsList = [];
+validItems.forEach(it => {
+  const t = db.flourTypes.find(x => x.id === it.typeId);
+  if(!t) return;
+  const qty = +it.qty || 0;
+  const price = +it.price || 0;
+  const total = qty * price;
+  itemsValue += total;
+  itemsList.push({
+    name: t.name,
+    qty: qty,
+    price: price,
+    total: total
+  });
 });
-if(rem>0){db.debts.push({id:uid(),person:p,amount:rem,typeName:'(الباقي من إيداع)',qty:0,date:d,manual:true,fromDeposit:true,_editedAt:Date.now()});}
+
+// ✅ 2. الدين قبل
+const debtBefore = debtBalance(p);
+
+// ═══════════════════════════════════════════════════════════
+// 🎯 الحالة أ: الشخص ما عنده دين → السلوك الأصلي
+// ═══════════════════════════════════════════════════════════
+if(debtBefore <= 0){
+  // ✅ إيداع مبلغ حر
+  if(amountEntered > 0){
+    let amountToRegister = amountEntered;
+    if(remainingDiscount > 0){
+      const applied = Math.min(amountToRegister, remainingDiscount);
+      amountToRegister -= applied;
+      remainingDiscount -= applied;
+    }
+    
+    // ✅ ابحث عن إيداع حر موجود
+    let freeDep = db.deposits.find(x => 
+      _cleanPerson(x.person) === bC && 
+      (!x.typeName || x.typeName === '') && 
+      !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && 
+      !!x.legacy === !!isLegacy &&
+      !x._isDebtOverflow
+    );
+    
+    if(freeDep){
+      freeDep.amount = (+freeDep.amount || 0) + amountToRegister;
+      freeDep.originalAmount = (+freeDep.originalAmount || 0) + amountToRegister;
+      freeDep._editedAt = Date.now();
+    } else {
+      db.deposits.push({
+        id:uid(),
+        person:p,
+        carrier:carrier,
+        amount:amountToRegister,
+        originalAmount:amountToRegister,
+        typeName:'',
+        qty:0,
+        originalQty:0,
+        unitPrice:0,
+        totalPrice:0,
+        date:d,
+        legacy:isLegacy,
+        note:'💵 مبلغ حر',
+        _usedQty:0,
+        _usedMoney:0,
+        _editedAt:Date.now()
+      });
+    }
+  }
+  
+  // ✅ إيداع كل نوع منفصل
+  validItems.forEach(it => {
+    const t = db.flourTypes.find(x => x.id === it.typeId);
+    if(!t) return;
+    const qty = +it.qty || 0;
+    const price = +it.price || 0;
+    let total = qty * price;
+    
+    if(remainingDiscount > 0 && total > 0){
+      const applied = Math.min(total, remainingDiscount);
+      total -= applied;
+      remainingDiscount -= applied;
+    }
+    
+    const tC = _cleanType(t.name);
+    
+    let dep = db.deposits.find(x => 
+      _cleanPerson(x.person) === bC && 
+      _cleanType(x.typeName) === tC && 
+      !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && 
+      x.originalQty !== undefined && 
+      !!x.legacy === !!isLegacy
+    );
+    
+    if(dep){
+      dep.originalQty = (+dep.originalQty || 0) + qty;
+      dep.qty = (+dep.qty || 0) + qty;
+      if(total > 0){
+        dep.originalAmount = (+dep.originalAmount || 0) + total;
+        dep.amount = (+dep.amount || 0) + total;
+      }
+      if(price > 0) dep.unitPrice = price;
+      dep._editedAt = Date.now();
+    } else {
+      db.deposits.push({
+        id:uid(),
+        person:p,
+        carrier:carrier,
+        amount:total,
+        originalAmount:total,
+        typeName:t.name,
+        qty:qty,
+        originalQty:qty,
+        unitPrice:price,
+        totalPrice:total,
+        date:d,
+        legacy:isLegacy,
+        note:total>0?'💰+🌾':'📦 كمية فقط',
+        _usedQty:0,
+        _usedMoney:0,
+        _editedAt:Date.now()
+      });
+    }
+    
+    // ✅ إضافة الحجز
+    let r = db.reservations.find(x => 
+      _cleanPerson(x.person) === bC && 
+      _cleanType(x.typeName) === tC && 
+      (x.totalQty - x.usedQty) > 0
+    );
+    if(r){
+      r.totalQty += qty;
+      r.lastDate = d;
+      r._editedAt = Date.now();
+    } else {
+      db.reservations.push({
+        id: uid(),
+        person: p,
+        typeName: t.name,
+        totalQty: qty,
+        usedQty: 0,
+        date: d,
+        lastDate: d,
+        _editedAt: Date.now()
+      });
+    }
+  });
+  
+  // ✅ إضافة باقي كلي (dRemaining) كدين
+  if(rem > 0){
+    db.debts.push({
+      id: uid(),
+      person: p,
+      amount: rem,
+      typeName: '(الباقي من إيداع)',
+      qty: 0,
+      date: d,
+      manual: true,
+      fromDeposit: true,
+      _editedAt: Date.now()
+    });
+  }
+  
+  if(document.getElementById('dLegacy'))document.getElementById('dLegacy').checked=false;
+  
+  save();renderAll();
+  document.getElementById('dPerson').value='';
+  if(document.getElementById('dCarrier'))document.getElementById('dCarrier').value='';
+  document.getElementById('dAmount').value='';
+  if(document.getElementById('dDiscount'))document.getElementById('dDiscount').value='';
+  document.getElementById('dRemaining').value='';
+  if(document.getElementById('dDateTime'))document.getElementById('dDateTime').value='';
+  _depositItems=[{id:uid(),typeId:'',qty:'',price:''}];
+  renderDepositTypes();
+  
+  let msg = '✅ تم الإيداع';
+  if(amountEntered > 0) msg += ` — مبلغ: ${money(amountEntered)}`;
+  if(itemsValue > 0) msg += ` — أنواع: ${money(itemsValue)}`;
+  if(rem > 0) msg += ` — باقي للديون: ${money(rem)}`;
+  if(originalDiscount > 0) msg += ` — خصم: ${money(originalDiscount)}`;
+  toast(msg);
+  return;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🎯 الحالة ب: الشخص عنده دين → صف واحد (مع التفاصيل)
+// ═══════════════════════════════════════════════════════════
+const cashRemaining = amountEntered - itemsValue;
+
+let debtDeducted = 0;
+let freeDisplay = 0;
+let newDebtAmount = 0;
+
+if(cashRemaining > 0){
+  debtDeducted = Math.min(debtBefore, cashRemaining);
+  freeDisplay = cashRemaining - debtDeducted;
+} else if(cashRemaining < 0){
+  newDebtAmount = Math.abs(cashRemaining);
+}
+
+if(rem > 0){
+  newDebtAmount += rem;
+}
+
+// ✅ سجّل المبلغ الكامل كصف واحد
+if(amountEntered > 0){
+  let amountToRegister = amountEntered;
+  if(remainingDiscount > 0){
+    const applied = Math.min(amountToRegister, remainingDiscount);
+    amountToRegister -= applied;
+    remainingDiscount -= applied;
+  }
+
+  const totalUsedMoney = itemsValue + debtDeducted;
+  
+  const depositInfo = {
+    _itemsList: itemsList,
+    _itemsValue: itemsValue,
+    _debtBefore: debtBefore,
+    _debtDeducted: debtDeducted,
+    _freeRemaining: freeDisplay,
+    _fullAmount: amountEntered,
+    _usedMoney: totalUsedMoney,
+    _date: d
+  };
+
+  // ✅ ابحث عن إيداع حر موجود
+  let freeDep = db.deposits.find(x => 
+    _cleanPerson(x.person) === bC && 
+    (!x.typeName || x.typeName === '') && 
+    !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && 
+    !!x.legacy === !!isLegacy &&
+    !x._isDebtOverflow
+  );
+  
+  if(freeDep){
+    const oldAmount = +freeDep.originalAmount || 0;
+    const oldUsed = +freeDep._usedMoney || 0;
+    const oldRem = +freeDep.amount || 0;
+    
+    freeDep.originalAmount = oldAmount + amountToRegister;
+    freeDep._usedMoney = oldUsed + totalUsedMoney;
+    freeDep.amount = oldRem + freeDisplay;
+    
+    if(freeDep._lastDepositInfo && freeDep._lastDepositInfo._itemsList){
+      freeDep._lastDepositInfo._itemsList = [
+        ...freeDep._lastDepositInfo._itemsList,
+        ...itemsList
+      ];
+      freeDep._lastDepositInfo._itemsValue = (freeDep._lastDepositInfo._itemsValue || 0) + itemsValue;
+      freeDep._lastDepositInfo._debtBefore = debtBefore;
+      freeDep._lastDepositInfo._debtDeducted = (freeDep._lastDepositInfo._debtDeducted || 0) + debtDeducted;
+      freeDep._lastDepositInfo._freeRemaining = (freeDep._lastDepositInfo._freeRemaining || 0) + freeDisplay;
+      freeDep._lastDepositInfo._fullAmount = (freeDep._lastDepositInfo._fullAmount || 0) + amountEntered;
+      freeDep._lastDepositInfo._usedMoney = (freeDep._lastDepositInfo._usedMoney || 0) + totalUsedMoney;
+    } else {
+      freeDep._lastDepositInfo = depositInfo;
+    }
+    freeDep._editedAt = Date.now();
+  } else {
+    db.deposits.push({
+      id:uid(),
+      person:p,
+      carrier:carrier,
+      amount:freeDisplay,
+      originalAmount:amountToRegister,
+      _usedMoney:totalUsedMoney,
+      typeName:'',
+      qty:0,
+      originalQty:0,
+      unitPrice:0,
+      totalPrice:0,
+      date:d,
+      legacy:isLegacy,
+      note:'💵 المبلغ',
+      _usedQty:0,
+      _editedAt:Date.now(),
+      _lastDepositInfo: depositInfo
+    });
+  }
+}
+
+// ✅ سجّل الأنواع في reservations
+validItems.forEach(it=>{
+  const t=db.flourTypes.find(x=>x.id===it.typeId);
+  if(!t)return;
+  const qty=+it.qty||0;
+  const tC = _cleanType(t.name);
+  
+  let r = db.reservations.find(x => 
+    _cleanPerson(x.person) === bC && 
+    _cleanType(x.typeName) === tC && 
+    (x.totalQty - x.usedQty) > 0
+  );
+  
+  if(r){
+    r.totalQty += qty;
+    r.lastDate = d;
+    r._editedAt = Date.now();
+  } else {
+    db.reservations.push({
+      id: uid(),
+      person: p,
+      typeName: t.name,
+      totalQty: qty,
+      usedQty: 0,
+      date: d,
+      lastDate: d,
+      _editedAt: Date.now()
+    });
+  }
+});
+
+// ✅ اخصم من الدين
+if(debtDeducted > 0){
+  const sortedDebts = db.debts
+    .filter(x => _cleanPerson(x.person) === bC)
+    .sort((a,b) => a.date.localeCompare(b.date));
+  
+  let remaining = debtDeducted;
+  sortedDebts.forEach(dbt => {
+    if(remaining <= 0) return;
+    const deduct = Math.min(remaining, +dbt.amount || 0);
+    dbt.amount = Math.max(0, (+dbt.amount || 0) - deduct);
+    dbt._editedAt = Date.now();
+    remaining -= deduct;
+  });
+  
+  db.debts = db.debts.filter(x => 
+    _cleanPerson(x.person) !== bC || +x.amount > 0.01
+  );
+
+  db.payments.push({
+    id: uid(),
+    person: p,
+    amount: debtDeducted,
+    typeName: '💳 خصم تلقائي',
+    qty: 0,
+    details: `أنواع: ${money(itemsValue)} — مطلوب: ${money(debtBefore)} — باقي: ${money(freeDisplay)}`,
+    date: d,
+    _fromDeposit: true,
+    _debtBefore: debtBefore,
+    _debtDeducted: debtDeducted,
+    _debtAfter: Math.max(0, debtBefore - debtDeducted),
+    _editedAt: Date.now()
+  });
+}
+
+// ✅ دين جديد (الباقي سالب أو dRemaining)
+if(newDebtAmount > 0){
+  db.debts.push({
+    id: uid(),
+    person: p,
+    amount: newDebtAmount,
+    typeName: '💳 باقي',
+    qty: 0,
+    unitPrice: 0,
+    date: d,
+    manual: true,
+    _fromDeposit: true,
+    _note: cashRemaining < 0 ? 'الباقي سالب' : 'باقي كلي',
+    _editedAt: Date.now()
+  });
+}
+
 if(document.getElementById('dLegacy'))document.getElementById('dLegacy').checked=false;
+
 save();renderAll();
 document.getElementById('dPerson').value='';
 if(document.getElementById('dCarrier'))document.getElementById('dCarrier').value='';
@@ -4920,9 +5612,19 @@ document.getElementById('dRemaining').value='';
 if(document.getElementById('dDateTime'))document.getElementById('dDateTime').value='';
 _depositItems=[{id:uid(),typeId:'',qty:'',price:''}];
 renderDepositTypes();
-toast('تم الإيداع ✅'+(rem>0?' — الباقي للديون':'')+(originalDiscount>0?' — خصم: '+money(originalDiscount):''));
+
+let msg = '✅ تم الإيداع: ' + money(amountEntered);
+if(itemsValue > 0) msg += ` — أنواع: ${money(itemsValue)}`;
+if(debtDeducted > 0) msg += ` — خصم دين: ${money(debtDeducted)}`;
+if(freeDisplay > 0) msg += ` — باقي حر: ${money(freeDisplay)}`;
+if(newDebtAmount > 0) msg += ` — دين جديد: ${money(newDebtAmount)}`;
+if(originalDiscount > 0) msg += ` — خصم: ${money(originalDiscount)}`;
+toast(msg);
 }
 
+// ═══════════════════════════════════════════════════════════
+// ✅ renderDeposit — يدعم الحالتين
+// ═══════════════════════════════════════════════════════════
 function renderDeposit(){
 const bal=document.getElementById('depositBalances');
 const _plSet=new Set([...db.deposits.filter(d=>!d._finished&&!d.isWithdrawal&&!d.isCarry&&!d.cashPayment).map(d=>d.person),...db.reservations.map(r=>r.person)]);
@@ -5057,24 +5759,51 @@ if(!a||a<=0)return toast('اكتب المبلغ',true);
 let d=nowISO();
 const dtInput=document.getElementById('pDateTime');
 if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(parsed.getTime())){d=parsed.toISOString();}}catch(e){}}
-db.payments.push({id:uid(),person:p,amount:a,typeName:tn||'',qty:q,details:det,date:d,_editedAt:Date.now()});
+
+const debtBefore = debtBalance(p);
+
+if(a > debtBefore && debtBefore > 0){
+  const paymentAmount = debtBefore;
+  const excess = a - debtBefore;
+
+  db.payments.push({id:uid(),person:p,amount:paymentAmount,typeName:tn||'',qty:q,details:(det||'')+(excess>0?' (فائض '+money(excess)+' للإيداع)':''),date:d,_editedAt:Date.now()});
+
+  const bC = _cleanPerson(p);
+  let freeDep = db.deposits.find(x => _cleanPerson(x.person) === bC && (!x.typeName || x.typeName === '') && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished);
+  if(freeDep){
+    freeDep.amount = (+freeDep.amount || 0) + excess;
+    freeDep.originalAmount = (+freeDep.originalAmount || 0) + excess;
+    freeDep._editedAt = Date.now();
+  } else {
+    db.deposits.push({id:uid(),person:p,carrier:'',amount:excess,originalAmount:excess,_usedMoney:0,typeName:'',qty:0,originalQty:0,unitPrice:0,totalPrice:0,date:d,note:'💵 فائض تسديد',_usedQty:0,_editedAt:Date.now()});
+  }
+
+  toast(`✅ تسديد ${money(paymentAmount)} — الفائض ${money(excess)} ذهب للإيداع`);
+} else {
+  db.payments.push({id:uid(),person:p,amount:a,typeName:tn||'',qty:q,details:det,date:d,_editedAt:Date.now()});
+  toast('تم التسديد ✅');
+}
+
 save();renderAll();
 document.getElementById('pPerson').value='';document.getElementById('pType').value='';document.getElementById('pQty').value='';document.getElementById('pAmount').value='';
 if(document.getElementById('pDetails'))document.getElementById('pDetails').value='';
 if(document.getElementById('pDateTime'))document.getElementById('pDateTime').value='';
-toast('تم التسديد ✅');
 }
 
 function renderPay(){
 const el=document.getElementById('payList');
 if(!db.payments.length){el.innerHTML='<div class="empty">لا توجد تسديدات</div>';return;}
 let h=`<table><tr><th>التاريخ</th><th>الاسم</th><th>النوع</th><th>الكمية</th><th>المبلغ</th><th>التفاصيل</th><th>المتبقي</th><th></th></tr>`;
-[...db.payments].reverse().forEach(p=>{h+=`<tr><td style="font-size:11px">${fmt(p.date)}</td><td><b>${p.person}</b></td><td>${p.typeName||'—'}</td><td>${p.qty?money(p.qty)+' كيس':'—'}</td><td style="color:#27ae60;font-weight:bold">${money(p.amount)}</td><td style="font-size:11px;color:#666">${p.details||'—'}</td><td style="color:#c0392b">${money(debtBalance(p.person))}</td><td><button class="blue small" onclick="editPayment('${p.id}')">✏️</button> <button class="gold small" onclick="editDateTime('payment','${p.id}')">⏰</button> <button class="danger small" onclick="delPayment('${p.id}')">🗑️</button></td></tr>`;});
+[...db.payments].reverse().forEach(p=>{
+const isAuto = p._fromDeposit === true;
+const typeBadge = isAuto ? '<span style="background:#f39c12;color:#fff;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:bold">💳 خصم تلقائي</span>' : (p.typeName||'—');
+h+=`<tr${isAuto?' style="background:#fff8e6"':''}><td style="font-size:11px">${fmt(p.date)}</td><td><b>${p.person}</b></td><td>${typeBadge}</td><td>${p.qty?money(p.qty)+' كيس':'—'}</td><td style="color:#27ae60;font-weight:bold">${money(p.amount)}</td><td style="font-size:11px;color:#666">${p.details||'—'}</td><td style="color:#c0392b">${money(debtBalance(p.person))}</td><td style="white-space:nowrap"><button class="blue small" onclick="editPayment('${p.id}')">✏️</button> <button class="gold small" onclick="editDateTime('payment','${p.id}')">⏰</button> <button class="danger small" onclick="delPayment('${p.id}')">🗑️</button></td></tr>`;
+});
 el.innerHTML=h+'</table>';
 }
 
 function addExpense(){const d=document.getElementById('eDesc').value.trim();const a=+document.getElementById('eAmount').value;if(!d)return toast('اكتب الوصف',true);if(!a||a<=0)return toast('اكتب المبلغ',true);db.expenses.push({id:uid(),desc:d,amount:a,date:nowISO(),_editedAt:Date.now()});save();renderAll();document.getElementById('eDesc').value='';document.getElementById('eAmount').value='';toast('✅');}
-function renderExpense(){const el=document.getElementById('expenseList');if(!db.expenses.length){el.innerHTML='<div class="empty">لا توجد صرفيات</div>';return;}let h=`<table><tr><th>التاريخ</th><th>الوصف</th><th>المبلغ</th><th></th></tr>`;[...db.expenses].reverse().forEach(e=>{h+=`<tr><td style="font-size:11px">${fmt(e.date)}</td><td>${e.desc}</td><td style="color:#c0392b;font-weight:bold">${money(e.amount)}</td><td><button class="blue small" onclick="editExpense('${e.id}')">✏️</button> <button class="gold small" onclick="editDateTime('expense','${e.id}')">⏰</button> <button class="danger small" onclick="delExpense('${e.id}')">🗑️</button></td></tr>`;});el.innerHTML=h+'</table>';}
+function renderExpense(){const el=document.getElementById('expenseList');if(!db.expenses.length){el.innerHTML='<div class="empty">لا توجد صرفيات</div>';return;}let h=`<table><tr><th>التاريخ</th><th>الوصف</th><th>المبلغ</th><th></th></tr>`;[...db.expenses].reverse().forEach(e=>{h+=`<tr><td style="font-size:11px">${fmt(e.date)}</td><td>${e.desc}</td><td style="color:#c0392b;font-weight:bold">${money(e.amount)}</td><td style="white-space:nowrap"><button class="blue small" onclick="editExpense('${e.id}')">✏️</button> <button class="gold small" onclick="editDateTime('expense','${e.id}')">⏰</button> <button class="danger small" onclick="delExpense('${e.id}')">🗑️</button></td></tr>`;});el.innerHTML=h+'</table>';}
 function addCashAmount(){if(!db.cashAdditions)db.cashAdditions=[];const a=+document.getElementById('caAmount').value;const n=document.getElementById('caNote').value.trim();if(!a||a<=0)return toast('اكتب المبلغ',true);db.cashAdditions.push({id:uid(),amount:a,note:n,date:nowISO(),_editedAt:Date.now()});save();renderAll();document.getElementById('caAmount').value='';document.getElementById('caNote').value='';toast('✅');}
 </script><script>
 function computeWasselBalances(deps){
@@ -5110,7 +5839,9 @@ return {mode:'qty',qty:null,money:0,hasQtyDeposit:false,hasMoneyDeposit:false};
 
 let _finalCashbox=0;let _finalTotal=0;let _finalExpenses=0;
 
-// ===== دالة المطابقة =====
+// ═══════════════════════════════════════════════════════════
+// ✅ [تعديل] renderReport — استثناء _fromDeposit + عرض _itemsList
+// ═══════════════════════════════════════════════════════════
 function renderReport(){
 var _archT=getArchiveTime();
 const wasselBals=computeWasselBalances();
@@ -5138,32 +5869,76 @@ else if(s.method==='هدية'){paidAmount=0;remAfterPaid=0;}
 rows.push({date:s.date,type:it.typeName,qty:it.qty,unitPrice:discountedUnitPrice,buyer:s.buyer,carrier:s.carrier||'—',amount:paidAmount,displayAmount:paidAmount,method:s.method,remQty:rB?rB.qty:(it.remQty!==undefined?it.remQty:null),remMoney:rB?rB.money:(it.remMoney!==undefined?it.remMoney:remAfterPaid),hasQtyDeposit:rB?rB.hasQtyDeposit:(it.remQty>0),hasMoneyDeposit:rB?rB.hasMoneyDeposit:(remAfterPaid>0)});
 });
 });
-db.payments.forEach(p=>{rows.push({date:p.date,type:p.typeName||'—',qty:p.qty||'',unitPrice:'',buyer:p.person,carrier:'—',amount:p.amount,displayAmount:p.amount,method:'تسديد',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+
+// ✅ التسديدات — استثناء _fromDeposit
+db.payments.filter(p => p._fromDeposit !== true).forEach(p=>{
+rows.push({date:p.date,type:p.typeName||'—',qty:p.qty||'',unitPrice:'',buyer:p.person,carrier:'—',amount:p.amount,displayAmount:p.amount,method:'تسديد',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});
+});
+
 db.debts.filter(d=>d.manual && !d.fromSale && !d.fromDeposit && !d.fromExchange).forEach(d=>{
 rows.push({date:d.date,type:d.typeName||'دين يدوي',qty:'',unitPrice:d.amount,buyer:d.person,carrier:'—',amount:0,displayAmount:0,method:'دين يدوي',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});
 });
-// ✅ التعديل 2: رجعنا d.legacy — رصيد قديم + كمية فقط ما يُحسبون
-db.deposits.filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).forEach(d=>{rows.push({date:d.date,type:d.typeName||'💵 مبلغ حر',qty:d.originalQty||d.qty||'',unitPrice:d.unitPrice||'',buyer:d.person,carrier:d.carrier||'—',amount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,displayAmount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,method:'إيداع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+
+// ✅ الإيداعات — مع _itemsList
+db.deposits.filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).forEach(d=>{
+  const amountFull = +d.originalAmount!==undefined?+d.originalAmount:+d.amount;
+  const info = d._lastDepositInfo || null;
+  const itemsList = info && Array.isArray(info._itemsList) ? info._itemsList : [];
+  const itemsValue = info ? +info._itemsValue || 0 : 0;
+  const debtBefore = info ? +info._debtBefore || 0 : 0;
+  const debtDeducted = info ? +info._debtDeducted || 0 : 0;
+  const freeRemaining = info ? +info._freeRemaining || 0 : 0;
+  const hasDetails = (info !== null && (itemsList.length > 0 || debtBefore > 0 || freeRemaining > 0));
+  
+  rows.push({
+    date:d.date,
+    type:d.typeName||'💵 مبلغ حر',
+    qty:d.originalQty||d.qty||'',
+    unitPrice:d.unitPrice||'',
+    buyer:d.person,
+    carrier:d.carrier||'—',
+    amount:amountFull,
+    displayAmount:amountFull,
+    method:'إيداع',
+    remQty:null,
+    remMoney:null,
+    hasQtyDeposit:false,
+    hasMoneyDeposit:false,
+    _itemsList: hasDetails ? itemsList : null,
+    _itemsValue: hasDetails ? itemsValue : null,
+    _debtBefore: (hasDetails && debtBefore > 0) ? debtBefore : null,
+    _debtDeducted: hasDetails ? debtDeducted : null,
+    _freeRemaining: hasDetails ? freeRemaining : null,
+    _hasDetails: hasDetails
+  });
+});
+
 (db.cashAdditions||[]).filter(c=>!c.isCarry&&!c.fromExchange).forEach(c=>{rows.push({date:c.date,type:'—',qty:'',unitPrice:'',buyer:c.note||'إضافة صندوق',carrier:'—',amount:c.amount,displayAmount:c.amount,method:'إضافات',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+
 (db.exchanges||[]).forEach(e=>{
 (e.returnItems||[]).forEach(ri=>{rows.push({date:e.date,type:ri.typeName,qty:ri.qty,unitPrice:ri.unitPrice||0,buyer:e.buyer,carrier:e.carrier||'—',amount:0,displayAmount:0,method:'استرجاع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
 (e.swapItems||[]).forEach(si=>{rows.push({date:e.date,type:si.typeName,qty:si.qty,unitPrice:si.unitPrice||0,buyer:e.buyer,carrier:e.carrier||'—',amount:0,displayAmount:0,method:'تبديل',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
 if(e.diff!==0){rows.push({date:e.date,type:'—',qty:'',unitPrice:'',buyer:e.buyer,carrier:'—',amount:0,displayAmount:0,method:'فرق',diffValue:e.diff,diffMethod:e.method,remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});}
 });
+
 rows.sort((a,b)=>a.date.localeCompare(b.date));
+
 const totalSales=rows.filter(r=>r.method!=='استرجاع'&&r.method!=='تبديل'&&r.method!=='فرق'&&r.method!=='دين يدوي').reduce((a,r)=>a+r.amount,0)
 + (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
+
 const dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 let _carryAmount=0;let _carryDate='';
-// ✅ التعديل 3: رصيد البايت يعرض المبلغ بعد التعديل اليدوي
 if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carryAmount=(+db._permanentCarry || 0) + (+db._cashboxOffset || 0);_carryDate=db._lastArchiveAt || nowISO();}
+
 let h=`<div class="card" style="background:#fff8e6;border:2px solid #f39c12;padding:12px">`;
 h+=`<div style="text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #f39c12">`;
 h+=`<div style="font-size:15px;font-weight:bold;color:#8B4513;margin-bottom:6px">🛒 سجل البيع</div>`;
 h+=`<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px">`;
 h+=`<div><b>📅:</b> ${fmt(nowISO())}</div><div><b>📆:</b> ${dayNames[new Date().getDay()]}</div></div></div>`;
-h+=`<table style="font-size:11px"><tr><th>#</th><th>النوع</th><th>العدد</th><th>📦 باقي كيس</th><th>المشتري</th><th>الناقل 🚛</th><th>سعر المفرد</th><th>المبلغ</th><th>💰 باقي فلوس</th><th>الدفع</th><th class="time-cell">الوقت</th></tr>`;
+h+=`<table style="font-size:11px"><tr><th>#</th><th>النوع</th><th>العدد</th><th>📦 باقي كيس</th><th>المشتري</th><th>الناقل 🚛</th><th>سعر المفرد</th><th>المبلغ</th><th>💰 المطلوب</th><th>الدفع</th><th class="time-cell">الوقت</th></tr>`;
+
 if(_carryAmount > 0){h+=`<tr style="background:#fff3e0;font-weight:bold;border-bottom:2px solid #f39c12"><td style="text-align:center;color:#f39c12;font-size:14px">🏦</td><td colspan="6" style="color:#8B4513;font-size:12px">💰 رصيد البايت (${fmtShort(_carryDate)})</td><td style="color:#c0392b;font-size:13px;font-weight:bold">${money(_carryAmount)}</td><td colspan="3"></td></tr>`;}
+
 if(rows.length){
 rows.forEach((r,rowIdx)=>{
 let badgeHtml;
@@ -5176,21 +5951,48 @@ else if(r.method==='تبديل'){badgeHtml=`<span class="badge b-تبديل">�
 else if(r.method==='فرق'){badgeHtml=`<span class="badge b-فرق">💱 فرق</span>`;}
 else if(r.method==='دين يدوي'){badgeHtml=`<span class="badge b-دين">📝 دين يدوي</span>`;}
 else{badgeHtml=`<span>${r.method}</span>`;}
+
 let _amtShow;
-if(r.method==='فرق'){
-const isNeg = r.diffValue < 0;
-_amtShow = (isNeg ? '-' : '+') + money(Math.abs(r.diffValue));
-}
+if(r.method==='فرق'){const isNeg = r.diffValue < 0;_amtShow = (isNeg ? '-' : '+') + money(Math.abs(r.diffValue));}
 else if(r.method==='استرجاع'||r.method==='تبديل'){_amtShow='—';}
 else if(r.method==='واصل'){_amtShow='<span style="color:#ccc">—</span>';}
 else if(r.method==='دين يدوي'){_amtShow='<span style="color:#c0392b;font-weight:bold">'+money(r.unitPrice)+'</span>';}
 else if(r.displayAmount!==undefined){_amtShow=money(r.displayAmount);}
 else{_amtShow=money(r.amount);}
+
 let _remQtyShow='—';
 if(r.remQty!==null && r.remQty!==undefined){if(r.remQty<=0){_remQtyShow='<span style="color:#8b0000;font-weight:bold">انتهى</span>';}else{_remQtyShow='<span style="color:#c0392b;font-weight:bold">'+money(r.remQty)+'</span>';}}
-let _remMoneyShow='—';
-if(r.remMoney!==null && r.remMoney!==undefined){if(r.remMoney<=0){_remMoneyShow=r.hasMoneyDeposit ? '<span style="color:#8b0000;font-weight:bold">انتهى</span>' : '—';}else{_remMoneyShow='<span style="color:#c0392b;font-weight:bold">'+money(r.remMoney)+'</span>';}}
-h+=`<tr><td style="text-align:center;font-weight:bold;color:#888">${rowIdx+1}</td><td>${r.type}</td><td style="color:#2980b9;font-weight:bold">${r.qty?money(r.qty):'—'}</td><td>${_remQtyShow}</td><td>${r.buyer}</td><td style="font-size:10px">${r.carrier}</td><td style="color:#27ae60;font-weight:bold">${r.unitPrice?money(r.unitPrice):'—'}</td><td style="color:#8B4513;font-weight:bold">${_amtShow}</td><td>${_remMoneyShow}</td><td>${badgeHtml}</td><td class="time-cell">${fmtTime(r.date)}</td></tr>`;
+
+// ✅ خلية "المطلوب" — مع _itemsList
+let _matloobCell;
+if(r.method==='إيداع'){
+  if(r._hasDetails){
+    let details = `<div style="font-size:10px;line-height:1.7;text-align:right;background:#f0f7fc;padding:5px 8px;border-radius:6px;border-right:3px solid #3498db">`;
+    if(r._itemsList && r._itemsList.length){
+      r._itemsList.forEach(item => {
+        details += `<div>🌾 ${item.name}: ${money(item.qty)} × ${money(item.price)} = <b style="color:#2980b9">${money(item.total)}</b></div>`;
+      });
+    }
+    if(r._debtBefore !== null && r._debtBefore > 0){
+      details += `<div>💳 مطلوب: <b style="color:#c0392b">${money(r._debtBefore)}</b></div>`;
+    }
+    if(r._freeRemaining > 0){
+      details += `<div>✅ باقي: <b style="color:#27ae60">${money(r._freeRemaining)} إيداع حر</b></div>`;
+    } else if(r._debtBefore !== null && r._debtBefore > 0 && r._freeRemaining === 0){
+      details += `<div>✅ باقي: <b style="color:#888">0</b></div>`;
+    }
+    details += `</div>`;
+    _matloobCell = details;
+  } else {
+    _matloobCell = '<span style="color:#888;font-size:10px">—</span>';
+  }
+} else {
+  let _remMoneyShow='—';
+  if(r.remMoney!==null && r.remMoney!==undefined){if(r.remMoney<=0){_remMoneyShow=r.hasMoneyDeposit ? '<span style="color:#8b0000;font-weight:bold">انتهى</span>' : '—';}else{_remMoneyShow='<span style="color:#c0392b;font-weight:bold">'+money(r.remMoney)+'</span>';}}
+  _matloobCell = _remMoneyShow;
+}
+
+h+=`<tr><td style="text-align:center;font-weight:bold;color:#888">${rowIdx+1}</td><td>${r.type}</td><td style="color:#2980b9;font-weight:bold">${r.qty?money(r.qty):'—'}</td><td>${r.method==='إيداع' ? '<span style="color:#ccc">—</span>' : _remQtyShow}</td><td>${r.buyer}</td><td style="font-size:10px">${r.carrier}</td><td style="color:#27ae60;font-weight:bold">${r.unitPrice?money(r.unitPrice):'—'}</td><td style="color:#8B4513;font-weight:bold">${_amtShow}</td><td>${_matloobCell}</td><td>${badgeHtml}</td><td class="time-cell">${fmtTime(r.date)}</td></tr>`;
 });
 h+=`<tr style="background:#faf0e6;font-weight:bold"><td colspan="7" style="text-align:center">المجموع</td><td style="color:#8B4513;font-size:14px">${money(totalSales + _carryAmount)}</td><td colspan="3"></td></tr>`;
 }else{
@@ -5198,6 +6000,7 @@ h+=`<tr><td colspan="11" style="text-align:center;color:#888;padding:12px">لا 
 if(_carryAmount > 0){h+=`<tr style="background:#faf0e6;font-weight:bold"><td colspan="7" style="text-align:center">المجموع</td><td style="color:#8B4513;font-size:14px">${money(_carryAmount)}</td><td colspan="3"></td></tr>`;}
 }
 h+=`</table></div>`;
+
 const expRows=[...db.expenses].sort((a,b)=>a.date.localeCompare(b.date));
 if(expRows.length){
 const totalExp=expRows.reduce((a,e)=>a+e.amount,0);
@@ -5209,6 +6012,7 @@ h+=`<tr${isExchange?' style="background:#fff3e0"':''}><td>${e.desc}${isExchange?
 });
 h+=`<tr style="background:#ffe5e5;font-weight:bold"><td style="text-align:center">المجموع</td><td style="color:#c0392b">${money(totalExp)}</td><td></td></tr></table></div>`;
 }
+
 let _reportTotal=0;
 db.sales.forEach(s=>{
 const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
@@ -5224,21 +6028,24 @@ else if(s.method==='هدية'){paid=0;}
 _reportTotal += paid;
 });
 });
-_reportTotal += db.payments.reduce((a,p)=>a+p.amount,0);
+// ✅ استثناء _fromDeposit
+_reportTotal += db.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0);
 _reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-// ✅ التعديل 2: رجعنا d.legacy
 _reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
 _reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
+
 const _te=db.expenses.reduce((a,e)=>a+e.amount,0);
 let _carry=0;
 if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carry=+db._permanentCarry || 0;}
+
 _finalTotal=_reportTotal + _carry;
 _finalExpenses=_te;
 _finalCashbox=_finalTotal - _finalExpenses + (db._cashboxOffset || 0);
+
 document.getElementById('reportArea').innerHTML=h;
 }
 
-// ✅ عارض الصور — كامل الشاشة
+// ✅ عارض الصور
 function openImageViewer(src){
 var old=document.getElementById('imgViewer');
 if(old) old.remove();
@@ -5251,7 +6058,6 @@ v.onclick=function(e){ if(e.target.tagName!=='IMG'){ v.remove(); } };
 document.body.appendChild(v);
 }
 
-// ✅ عرض المطابقة كصور — مع تكبير
 async function viewReport(){
 window._printRowLimit=25;window._autoFontSize=false;
 const c=document.getElementById('reportArea').innerHTML;
@@ -5273,7 +6079,6 @@ toast('✅ تم توليد '+imgs.length+' صور');
 }catch(e){console.error(e);toast('فشل',true);}
 }
 
-// ✅ عرض الأنواع كصور — مع تكبير
 function viewFlour(){
 if(!db.flourTypes.length){toast('لا توجد أنواع',true);return;}
 window._printRowLimit=20;window._autoFontSize=true;
@@ -5510,7 +6315,8 @@ datesSorted.forEach(dateKey=>{
       dayTotal += paid;
     });
   });
-  dayTotal += dayData.payments.reduce((a,p)=>a+p.amount,0);
+  // ✅ استثناء _fromDeposit
+  dayTotal += dayData.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0);
   dayTotal += dayData.exchanges.filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
   dayTotal += dayData.deposits.filter(d=>+d.amount>0 && !d.legacy && !d.isWithdrawal && !d.cashPayment && !d.isCarry && !(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل')))).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
   dayTotal += dayData.cashAdditions.filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
@@ -5540,7 +6346,6 @@ datesSorted.forEach(dateKey=>{
     deposits: dayData.deposits,
     reservations: [],
     cashboxAtArchive: dayTotal - dayExpenses,
-    // ✅ التعديل 8: إضافة السجلات كاملة للأرشيف
     allDeposits: JSON.parse(JSON.stringify(db.deposits || [])),
     allDebts: JSON.parse(JSON.stringify(db.debts || [])),
     allFlourTypes: JSON.parse(JSON.stringify(db.flourTypes || [])),
@@ -5560,28 +6365,23 @@ db.buyers.forEach(x=>markDeleted('buyers',x.id));
 db._lastArchiveAt=_archiveTime;
 db._permanentCarry=currentCashbox;
 db._cashboxOffset=0;
-// ✅ التعديل 3: إصلاح كمية الطحين بعد الأرشفة — احترام التعديل اليدوي
 db.flourTypes.forEach(t=>{
   const currentQty = +t.qty || 0;
   const currentUnitPrice = +t.unitPrice || 0;
   
-  // ✅ الأصلية الجديدة = الباقية
   t.additions = [{
     qty: currentQty,
     date: _archiveTime,
     note: '📦 بعد الأرشفة'
   }];
   
-  // ✅ الكمية الحالية = الباقية
   t.qty = currentQty;
   t.totalSold = 0;
   
-  // ✅ التعديل اليدوي يتحدّث (بدل ما يمسح)
   t._manualOverride = Date.now();
   t._manualOriginal = currentQty;
   t._manualQty = currentQty;
   
-  // ✅ حدّث الخريطة
   if(!db._manualOverrides) db._manualOverrides = {};
   const cleanName = _cleanType(t.name);
   db._manualOverrides[cleanName] = {
@@ -5679,12 +6479,52 @@ else if(s.method==='هدية'){paidAmount=0;remAfterPaid=0;}
 rows.push({date:s.date,type:it.typeName,qty:it.qty,unitPrice:discountedUnitPrice,buyer:s.buyer,carrier:s.carrier||'—',amount:paidAmount,displayAmount:paidAmount,method:s.method,remQty:rB?rB.qty:(it.remQty!==undefined?it.remQty:null),remMoney:rB?rB.money:(it.remMoney!==undefined?it.remMoney:remAfterPaid),hasQtyDeposit:rB?rB.hasQtyDeposit:false,hasMoneyDeposit:rB?rB.hasMoneyDeposit:false});
 });
 });
-(a.payments||[]).forEach(p=>{rows.push({date:p.date,type:p.typeName||'—',qty:p.qty||'',unitPrice:'',buyer:p.person,carrier:'—',amount:p.amount,displayAmount:p.amount,method:'تسديد',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+
+// ✅ استثناء _fromDeposit
+(a.payments||[]).filter(p => p._fromDeposit !== true).forEach(p=>{
+rows.push({date:p.date,type:p.typeName||'—',qty:p.qty||'',unitPrice:'',buyer:p.person,carrier:'—',amount:p.amount,displayAmount:p.amount,method:'تسديد',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});
+});
+
 (a.debts||[]).filter(d=>d.manual && !d.fromSale && !d.fromDeposit && !d.fromExchange).forEach(d=>{
 rows.push({date:d.date,type:d.typeName||'دين يدوي',qty:'',unitPrice:d.amount,buyer:d.person,carrier:'—',amount:0,displayAmount:0,method:'دين يدوي',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});
 });
-(a.deposits||[]).filter(d=>+d.amount>0&&!d.legacy&&!d.isWithdrawal&&!d.cashPayment&&!d.isCarry&&!(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل')))).forEach(d=>{rows.push({date:d.date,type:d.typeName||'💵 مبلغ حر',qty:d.originalQty||d.qty||'',unitPrice:d.unitPrice||'',buyer:d.person,carrier:d.carrier||'—',amount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,displayAmount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,method:'إيداع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+
+// ✅ الإيداعات — مع _itemsList
+(a.deposits||[]).filter(d=>+d.amount>0&&!d.legacy&&!d.isWithdrawal&&!d.cashPayment&&!d.isCarry&&!(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل')))).forEach(d=>{
+  const amountFull = +d.originalAmount!==undefined?+d.originalAmount:+d.amount;
+  const info = d._lastDepositInfo || null;
+  const itemsList = info && Array.isArray(info._itemsList) ? info._itemsList : [];
+  const itemsValue = info ? +info._itemsValue || 0 : 0;
+  const debtBefore = info ? +info._debtBefore || 0 : 0;
+  const debtDeducted = info ? +info._debtDeducted || 0 : 0;
+  const freeRemaining = info ? +info._freeRemaining || 0 : 0;
+  const hasDetails = (info !== null && (itemsList.length > 0 || debtBefore > 0 || freeRemaining > 0));
+  
+  rows.push({
+    date:d.date,
+    type:d.typeName||'💵 مبلغ حر',
+    qty:d.originalQty||d.qty||'',
+    unitPrice:d.unitPrice||'',
+    buyer:d.person,
+    carrier:d.carrier||'—',
+    amount:amountFull,
+    displayAmount:amountFull,
+    method:'إيداع',
+    remQty:null,
+    remMoney:null,
+    hasQtyDeposit:false,
+    hasMoneyDeposit:false,
+    _itemsList: hasDetails ? itemsList : null,
+    _itemsValue: hasDetails ? itemsValue : null,
+    _debtBefore: (hasDetails && debtBefore > 0) ? debtBefore : null,
+    _debtDeducted: hasDetails ? debtDeducted : null,
+    _freeRemaining: hasDetails ? freeRemaining : null,
+    _hasDetails: hasDetails
+  });
+});
+
 (a.cashAdditions||[]).filter(c=>!c.isCarry&&!c.fromExchange).forEach(c=>{rows.push({date:c.date,type:'—',qty:'',unitPrice:'',buyer:c.note||'إضافة صندوق',carrier:'—',amount:c.amount,displayAmount:c.amount,method:'إضافات',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+
 (a.exchanges||[]).forEach(e=>{
 (e.returnItems||[]).forEach(ri=>{rows.push({date:e.date,type:ri.typeName,qty:ri.qty,unitPrice:ri.unitPrice||0,buyer:e.buyer,carrier:e.carrier||'—',amount:0,displayAmount:0,method:'استرجاع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
 (e.swapItems||[]).forEach(si=>{rows.push({date:e.date,type:si.typeName,qty:si.qty,unitPrice:si.unitPrice||0,buyer:e.buyer,carrier:e.carrier||'—',amount:0,displayAmount:0,method:'تبديل',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
@@ -5695,7 +6535,7 @@ const totalAmount=rows.filter(r=>r.method!=='استرجاع'&&r.method!=='تبد
 + (a.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((x,e)=>x+(+e.diff||0), 0);
 const headerTitle = a.dateArabic ? a.dateArabic : (a.dateKey ? _formatDateArabic(a.dateKey) : ('من '+fmtShort(a.periodStart)+' إلى '+fmtShort(a.periodEnd)));
 h+=`<div class="arch-card"><div class="arch-head" onclick="toggleArch(${idx})"><div class="info"><b>📦 ${headerTitle}</b><br><span style="font-size:11px">📅 ${fmt(a.archivedAt)}</span></div><div><button class="ok small" onclick="event.stopPropagation();viewSingleArchive('${a.id}')">📷</button> <button class="danger small" onclick="event.stopPropagation();delArchive('${a.id}')">🗑️</button></div></div><div class="arch-body" id="arch_${idx}">`;
-h+=`<table style="font-size:11px"><tr><th>#</th><th>النوع</th><th>العدد</th><th>📦 باقي كيس</th><th>المشتري</th><th>الناقل 🚛</th><th>سعر المفرد</th><th>المبلغ</th><th>💰 باقي فلوس</th><th>الدفع</th><th class="time-cell">الوقت</th></tr>`;
+h+=`<table style="font-size:11px"><tr><th>#</th><th>النوع</th><th>العدد</th><th>📦 باقي كيس</th><th>المشتري</th><th>الناقل 🚛</th><th>سعر المفرد</th><th>المبلغ</th><th>💰 المطلوب</th><th>الدفع</th><th class="time-cell">الوقت</th></tr>`;
 if(rows.length){
 rows.forEach((r,rowIdx)=>{
 let badgeHtml;
@@ -5708,6 +6548,7 @@ else if(r.method==='تبديل'){badgeHtml=`<span class="badge b-تبديل">�
 else if(r.method==='فرق'){badgeHtml=`<span class="badge b-فرق">💱 فرق استرجاع/تبديل</span>`;}
 else if(r.method==='دين يدوي'){badgeHtml=`<span class="badge b-دين">📝 دين يدوي</span>`;}
 else{badgeHtml=`<span class="badge">${r.method}</span>`;}
+
 let _amtShow;
 if(r.method==='فرق'){
 const isNeg = r.diffValue < 0;
@@ -5717,11 +6558,40 @@ else if(r.method==='واصل'||r.method==='استرجاع'||r.method==='تبدي
 else if(r.method==='دين يدوي'){_amtShow='<span style="color:#c0392b;font-weight:bold">'+money(r.unitPrice)+'</span>';}
 else if(r.displayAmount!==undefined){_amtShow=money(r.displayAmount);}
 else{_amtShow=money(r.amount);}
+
 let _remQtyShow='—';
 if(r.remQty!==null && r.remQty!==undefined){_remQtyShow=r.remQty<=0 ? '<span style="color:#8b0000;font-weight:bold">انتهى</span>' : '<span style="color:#c0392b;font-weight:bold">'+money(r.remQty)+'</span>';}
-let _remMoneyShow='—';
-if(r.remMoney!==null && r.remMoney!==undefined){_remMoneyShow=r.remMoney<=0 ? (r.hasMoneyDeposit ? '<span style="color:#8b0000;font-weight:bold">انتهى</span>' : '—') : '<span style="color:#c0392b;font-weight:bold">'+money(r.remMoney)+'</span>';}
-h+=`<tr><td style="text-align:center;font-weight:bold;color:#888">${rowIdx+1}</td><td>${r.type}</td><td style="color:#2980b9;font-weight:bold">${r.qty?money(r.qty):'—'}</td><td>${_remQtyShow}</td><td>${r.buyer}</td><td style="font-size:10px">${r.carrier}</td><td style="color:#27ae60;font-weight:bold">${r.unitPrice?money(r.unitPrice):'—'}</td><td style="color:#8B4513;font-weight:bold">${_amtShow}</td><td>${_remMoneyShow}</td><td>${badgeHtml}</td><td class="time-cell">${fmtTime(r.date)}</td></tr>`;
+
+// ✅ خلية المطلوب — مع _itemsList
+let _matloobCell;
+if(r.method==='إيداع'){
+  if(r._hasDetails){
+    let details = `<div style="font-size:10px;line-height:1.7;text-align:right;background:#f0f7fc;padding:5px 8px;border-radius:6px;border-right:3px solid #3498db">`;
+    if(r._itemsList && r._itemsList.length){
+      r._itemsList.forEach(item => {
+        details += `<div>🌾 ${item.name}: ${money(item.qty)} × ${money(item.price)} = <b style="color:#2980b9">${money(item.total)}</b></div>`;
+      });
+    }
+    if(r._debtBefore !== null && r._debtBefore > 0){
+      details += `<div>💳 مطلوب: <b style="color:#c0392b">${money(r._debtBefore)}</b></div>`;
+    }
+    if(r._freeRemaining > 0){
+      details += `<div>✅ باقي: <b style="color:#27ae60">${money(r._freeRemaining)} إيداع حر</b></div>`;
+    } else if(r._debtBefore !== null && r._debtBefore > 0 && r._freeRemaining === 0){
+      details += `<div>✅ باقي: <b style="color:#888">0</b></div>`;
+    }
+    details += `</div>`;
+    _matloobCell = details;
+  } else {
+    _matloobCell = '<span style="color:#888;font-size:10px">—</span>';
+  }
+} else {
+  let _remMoneyShow='—';
+  if(r.remMoney!==null && r.remMoney!==undefined){_remMoneyShow=r.remMoney<=0 ? (r.hasMoneyDeposit ? '<span style="color:#8b0000;font-weight:bold">انتهى</span>' : '—') : '<span style="color:#c0392b;font-weight:bold">'+money(r.remMoney)+'</span>';}
+  _matloobCell = _remMoneyShow;
+}
+
+h+=`<tr><td style="text-align:center;font-weight:bold;color:#888">${rowIdx+1}</td><td>${r.type}</td><td style="color:#2980b9;font-weight:bold">${r.qty?money(r.qty):'—'}</td><td>${r.method==='إيداع' ? '<span style="color:#ccc">—</span>' : _remQtyShow}</td><td>${r.buyer}</td><td style="font-size:10px">${r.carrier}</td><td style="color:#27ae60;font-weight:bold">${r.unitPrice?money(r.unitPrice):'—'}</td><td style="color:#8B4513;font-weight:bold">${_amtShow}</td><td>${_matloobCell}</td><td>${badgeHtml}</td><td class="time-cell">${fmtTime(r.date)}</td></tr>`;
 });
 h+=`<tr style="background:#faf0e6;font-weight:bold"><td colspan="7" style="text-align:center">المجموع</td><td style="color:#8B4513">${money(totalAmount)}</td><td colspan="3"></td></tr>`;
 }else{h+=`<tr><td colspan="11" style="text-align:center;color:#888;padding:12px">لا توجد حركات</td></tr>`;}
@@ -5746,17 +6616,11 @@ toast('✅ تم حذف الوثيقة — البيانات الحالية سلي
 
 function viewArchive(){window._printRowLimit=25;window._autoFontSize=false;const c=document.getElementById('archiveList').innerHTML;if(!c||c.trim()===''||!db.archive.length){toast('لا يوجد أرشيف',true);return;}_currentViewHTML=c;currentReportImages=[];_finalCashbox=0;_finalTotal=0;_finalExpenses=0;openOverlay('📦 كل الأرشيف',c,'#8e44ad');}
 
-// ═══════════════════════════════════════════════════════════
-// ✅ viewSingleArchive — يضيف سجل الإيداعات + المطلوبين + الطحين
-// ═══════════════════════════════════════════════════════════
 function viewSingleArchive(id){
 window._printRowLimit=25;window._autoFontSize=false;
 const a=db.archive.find(x=>x.id===id);
 if(!a){toast('لا يوجد',true);return;}
 
-// ═══════════════════════════════════════════
-// ✅ إذا فيه savedReportHTML → استخدمه وأضف السجلات الثلاثة
-// ═══════════════════════════════════════════
 if(a.savedReportHTML && a.savedReportHTML.trim()){
   _finalTotal = a.savedFinalTotal || 0;
   _finalExpenses = a.savedFinalExpenses || 0;
@@ -5764,19 +6628,16 @@ if(a.savedReportHTML && a.savedReportHTML.trim()){
   
   let fullHTML = a.savedReportHTML;
   
-  // ✅ 1. سجل الإيداعات
   const archDeposits = a.allDeposits || [];
   if(archDeposits.length){
     fullHTML += renderArchiveDepositsSection(archDeposits);
   }
   
-  // ✅ 2. سجل المطلوبين
   const archDebts = a.allDebts || [];
   if(archDebts.length){
     fullHTML += renderArchiveDebtsSection(archDebts, a.payments || []);
   }
   
-  // ✅ 3. سجل الطحين
   const archFlour = a.allFlourTypes || [];
   if(archFlour.length){
     fullHTML += renderArchiveFlourSection(archFlour);
@@ -5789,9 +6650,7 @@ if(a.savedReportHTML && a.savedReportHTML.trim()){
   return;
 }
 
-// ═══════════════════════════════════════════
-// من هنا الكود الأصلي (للأرشيفات القديمة بدون savedReportHTML)
-// ═══════════════════════════════════════════
+// كود قديم
 let c='';
 if(a.type==='flour'){
 const ff=(a.flourTypes||[]);
@@ -5830,11 +6689,46 @@ else if(s.method==='هدية'){paidAmount=0;remAfterPaid=0;}
 rows.push({date:s.date,type:it.typeName,qty:it.qty,unitPrice:discountedUnitPrice,buyer:s.buyer,carrier:s.carrier||'—',amount:paidAmount,displayAmount:paidAmount,method:s.method,remQty:rB?rB.qty:null,remMoney:rB?rB.money:remAfterPaid,hasQtyDeposit:rB?rB.hasQtyDeposit:false,hasMoneyDeposit:rB?rB.hasMoneyDeposit:false});
 });
 });
-(a.payments||[]).forEach(p=>{rows.push({date:p.date,type:p.typeName||'—',qty:p.qty||'',unitPrice:'',buyer:p.person,carrier:'—',amount:p.amount,displayAmount:p.amount,method:'تسديد',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+
+(a.payments||[]).filter(p => p._fromDeposit !== true).forEach(p=>{
+rows.push({date:p.date,type:p.typeName||'—',qty:p.qty||'',unitPrice:'',buyer:p.person,carrier:'—',amount:p.amount,displayAmount:p.amount,method:'تسديد',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});
+});
+
 (a.debts||[]).filter(d=>d.manual && !d.fromSale && !d.fromDeposit && !d.fromExchange).forEach(d=>{
 rows.push({date:d.date,type:d.typeName||'دين يدوي',qty:'',unitPrice:d.amount,buyer:d.person,carrier:'—',amount:0,displayAmount:0,method:'دين يدوي',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});
 });
-(a.deposits||[]).filter(d=>+d.amount>0&&!d.legacy&&!d.isWithdrawal&&!d.cashPayment&&!d.isCarry).forEach(d=>{rows.push({date:d.date,type:d.typeName||'💵 مبلغ حر',qty:d.originalQty||d.qty||'',unitPrice:d.unitPrice||'',buyer:d.person,carrier:d.carrier||'—',amount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,displayAmount:+d.originalAmount!==undefined?+d.originalAmount:+d.amount,method:'إيداع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+
+(a.deposits||[]).filter(d=>+d.amount>0&&!d.legacy&&!d.isWithdrawal&&!d.cashPayment&&!d.isCarry).forEach(d=>{
+  const amountFull = +d.originalAmount!==undefined?+d.originalAmount:+d.amount;
+  const info = d._lastDepositInfo || null;
+  const itemsList = info && Array.isArray(info._itemsList) ? info._itemsList : [];
+  const itemsValue = info ? +info._itemsValue || 0 : 0;
+  const debtBefore = info ? +info._debtBefore || 0 : 0;
+  const freeRemaining = info ? +info._freeRemaining || 0 : 0;
+  const hasDetails = (info !== null && (itemsList.length > 0 || debtBefore > 0 || freeRemaining > 0));
+  
+  rows.push({
+    date:d.date,
+    type:d.typeName||'💵 مبلغ حر',
+    qty:d.originalQty||d.qty||'',
+    unitPrice:d.unitPrice||'',
+    buyer:d.person,
+    carrier:d.carrier||'—',
+    amount:amountFull,
+    displayAmount:amountFull,
+    method:'إيداع',
+    remQty:null,
+    remMoney:null,
+    hasQtyDeposit:false,
+    hasMoneyDeposit:false,
+    _itemsList: hasDetails ? itemsList : null,
+    _itemsValue: hasDetails ? itemsValue : null,
+    _debtBefore: (hasDetails && debtBefore > 0) ? debtBefore : null,
+    _freeRemaining: hasDetails ? freeRemaining : null,
+    _hasDetails: hasDetails
+  });
+});
+
 (a.cashAdditions||[]).filter(c=>!c.isCarry&&!c.fromExchange).forEach(c=>{rows.push({date:c.date,type:'—',qty:'',unitPrice:'',buyer:c.note||'إضافة صندوق',carrier:'—',amount:c.amount,displayAmount:c.amount,method:'إضافات',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
 (a.exchanges||[]).forEach(e=>{
 (e.returnItems||[]).forEach(ri=>{rows.push({date:e.date,type:ri.typeName,qty:ri.qty,unitPrice:ri.unitPrice||0,buyer:e.buyer,carrier:e.carrier||'—',amount:0,displayAmount:0,method:'استرجاع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
@@ -5847,7 +6741,7 @@ const totalSales=rows.filter(r=>r.method!=='استرجاع'&&r.method!=='تبد�
 const headerTitle = a.dateArabic ? a.dateArabic : (a.dateKey ? _formatDateArabic(a.dateKey) : fmt(a.archivedAt));
 c+=`<div class="card" style="background:#fff8e6;border:2px solid #f39c12;padding:12px">`;
 c+=`<div style="text-align:center;margin-bottom:10px"><div style="font-size:15px;font-weight:bold;color:#8B4513">🛒 سجل البيع</div><div style="font-size:12px">📅 ${headerTitle}</div></div>`;
-c+=`<table style="font-size:11px"><tr><th>#</th><th>النوع</th><th>العدد</th><th>📦 باقي كيس</th><th>المشتري</th><th>الناقل 🚛</th><th>سعر المفرد</th><th>المبلغ</th><th>💰 باقي فلوس</th><th>الدفع</th><th class="time-cell">الوقت</th></tr>`;
+c+=`<table style="font-size:11px"><tr><th>#</th><th>النوع</th><th>العدد</th><th>📦 باقي كيس</th><th>المشتري</th><th>الناقل 🚛</th><th>سعر المفرد</th><th>المبلغ</th><th>💰 المطلوب</th><th>الدفع</th><th class="time-cell">الوقت</th></tr>`;
 if(rows.length){
 rows.forEach((r,rowIdx)=>{
 let badgeHtml;
@@ -5861,18 +6755,37 @@ else if(r.method==='فرق'){badgeHtml=`<span class="badge b-فرق">💱 فرق
 else if(r.method==='دين يدوي'){badgeHtml=`<span class="badge b-دين">📝 دين يدوي</span>`;}
 else{badgeHtml=`<span>${r.method}</span>`;}
 let _amtShow;
-if(r.method==='فرق'){
-const isNeg = r.diffValue < 0;
-_amtShow = (isNeg ? '-' : '+') + money(Math.abs(r.diffValue)) + (r.diffValue>0?' ('+(r.diffMethod==='دين'?'دين':'نقد')+')':' (صرفيات)');
-}
+if(r.method==='فرق'){const isNeg = r.diffValue < 0;_amtShow = (isNeg ? '-' : '+') + money(Math.abs(r.diffValue)) + (r.diffValue>0?' ('+(r.diffMethod==='دين'?'دين':'نقد')+')':' (صرفيات)');}
 else if(r.method==='واصل'||r.method==='استرجاع'||r.method==='تبديل'){_amtShow='<span style="color:#ccc">—</span>';}
 else if(r.method==='دين يدوي'){_amtShow='<span style="color:#c0392b;font-weight:bold">'+money(r.unitPrice)+'</span>';}
 else{_amtShow=money(r.displayAmount!==undefined?r.displayAmount:r.amount);}
 let _remQtyShow='—';
 if(r.remQty!==null && r.remQty!==undefined){_remQtyShow=r.remQty<=0 ? '<span style="color:#8b0000;font-weight:bold">انتهى</span>' : '<span style="color:#c0392b;font-weight:bold">'+money(r.remQty)+'</span>';}
-let _remMoneyShow='—';
-if(r.remMoney!==null && r.remMoney!==undefined){_remMoneyShow=r.remMoney<=0 ? (r.hasMoneyDeposit ? '<span style="color:#8b0000;font-weight:bold">انتهى</span>' : '—') : '<span style="color:#c0392b;font-weight:bold">'+money(r.remMoney)+'</span>';}
-c+=`<tr><td style="text-align:center;font-weight:bold;color:#888">${rowIdx+1}</td><td>${r.type}</td><td style="color:#2980b9;font-weight:bold">${r.qty?money(r.qty):'—'}</td><td>${_remQtyShow}</td><td>${r.buyer}</td><td>${r.carrier}</td><td style="color:#27ae60;font-weight:bold">${r.unitPrice?money(r.unitPrice):'—'}</td><td style="color:#8B4513;font-weight:bold">${_amtShow}</td><td>${_remMoneyShow}</td><td>${badgeHtml}</td><td class="time-cell">${fmtTime(r.date)}</td></tr>`;
+
+let _matloobCell;
+if(r.method==='إيداع'){
+  if(r._hasDetails){
+    let details = `<div style="font-size:10px;line-height:1.7;text-align:right;background:#f0f7fc;padding:5px 8px;border-radius:6px;border-right:3px solid #3498db">`;
+    if(r._itemsList && r._itemsList.length){
+      r._itemsList.forEach(item => {
+        details += `<div>🌾 ${item.name}: ${money(item.qty)} × ${money(item.price)} = <b style="color:#2980b9">${money(item.total)}</b></div>`;
+      });
+    }
+    if(r._debtBefore !== null && r._debtBefore > 0) details += `<div>💳 مطلوب: <b style="color:#c0392b">${money(r._debtBefore)}</b></div>`;
+    if(r._freeRemaining > 0) details += `<div>✅ باقي: <b style="color:#27ae60">${money(r._freeRemaining)} إيداع حر</b></div>`;
+    else if(r._debtBefore !== null && r._debtBefore > 0 && r._freeRemaining === 0) details += `<div>✅ باقي: <b style="color:#888">0</b></div>`;
+    details += `</div>`;
+    _matloobCell = details;
+  } else {
+    _matloobCell = '<span style="color:#888;font-size:10px">—</span>';
+  }
+} else {
+  let _remMoneyShow='—';
+  if(r.remMoney!==null && r.remMoney!==undefined){_remMoneyShow=r.remMoney<=0 ? (r.hasMoneyDeposit ? '<span style="color:#8b0000;font-weight:bold">انتهى</span>' : '—') : '<span style="color:#c0392b;font-weight:bold">'+money(r.remMoney)+'</span>';}
+  _matloobCell = _remMoneyShow;
+}
+
+c+=`<tr><td style="text-align:center;font-weight:bold;color:#888">${rowIdx+1}</td><td>${r.type}</td><td style="color:#2980b9;font-weight:bold">${r.qty?money(r.qty):'—'}</td><td>${_remQtyShow}</td><td>${r.buyer}</td><td>${r.carrier}</td><td style="color:#27ae60;font-weight:bold">${r.unitPrice?money(r.unitPrice):'—'}</td><td style="color:#8B4513;font-weight:bold">${_amtShow}</td><td>${_matloobCell}</td><td>${badgeHtml}</td><td class="time-cell">${fmtTime(r.date)}</td></tr>`;
 });
 c+=`<tr style="background:#faf0e6;font-weight:bold"><td colspan="7" style="text-align:center">المجموع</td><td style="color:#8B4513">${money(totalSales)}</td><td colspan="3"></td></tr>`;
 }
@@ -5889,7 +6802,7 @@ c+=`<tr${isExchange?' style="background:#fff3e0"':''}><td>${e.desc}${isExchange?
 c+=`<tr style="background:#ffe5e5;font-weight:bold"><td style="text-align:center">المجموع</td><td style="color:#c0392b">${money(totalExp)}</td><td></td></tr></table></div>`;
 }
 const _cs2=(a.sales||[]).filter(x=>x.method==='نقد').reduce((x,s)=>x+(s.total||0),0);
-const _tp2=(a.payments||[]).reduce((x,p)=>x+p.amount,0);
+const _tp2=(a.payments||[]).filter(p=>p._fromDeposit!==true).reduce((x,p)=>x+p.amount,0);
 const _diT2=(a.deposits||[]).filter(x=>+x.amount>0&&!x.legacy&&!x.isWithdrawal).reduce((x,d)=>x+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
 const _diO2=(a.deposits||[]).filter(x=>x.isWithdrawal).reduce((x,d)=>x+Math.abs(+d.originalAmount||+d.amount||0),0);
 const _di2=Math.max(0,_diT2-_diO2);
@@ -5903,7 +6816,7 @@ openOverlay('📦 أرشيف '+(a.dateArabic||fmt(a.archivedAt)),c,'#8e44ad');
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ دوال مساعدة لبناء أقسام الأرشيف الثلاثة الجديدة
+// ✅ دوال مساعدة للأرشيف
 // ═══════════════════════════════════════════════════════════
 function renderArchiveDepositsSection(deps){
 if(!deps || !deps.length) return '';
@@ -6121,7 +7034,6 @@ b.style.flex='1';
 });
 }
 
-// ✅ doExchange — الاسترجاع يضيف للكمية فقط بدون "إضافات"
 function doExchange(){
 const buyer=document.getElementById('exPerson').value.trim();
 const carrier=document.getElementById('exCarrier')?.value.trim()||'';
@@ -6142,19 +7054,16 @@ let retTotal=0,swpTotal=0;
 const retItems=[],swpItems=[];
 const bC=_cleanPerson(buyer);
 
-// ✅ الاسترجاع: يزيد الكمية فقط — بدون "إضافات"
 validRet.forEach(it=>{
   const t=db.flourTypes.find(x=>x.id===it.typeId);
   const qty=+it.qty;
   const price=+it.price||0;
   const total=qty*price;
   retTotal+=total;
-  // ✅ فقط زيادة الكمية — بدون additions
   t.qty=(+t.qty||0)+qty;
   t._editedAt=Date.now();
   retItems.push({typeName:t.name,qty,unitPrice:price,total});
 
-  // ✅ يتحول لإيداع للزبون
   const tC=_cleanType(t.name);
   let dep = db.deposits.find(x => _cleanPerson(x.person) === bC && _cleanType(x.typeName) === tC && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished);
   if(dep){
@@ -6175,7 +7084,6 @@ validRet.forEach(it=>{
   }
 });
 
-// ✅ البديل: ينقص من المخزون (مع السعر)
 validSwp.forEach(it=>{
   const t=db.flourTypes.find(x=>x.id===it.typeId);
   const qty=+it.qty;
@@ -6282,7 +7190,6 @@ function loadCustomerForEdit(name){document.getElementById('cpPerson').value=nam
 function delCustomerPrice(cid,typeName){if(!confirm('حذف سعر "'+typeName+'"؟'))return;const c=db.customerPrices.find(x=>x.id===cid);if(!c)return;c.prices=c.prices.filter(x=>x.typeName!==typeName);c._editedAt=Date.now();if(!c.prices.length){markDeleted('customerPrices',cid);db.customerPrices=db.customerPrices.filter(x=>x.id!==cid);}save();renderCustomerPrices();renderSaleItems();renderExItems();toast('تم');}
 function delCustomerPrices(cid){if(!confirm('حذف كل أسعار هذا الزبون؟'))return;markDeleted('customerPrices',cid);db.customerPrices=db.customerPrices.filter(x=>x.id!==cid);save();renderCustomerPrices();renderSaleItems();renderExItems();toast('تم');}
 </script><script>
-// ===== حالة ربط الإيميل =====
 function updateLinkEmailStatus(){
 const el=document.getElementById('linkEmailStatus');
 const inp=document.getElementById('linkEmail');
@@ -6303,7 +7210,6 @@ if(btn) btn.disabled=false;
 }
 }
 
-// ===== ربط الإيميل بالحساب =====
 async function linkEmailToAccount(){
 const email=document.getElementById('linkEmail').value.trim();
 const pass=document.getElementById('linkEmailPass').value;
@@ -6347,7 +7253,6 @@ document.getElementById('linkEmailPass').value='';
 updateLinkEmailStatus();
 }
 
-// ===== تعديل اسمي =====
 function updateMyName(){
 const n=document.getElementById('myName').value.trim();
 if(!n)return toast('اكتب الاسم',true);
@@ -6434,7 +7339,7 @@ function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileRe
 function clearAll(){if(!confirm('حذف كل البيانات؟'))return;if(!confirm('تأكيد؟'))return;db=emptyDB();save();renderAll();renderArchive();toast('تم');}
 
 // ═══════════════════════════════════════════════════════════
-// ✅ recalculateAll — مع التعديل (يرفع flourTypes فقط)
+// ✅ recalculateAll
 // ═══════════════════════════════════════════════════════════
 async function recalculateAll(){
 if(!confirm('🔄 سيتم تحديث الأرقام.\n\n✅ يجلب أحدث البيانات من السحابة أولاً\n\nمتابعة؟'))return;
@@ -6477,12 +7382,18 @@ setTimeout(function(){
 try{
 const _dedupCount = deduplicateFlourTypes();
 let fixedQty=0,fixedSold=0,restoredDep=0,respectedManual=0;
-const beforeCount=db.deposits.length;
-db.deposits=db.deposits.filter(d=>!d.isWithdrawal);
-const cleanedWd=beforeCount-db.deposits.length;
 db.deposits.forEach(d=>{
-if(d.originalAmount!==undefined&&d.amount!==d.originalAmount){d.amount=d.originalAmount;restoredDep++;}
-if(d.originalQty!==undefined&&d.qty!==d.originalQty){d.qty=d.originalQty;}
+if(d.originalAmount!==undefined&&d.amount!==d.originalAmount){
+  if(!d._usedMoney || d._usedMoney === 0){
+    d.amount=d.originalAmount;
+  }
+  restoredDep++;
+}
+if(d.originalQty!==undefined&&d.qty!==d.originalQty){
+  if(!d._usedQty || d._usedQty === 0){
+    d.qty=d.originalQty;
+  }
+}
 if(d._usedQty === undefined) d._usedQty = 0;
 if(d._usedMoney === undefined) d._usedMoney = 0;
 });
@@ -6533,7 +7444,6 @@ if(oldSold!==newSold)fixedSold++;
 db.buyers.forEach(b=>{const tr=db.sales.filter(s=>s.buyer===b.name);b.totalQty=tr.reduce((a,s)=>a+(s.qty||0),0);b.totalAmount=tr.reduce((a,s)=>a+(s.total||0),0);});
 db.reservations.forEach(r=>{r.usedQty=Math.max(0,Math.min(r.usedQty||0,r.totalQty));});
 
-// ✅ التعديل: حدد الأقسام اللي تغيرت فقط (flourTypes + buyers + deposits + reservations)
 _pendingCategories = new Set(['flourTypes', 'buyers', 'deposits', 'reservations', 'sales', 'exchanges', 'debts']);
 
 const now=Date.now();
@@ -6569,7 +7479,6 @@ if(activePage){
 let msg='✅ تم تحديث الأرقام';
 const details=[];
 if(restoredDep)details.push('إرجاع '+restoredDep);
-if(cleanedWd)details.push('حذف '+cleanedWd);
 if(fixedQty)details.push('تصحيح كمية '+fixedQty);
 if(fixedSold)details.push('ضبط مباع '+fixedSold);
 if(respectedManual)details.push('احترام '+respectedManual+' تعديل يدوي');
