@@ -1242,7 +1242,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><script>
-// ===== التحديث التلقائي — الحل الوسط (3 مرات اختياري ثم إجباري) =====
+// ===== التحديث التلقائي — إجباري بعد 3 تأجيلات =====
 const APP_VERSION = "1.8";
 const APP_UPDATE_URL = "https://aliyuoohoogoogl-cmyk.github.io/flour/latest.json";
 const MAX_UPDATE_POSTPONES = 3;
@@ -1256,59 +1256,65 @@ async function checkForUpdates(){
     const data = await r.json();
     if(!data) return;
     
-    const oldBox = document.getElementById('updateNotificationBox');
-    if(oldBox) oldBox.remove();
-    
     const cloudVersion = String(data.version || '');
-    if(cloudVersion && cloudVersion !== APP_VERSION){
-      const myP = APP_VERSION.split('.').map(n=>parseInt(n)||0);
-      const clP = cloudVersion.split('.').map(n=>parseInt(n)||0);
-      let newer = false;
-      for(let i=0;i<Math.max(myP.length,clP.length);i++){
-        const m=myP[i]||0, c=clP[i]||0;
-        if(c>m){newer=true;break;}
-        if(c<m){break;}
-      }
-      if(!newer) return;
-      
-      // ✅ فحص كم مرة تم التأجيل
-      const postponeKey = 'flour_update_postpone_' + cloudVersion;
-      const postponedCount = parseInt(localStorage.getItem(postponeKey) || '0');
-      
-      if(postponedCount >= MAX_UPDATE_POSTPONES){
-        // ✅ إجباري
-        showUpdateNotification(cloudVersion, data.notes || '', data.url, true);
-      } else {
-        // ✅ اختياري
-        showUpdateNotification(cloudVersion, data.notes || '', data.url, false, postponedCount);
-      }
+    if(!cloudVersion || cloudVersion === APP_VERSION) return;
+    
+    const myP = APP_VERSION.split('.').map(n=>parseInt(n)||0);
+    const clP = cloudVersion.split('.').map(n=>parseInt(n)||0);
+    let newer = false;
+    for(let i=0;i<Math.max(myP.length,clP.length);i++){
+      const m=myP[i]||0, c=clP[i]||0;
+      if(c>m){newer=true;break;}
+      if(c<m){break;}
     }
+    if(!newer) return;
+    
+    // ✅ إذا في إشعار معروض حالياً — لا نعرض واحد ثاني
+    if(document.getElementById('updateNotificationBox')) return;
+    
+    const postponeKey = 'flour_update_postpone_' + cloudVersion;
+    const postponedCount = parseInt(localStorage.getItem(postponeKey) || '0');
+    const isForced = postponedCount >= MAX_UPDATE_POSTPONES;
+    
+    showUpdateNotification(cloudVersion, data.notes || '', data.url, isForced, postponedCount);
+    
   }catch(e){console.warn('checkForUpdates:', e);}
 }
 
 function showUpdateNotification(version, notes, url, isForced, postponedCount){
-  if(isForced) _updateBlocked = true;
+  if(isForced){
+    _updateBlocked = true;
+    // ✅ منع المستخدم من التفاعل مع التطبيق
+    document.body.style.pointerEvents = 'none';
+  }
+  
+  // ✅ إزالة أي إشعار قديم
+  const oldBox = document.getElementById('updateNotificationBox');
+  if(oldBox) oldBox.remove();
   
   const remainingBeforeForce = MAX_UPDATE_POSTPONES - (postponedCount || 0);
   
   const box = document.createElement('div');
   box.id = 'updateNotificationBox';
+  box.dataset.forced = isForced ? 'true' : 'false';
+  box.dataset.version = version;
+  box.style.pointerEvents = 'auto';
   
   if(isForced){
     // ✅ إجباري — ملء الشاشة
-    box.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;direction:rtl';
+    box.style.cssText += 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;direction:rtl';
     box.innerHTML = `
       <div style="background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;padding:24px 22px;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.5);max-width:420px;width:100%;text-align:center">
         <div style="font-size:60px;margin-bottom:12px">⚠️</div>
         <div style="font-size:18px;font-weight:bold;margin-bottom:8px">يجب تحديث البرنامج!</div>
         <div style="font-size:13px;opacity:.9;margin-bottom:14px">النسخة: ${version}</div>
         <div style="font-size:12px;background:rgba(255,255,255,.15);padding:10px 12px;border-radius:10px;margin-bottom:16px">📝 ${notes || 'تحسينات وإصلاحات'}</div>
-        <div style="font-size:12px;color:#FFD700;margin-bottom:14px;font-weight:bold">🔒 لقد تم تأجيل التحديث عدة مرات — يجب التحديث الآن للمتابعة</div>
+        <div style="font-size:12px;color:#FFD700;margin-bottom:14px;font-weight:bold">🔒 لقد تم تأجيل التحديث 3 مرات — يجب التحديث الآن للمتابعة</div>
         <button onclick="window.location.href='${url}'" style="width:100%;background:#fff;color:#c0392b;border:none;padding:14px;border-radius:10px;font-weight:bold;font-size:15px;cursor:pointer">⬇️ تحديث الآن</button>
       </div>`;
   } else {
     // ✅ اختياري — إشعار جانبي
-    box.style.cssText = 'position:fixed;bottom:20px;right:20px;left:20px;max-width:400px;margin:0 auto;background:linear-gradient(135deg,#3498db,#2980b9);color:#fff;padding:16px 18px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);z-index:99997;direction:rtl';
+    box.style.cssText += 'position:fixed;bottom:20px;right:20px;left:20px;max-width:400px;margin:0 auto;background:linear-gradient(135deg,#3498db,#2980b9);color:#fff;padding:16px 18px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);z-index:99997;direction:rtl';
     box.innerHTML = `
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
         <div style="font-size:22px">🔔</div>
@@ -1336,9 +1342,16 @@ function postponeUpdate(version){
   const box = document.getElementById('updateNotificationBox');
   if(box) box.remove();
   
-  // ✅ إذا وصل للحد الأقصى — فوراً إجباري
+  // ✅ إذا وصل للحد الأقصى (3 مرات) → نفتح الإشعار الإجباري فوراً
   if(count >= MAX_UPDATE_POSTPONES){
-    checkForUpdates();
+    fetch(APP_UPDATE_URL + '?t=' + Date.now())
+      .then(r => r.json())
+      .then(data => {
+        if(data && data.version){
+          showUpdateNotification(data.version, data.notes || '', data.url, true);
+        }
+      })
+      .catch(e => console.warn(e));
   }
 }
 
@@ -1350,31 +1363,44 @@ function postponeUpdate(version){
     const data = await r.json();
     if(!data) return;
     const cloudVersion = String(data.version || '');
-    if(cloudVersion && cloudVersion !== APP_VERSION){
-      const myP = APP_VERSION.split('.').map(n=>parseInt(n)||0);
-      const clP = cloudVersion.split('.').map(n=>parseInt(n)||0);
-      let newer = false;
-      for(let i=0;i<Math.max(myP.length,clP.length);i++){
-        const m=myP[i]||0, c=clP[i]||0;
-        if(c>m){newer=true;break;}
-        if(c<m){break;}
-      }
-      if(newer){
-        const postponeKey = 'flour_update_postpone_' + cloudVersion;
-        const postponedCount = parseInt(localStorage.getItem(postponeKey) || '0');
-        
-        if(postponedCount >= MAX_UPDATE_POSTPONES){
-          showUpdateNotification(cloudVersion, data.notes || '', data.url, true);
-        } else {
-          showUpdateNotification(cloudVersion, data.notes || '', data.url, false, postponedCount);
-        }
-      }
+    if(!cloudVersion || cloudVersion === APP_VERSION) return;
+    
+    const myP = APP_VERSION.split('.').map(n=>parseInt(n)||0);
+    const clP = cloudVersion.split('.').map(n=>parseInt(n)||0);
+    let newer = false;
+    for(let i=0;i<Math.max(myP.length,clP.length);i++){
+      const m=myP[i]||0, c=clP[i]||0;
+      if(c>m){newer=true;break;}
+      if(c<m){break;}
     }
+    if(!newer) return;
+    
+    const postponeKey = 'flour_update_postpone_' + cloudVersion;
+    const postponedCount = parseInt(localStorage.getItem(postponeKey) || '0');
+    const isForced = postponedCount >= MAX_UPDATE_POSTPONES;
+    
+    showUpdateNotification(cloudVersion, data.notes || '', data.url, isForced, postponedCount);
   }catch(e){}
 })();
 
+// ✅ فحص أولي بعد 5 ثواني
 setTimeout(checkForUpdates, 5000);
-setInterval(checkForUpdates, 60000);
+
+// ✅ فحص دوري كل 60 ثانية (بس ما يعيد إلا لو تغيرت النسخة)
+let _lastCheckedVersion = null;
+setInterval(async function(){
+  if(_updateBlocked) return;
+  try{
+    const r = await fetch(APP_UPDATE_URL + '?t=' + Date.now());
+    if(!r.ok) return;
+    const data = await r.json();
+    if(!data || !data.version) return;
+    if(_lastCheckedVersion !== data.version){
+      _lastCheckedVersion = data.version;
+      checkForUpdates();
+    }
+  }catch(e){}
+}, 60000);
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
@@ -9630,4 +9656,4 @@ document.addEventListener('input', function(e){
 })();
 </script>
 </body>
-                                      </html>
+  </html>
