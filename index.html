@@ -857,7 +857,6 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <!-- ===== الإيداع ===== -->
 <div class="page" id="page-deposit">
 
-<!-- ✅ [تعديل] صندوق توضيحي -->
 <div class="card" style="background:#fff8e6;border:2px solid #f39c12;padding:10px">
 <div style="font-size:12px;color:#8B4513;line-height:1.8;text-align:center">
 💡 <b>آلية الحساب التلقائي:</b><br>
@@ -873,7 +872,6 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="row"><input id="dPerson" placeholder="اسم الشخص" list="depBuyersList"><datalist id="depBuyersList"></datalist></div>
 <div class="row"><input id="dCarrier" placeholder="اسم الناقل 🚛 (اختياري)"></div>
 
-<!-- ✅ [تعديل] المبلغ -->
 <div class="row">
 <input id="dAmount" type="number" placeholder="💵 المبلغ" min="0" style="background:#f0f9f2;border-color:#27ae60">
 <input id="dDiscount" type="number" placeholder="🏷️ خصم (اختياري)" min="0" style="background:#f0f9f2;border-color:#27ae60">
@@ -887,7 +885,6 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 <div class="row"><input id="dRemaining" type="number" placeholder="💰 الباقي الكلي (اختياري)" min="0" style="background:#fff3e0;border-color:#f39c12"></div>
 
-<!-- ✅ [تعديل] استبدال checkbox "خصم الدين تلقائياً" -->
 <div style="background:#f0f9f2;border:2px solid #27ae60;border-radius:10px;padding:10px;margin-top:8px;font-size:12px;color:#1e8449;text-align:center;font-weight:bold">
 💳 الخصم تلقائي — يُحسب من المبلغ بعد الأنواع
 </div>
@@ -1191,8 +1188,19 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 
 <div class="card"><h2>🚪 تسجيل الخروج</h2><button onclick="doLogout()" class="gray" style="width:100%;padding:12px;font-size:15px">🚪 تسجيل الخروج</button></div>
 
-<div class="card"><h2>⚠️ منطقة الخطر</h2>
-<div class="row"><button onclick="clearAll()" class="danger">🗑️ حذف كل بيانات هذا الحساب</button><button onclick="deleteAccount()" class="danger">❌ حذف الحساب نهائياً</button></div>
+<!-- ✅ [تعديل] منطقة الخطر — 3 أزرار حذف -->
+<div class="card" style="background:#fff5f5;border:2px solid #c0392b"><h2>⚠️ منطقة الخطر</h2>
+<div style="font-size:11px;color:#666;margin-bottom:10px;text-align:center;line-height:1.7">
+اختر نوع الحذف المناسب:<br>
+🗑️ <b>حذف الكل</b> = يمسح البيانات من جهازك ومن السحابة<br>
+☁️ <b>حذف من السحابة</b> = يمسح البيانات من السحابة فقط (المحلي يبقى)<br>
+❌ <b>حذف الحساب</b> = يمسح الحساب نهائياً (كل شي)
+</div>
+<div class="row" style="flex-direction:column;gap:8px">
+<button onclick="clearAll()" class="danger" style="width:100%;padding:12px;font-size:13px">🗑️ حذف كل البيانات (جهاز + سحابة)</button>
+<button onclick="clearCloudOnly()" class="gold" style="width:100%;padding:12px;font-size:13px">☁️ حذف البيانات من السحابة فقط</button>
+<button onclick="deleteAccount()" class="danger" style="width:100%;padding:12px;font-size:13px">❌ حذف الحساب نهائياً</button>
+</div>
 </div>
 
 </div>
@@ -1234,9 +1242,12 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><script>
-// ===== التحديث التلقائي =====
-const APP_VERSION = "1.7";
+// ===== التحديث التلقائي — الحل الوسط (3 مرات اختياري ثم إجباري) =====
+const APP_VERSION = "1.8";
 const APP_UPDATE_URL = "https://aliyuoohoogoogl-cmyk.github.io/flour/latest.json";
+const MAX_UPDATE_POSTPONES = 3;
+
+let _updateBlocked = false;
 
 async function checkForUpdates(){
   try{
@@ -1244,8 +1255,10 @@ async function checkForUpdates(){
     if(!r.ok) return;
     const data = await r.json();
     if(!data) return;
+    
     const oldBox = document.getElementById('updateNotificationBox');
     if(oldBox) oldBox.remove();
+    
     const cloudVersion = String(data.version || '');
     if(cloudVersion && cloudVersion !== APP_VERSION){
       const myP = APP_VERSION.split('.').map(n=>parseInt(n)||0);
@@ -1257,36 +1270,110 @@ async function checkForUpdates(){
         if(c<m){break;}
       }
       if(!newer) return;
-      const seenKey = 'flour_seen_update_' + cloudVersion;
-      if(localStorage.getItem(seenKey) === 'true') return;
-      showUpdateNotification(cloudVersion, data.notes || '', data.url, seenKey);
+      
+      // ✅ فحص كم مرة تم التأجيل
+      const postponeKey = 'flour_update_postpone_' + cloudVersion;
+      const postponedCount = parseInt(localStorage.getItem(postponeKey) || '0');
+      
+      if(postponedCount >= MAX_UPDATE_POSTPONES){
+        // ✅ إجباري
+        showUpdateNotification(cloudVersion, data.notes || '', data.url, true);
+      } else {
+        // ✅ اختياري
+        showUpdateNotification(cloudVersion, data.notes || '', data.url, false, postponedCount);
+      }
     }
   }catch(e){console.warn('checkForUpdates:', e);}
 }
 
-function showUpdateNotification(version, notes, url, seenKey){
-  if(seenKey) localStorage.setItem(seenKey, 'true');
+function showUpdateNotification(version, notes, url, isForced, postponedCount){
+  if(isForced) _updateBlocked = true;
+  
+  const remainingBeforeForce = MAX_UPDATE_POSTPONES - (postponedCount || 0);
+  
   const box = document.createElement('div');
   box.id = 'updateNotificationBox';
-  box.style.cssText = 'position:fixed;bottom:20px;right:20px;left:20px;max-width:400px;margin:0 auto;background:linear-gradient(135deg,#3498db,#2980b9);color:#fff;padding:16px 18px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);z-index:99997;direction:rtl';
-  box.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-      <div style="font-size:22px">🔔</div>
-      <div style="flex:1">
-        <div style="font-size:14px;font-weight:bold">في تحديث جديد للبرنامج!</div>
-        <div style="font-size:11px;opacity:.9;margin-top:2px">النسخة: ${version}</div>
+  
+  if(isForced){
+    // ✅ إجباري — ملء الشاشة
+    box.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;direction:rtl';
+    box.innerHTML = `
+      <div style="background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;padding:24px 22px;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.5);max-width:420px;width:100%;text-align:center">
+        <div style="font-size:60px;margin-bottom:12px">⚠️</div>
+        <div style="font-size:18px;font-weight:bold;margin-bottom:8px">يجب تحديث البرنامج!</div>
+        <div style="font-size:13px;opacity:.9;margin-bottom:14px">النسخة: ${version}</div>
+        <div style="font-size:12px;background:rgba(255,255,255,.15);padding:10px 12px;border-radius:10px;margin-bottom:16px">📝 ${notes || 'تحسينات وإصلاحات'}</div>
+        <div style="font-size:12px;color:#FFD700;margin-bottom:14px;font-weight:bold">🔒 لقد تم تأجيل التحديث عدة مرات — يجب التحديث الآن للمتابعة</div>
+        <button onclick="window.location.href='${url}'" style="width:100%;background:#fff;color:#c0392b;border:none;padding:14px;border-radius:10px;font-weight:bold;font-size:15px;cursor:pointer">⬇️ تحديث الآن</button>
+      </div>`;
+  } else {
+    // ✅ اختياري — إشعار جانبي
+    box.style.cssText = 'position:fixed;bottom:20px;right:20px;left:20px;max-width:400px;margin:0 auto;background:linear-gradient(135deg,#3498db,#2980b9);color:#fff;padding:16px 18px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);z-index:99997;direction:rtl';
+    box.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="font-size:22px">🔔</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:bold">في تحديث جديد للبرنامج!</div>
+          <div style="font-size:11px;opacity:.9;margin-top:2px">النسخة: ${version}</div>
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()" style="background:rgba(255,255,255,.2);color:#fff;border:none;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer">×</button>
       </div>
-      <button onclick="this.parentElement.parentElement.remove()" style="background:rgba(255,255,255,.2);color:#fff;border:none;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer">×</button>
-    </div>
-    <div style="font-size:12px;background:rgba(255,255,255,.15);padding:8px 10px;border-radius:8px;margin-bottom:10px">📝 ${notes}</div>
-    <div style="display:flex;gap:8px">
-      <button onclick="window.location.href='${url}'" style="flex:1;background:#fff;color:#2980b9;border:none;padding:10px;border-radius:8px;font-weight:bold;font-size:13px;cursor:pointer">⬇️ حمّل التحديث</button>
-      <button onclick="this.parentElement.parentElement.remove()" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-size:13px;cursor:pointer">⏰ بعدين</button>
-    </div>`;
+      <div style="font-size:12px;background:rgba(255,255,255,.15);padding:8px 10px;border-radius:8px;margin-bottom:10px">📝 ${notes}</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="window.location.href='${url}'" style="flex:1;background:#fff;color:#2980b9;border:none;padding:10px;border-radius:8px;font-weight:bold;font-size:13px;cursor:pointer">⬇️ حمّل التحديث</button>
+        <button onclick="postponeUpdate('${version}')" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-size:13px;cursor:pointer">⏰ بعدين (${remainingBeforeForce})</button>
+      </div>`;
+  }
+  
   document.body.appendChild(box);
 }
 
-setTimeout(checkForUpdates, 2000);
+function postponeUpdate(version){
+  const key = 'flour_update_postpone_' + version;
+  const count = parseInt(localStorage.getItem(key) || '0') + 1;
+  localStorage.setItem(key, String(count));
+  
+  const box = document.getElementById('updateNotificationBox');
+  if(box) box.remove();
+  
+  // ✅ إذا وصل للحد الأقصى — فوراً إجباري
+  if(count >= MAX_UPDATE_POSTPONES){
+    checkForUpdates();
+  }
+}
+
+// ✅ فحص فوري عند التحميل
+(async function initialUpdateCheck(){
+  try{
+    const r = await fetch(APP_UPDATE_URL + '?t=' + Date.now());
+    if(!r.ok) return;
+    const data = await r.json();
+    if(!data) return;
+    const cloudVersion = String(data.version || '');
+    if(cloudVersion && cloudVersion !== APP_VERSION){
+      const myP = APP_VERSION.split('.').map(n=>parseInt(n)||0);
+      const clP = cloudVersion.split('.').map(n=>parseInt(n)||0);
+      let newer = false;
+      for(let i=0;i<Math.max(myP.length,clP.length);i++){
+        const m=myP[i]||0, c=clP[i]||0;
+        if(c>m){newer=true;break;}
+        if(c<m){break;}
+      }
+      if(newer){
+        const postponeKey = 'flour_update_postpone_' + cloudVersion;
+        const postponedCount = parseInt(localStorage.getItem(postponeKey) || '0');
+        
+        if(postponedCount >= MAX_UPDATE_POSTPONES){
+          showUpdateNotification(cloudVersion, data.notes || '', data.url, true);
+        } else {
+          showUpdateNotification(cloudVersion, data.notes || '', data.url, false, postponedCount);
+        }
+      }
+    }
+  }catch(e){}
+})();
+
+setTimeout(checkForUpdates, 5000);
 setInterval(checkForUpdates, 60000);
 
 if('serviceWorker' in navigator){
@@ -1378,9 +1465,6 @@ if(typeof firebase!=='undefined'&&firebase.initializeApp&&!cloudEnabled){
 firebase.initializeApp(firebaseConfig);
 const cloudDB=firebase.firestore();
 _firestoreDB=cloudDB;
-
-// ⛔ تعطيل enablePersistence — لتحسين السرعة
-// try{if(cloudDB.enablePersistence){cloudDB.enablePersistence({synchronizeTabs:true}).then(()=>{console.log('✅ Offline persistence');}).catch(err=>{console.warn('Persistence:',err.code);});}}catch(e){}
 
 cloudAccountsRef=cloudDB.collection('accounts');
 cloudDataRef=cloudDB.collection('userdata');
@@ -1537,7 +1621,7 @@ async function _uploadMetaConfig(){
       _lastSaved: db._lastSaved,
       _lastActionBy: _deviceId,
       _actionId: db._actionId,
-      _migratedToSplit: db._migratedToSplit || false,
+      _migratedToSplit: true,
       _migratedAt: db._migratedAt || null,
       _uploadedAt: Date.now()
     };
@@ -1585,7 +1669,7 @@ async function _migrateToSplitDocs(){
     }
     
     const oldData = oldDoc.data().data;
-    toast('📦 جاري ترحيل البيانات...');
+    console.log('📦 جاري ترحيل البيانات...');
     
     let totalItems = 0;
     for(const category of SPLIT_CATEGORIES){
@@ -1623,11 +1707,10 @@ async function _migrateToSplitDocs(){
     db._migratedToSplit = true;
     db._migratedAt = Date.now();
     _migrated = true;
-    toast(`✅ تم الترحيل — ${totalItems} عنصر`);
+    console.log(`✅ تم الترحيل — ${totalItems} عنصر`);
     return true;
   }catch(e){
     console.error('Migration failed:', e);
-    toast('⚠️ فشل الترحيل', true);
     return false;
   }
 }
@@ -1960,7 +2043,6 @@ function showSendOfferForm(){
   if(fresh) currentAccount = fresh;
   
   const myCity = currentAccount?.city || '';
-  console.log('🔍 showSendOfferForm — currentAccount.city:', myCity);
   
   if(!myCity){
     return toast('⚠️ حدد محافظتك أولاً من الإعدادات', true);
@@ -2480,6 +2562,7 @@ function _listenToCategory(category){
         db[category] = Array.from(merged.values());
         try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
         renderAll();
+        if(category === 'archive' && typeof renderArchive === 'function') renderArchive();
         showSyncNotification('📥 تحديث في ' + category, 'ok');
         _isReceivingUpdate = false;
       }catch(err){
@@ -3009,14 +3092,25 @@ document.getElementById('loginPass').value='';
 toast('أهلاً بك 👋');
 }
 
-// ===== تسجيل الخروج =====
+// ═══════════════════════════════════════════════════════════
+// ✅ doLogout — تفريغ db فوراً
+// ═══════════════════════════════════════════════════════════
 function doLogout(){
 if(!confirm('تسجيل الخروج؟'))return;
 try{ if(window._auth && currentAccount && currentAccount.email) window._auth.signOut(); }catch(e){}
 stopRealtimeListener();
 _lastCloudState=null;
+_lastCloudServerTime=0;
 localStorage.removeItem(CUR_KEY);
-currentUser=null;currentAccount=null;db=null;
+currentUser=null;
+currentAccount=null;
+db=null;
+_saleItems=[];
+_depositItems=[];
+_exReturnItems=[];
+_exSwapItems=[];
+_currentViewHTML='';
+_lastCashboxValue=0;
 document.getElementById('appWrap').classList.remove('show');
 document.body.classList.remove('is-admin');
 document.getElementById('authScreen').classList.remove('hidden');
@@ -3059,8 +3153,12 @@ function _upgradeAccount(){
   return changed;
 }
 
-// ===== عرض التطبيق =====
+// ═══════════════════════════════════════════════════════════
+// ✅ showApp — حماية من عرض بيانات حساب آخر
+// ═══════════════════════════════════════════════════════════
 function showApp(){
+if(!db) db = emptyDB();
+
 document.getElementById('authScreen').classList.add('hidden');
 document.getElementById('appWrap').classList.add('show');
 const displayName=(currentAccount && currentAccount.fullName)?currentAccount.fullName:currentUser;
@@ -3241,7 +3339,7 @@ function _applyCloudDB(cloudDb){
 }
 
 // ═══════════════════════════════════════════════════════════
-// 📥 loadUserData — انتظار Firebase
+// ✅ [إصلاح] loadUserData — منع الترحيل المتكرر
 // ═══════════════════════════════════════════════════════════
 async function loadUserData(){
   const key = DATA_PREFIX+currentUser;
@@ -3271,18 +3369,70 @@ async function loadUserData(){
   
   _initUserRefs(currentUser);
   
+  // ═══════════════════════════════════════════════════════════
+  // ✅ فحص الترحيل — بدون ترحيل متكرر
+  // ═══════════════════════════════════════════════════════════
   let migrationNeeded = false;
+  let metaExists = false;
+  let metaData = null;
+  
   try{
     const metaDoc = await cloudMetaRef.get();
-    if(!metaDoc.exists || !metaDoc.data() || metaDoc.data()._migratedToSplit !== true){
-      migrationNeeded = true;
-    }
+    metaExists = metaDoc.exists;
+    metaData = metaExists ? metaDoc.data() : null;
   }catch(e){
     console.warn('check migration failed:', e);
-    migrationNeeded = true;
   }
   
+  if(!metaExists){
+    // ✅ ما في meta — نتحقق إذا في بيانات قديمة في userdata الرئيسي
+    let hasOldData = false;
+    try{
+      const oldDoc = await cloudDataRef.doc(currentUser).get();
+      if(oldDoc.exists && oldDoc.data() && oldDoc.data().data){
+        const oldData = oldDoc.data().data;
+        hasOldData = (
+          (oldData.sales && oldData.sales.length > 0) ||
+          (oldData.deposits && oldData.deposits.length > 0) ||
+          (oldData.debts && oldData.debts.length > 0) ||
+          (oldData.flourTypes && oldData.flourTypes.length > 0)
+        );
+      }
+    }catch(e){}
+    
+    if(hasOldData){
+      migrationNeeded = true;
+    } else if(localDb && (localDb.sales?.length || localDb.deposits?.length || localDb.debts?.length || localDb.flourTypes?.length)){
+      migrationNeeded = true;
+    } else {
+      // ✅ حساب جديد فاضي — نكتب meta مع علامة ترحيل
+      try{
+        await cloudMetaRef.set({
+          _migratedToSplit: true,
+          _migratedAt: Date.now(),
+          _lastActionBy: _deviceId,
+          _permanentCarry: 0,
+          _cashboxOffset: 0,
+          _manualOverrides: {},
+          _notifications: [],
+          _lastSaved: Date.now()
+        });
+        _migrated = true;
+      }catch(e){ console.warn('حفظ meta أولي:', e); }
+    }
+  } else if(metaData && metaData._migratedToSplit !== true){
+    migrationNeeded = true;
+  } else if(metaData && metaData._migratedToSplit === true){
+    // ✅ مرحّل من قبل — نتأكد من _migrated
+    _migrated = true;
+  }
+  
+  // ═══════════════════════════════════════════════════════════
+  // ✅ تنفيذ الترحيل (إذا لزم)
+  // ═══════════════════════════════════════════════════════════
   if(migrationNeeded){
+    console.log('📦 جاري الترحيل (أول مرة فقط)...');
+    
     if(localDb){
       db = localDb;
       _fixDBFields(db);
@@ -3301,20 +3451,32 @@ async function loadUserData(){
     }
     
     const migOk = await _migrateToSplitDocs();
-    if(!migOk){
+    if(migOk){
+      // ✅ تأكيد علامة الترحيل
+      db._migratedToSplit = true;
+      _migrated = true;
+      try{
+        await cloudMetaRef.set({
+          _migratedToSplit: true,
+          _migratedAt: Date.now(),
+          _lastActionBy: _deviceId
+        }, { merge: true });
+      }catch(e){ console.warn('تأكيد علامة الترحيل:', e); }
+      
+      await _reloadFromSplitDocs();
+    } else {
       setSyncStatus('warn','⚠️ فشل الترحيل');
       if(localDb) db = localDb;
       _fixDBFields(db);
       return;
     }
-    
-    await _reloadFromSplitDocs();
   } else {
+    // ✅ مرحّل من قبل — تحميل عادي
     await _reloadFromSplitDocs();
   }
   
-  // ✅ تحديث _lastSync بعد التحميل الأولي
   db._lastSync = Date.now();
+  db._migratedToSplit = true;
   
   try{ localStorage.setItem(key, JSON.stringify(db)); }catch(e){}
   
@@ -3322,7 +3484,7 @@ async function loadUserData(){
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ إعادة تحميل البيانات
+// ✅ إعادة تحميل البيانات من split docs
 // ═══════════════════════════════════════════════════════════
 async function _reloadFromSplitDocs(){
   try{
@@ -3400,10 +3562,17 @@ function saveCategory(category){
 }
 
 // ═══════════════════════════════════════════════════════════
-// 📤 _doUpload — يرفع الأقسام المتغيرة فقط
+// ✅ _doUpload — حماية + رفع
 // ═══════════════════════════════════════════════════════════
 async function _doUpload(){
   if(!currentUser){
+    if(db) db._pendingUpload = false;
+    return;
+  }
+  
+  const _accsCheck = getAccounts();
+  if(!_accsCheck.find(x => x.username === currentUser)){
+    console.warn('❌ currentUser غير موجود في الحسابات — إيقاف الرفع');
     if(db) db._pendingUpload = false;
     return;
   }
@@ -3468,14 +3637,11 @@ async function _doUpload(){
       return;
     }
     
-    // ✅ اكتشاف الأقسام المتغيرة
     let categoriesToUpload = [];
     
     if(_pendingCategories.size > 0){
-      // إذا الأقسام محدد يدوياً
       categoriesToUpload = Array.from(_pendingCategories);
     } else {
-      // اكتشاف تلقائي عبر _lastSync
       const lastSync = db._lastSync || 0;
       for(const cat of SPLIT_CATEGORIES){
         const items = db[cat] || [];
@@ -3487,7 +3653,6 @@ async function _doUpload(){
       }
     }
     
-    // ✅ إذا ما في تغيير → تخطي
     if(categoriesToUpload.length === 0){
       db._pendingUpload = false;
       setSyncStatus('ok','☁️ متزامن');
@@ -3506,17 +3671,14 @@ async function _doUpload(){
         try{ await ref.doc(delId).delete(); }catch(e){}
       }
       
-      // ✅ فقط المستندات اللي تغيرت
       const lastSync = db._lastSync || 0;
       const changedItems = items.filter(item => (item._editedAt || 0) > lastSync);
       
-      // إذا ما في تغييرات لهذا القسم (بس فيه حذف) → تخطي الرفع
       if(changedItems.length === 0 && deletedItems.length === 0) continue;
       
       let batchCount = 0;
       let batch = _firestoreDB.batch();
       
-      // رفع المستندات المتغيرة فقط
       for(const item of changedItems){
         if(!item || !item.id) continue;
         batch.set(ref.doc(item.id), {
@@ -3535,12 +3697,8 @@ async function _doUpload(){
       if(batchCount > 0) await batch.commit();
     }
     
-    // ✅ تحديث _lastSync بعد الرفع الناجح
     db._lastSync = Date.now();
-    
-    // ✅ تصفير _deleted بعد الرفع
     db._deleted = {};
-    
     _pendingCategories.clear();
     db._pendingUpload = false;
     setSyncStatus('ok','☁️ متزامن');
@@ -3667,7 +3825,7 @@ async function sendMyData(){
     
     db._lastSaved = Date.now() + 1000;
     db._lastActionBy = _deviceId;
-    db._lastSync = 0;  // ← لرفع كل شي
+    db._lastSync = 0;
     await _uploadMetaConfig();
     
     _pendingCategories = new Set(SPLIT_CATEGORIES);
@@ -3717,449 +3875,6 @@ async function receiveFromCloud(){
     toast('❌ فشل', true);
   }
 }
-</script><script>
-function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
-function nowISO(){return new Date().toISOString();}
-function fmt(dt){if(!dt)return '-';const d=new Date(dt);const p=n=>String(n).padStart(2,'0');const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];const dn=days[d.getDay()];let h=d.getHours();const ap=h>=12?'م':'ص';h=h%12;if(h===0)h=12;return`${dn} ${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${h}:${p(d.getMinutes())} ${ap}`;}
-function fmtShort(dt){if(!dt)return '-';const d=new Date(dt);const p=n=>String(n).padStart(2,'0');const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];const dn=days[d.getDay()];let h=d.getHours();const ap=h>=12?'م':'ص';h=h%12;if(h===0)h=12;return`${dn} ${p(d.getDate())}/${p(d.getMonth()+1)} ${h}:${p(d.getMinutes())} ${ap}`;}
-function fmtTime(dt){if(!dt)return '-';const d=new Date(dt);const now=new Date();const isToday=d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&d.getDate()===now.getDate();let h=d.getHours();const ap=h>=12?'م':'ص';h=h%12;if(h===0)h=12;const t=`${h}:${String(d.getMinutes()).padStart(2,'0')} ${ap}`;if(isToday)return t;const p=n=>String(n).padStart(2,'0');return`${p(d.getDate())}/${p(d.getMonth()+1)} ${t}`;}
-function money(n){return Number(n||0).toLocaleString('en-US');}
-function toast(m,e){const t=document.getElementById('toast');t.textContent=m;t.className='toast show'+(e?' err':'');setTimeout(()=>t.className='toast',2500);}
-
-function getArchiveTime(){if(db && db._lastArchiveAt) return db._lastArchiveAt;if(db && db.archive && db.archive.length > 0 && db.archive[0].archivedAt){db._lastArchiveAt = db.archive[0].archivedAt;return db._lastArchiveAt;}return null;}
-
-function promptDateTime(cur){
-const d=new Date(cur);const curStr=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
-const inp=prompt('📅 التاريخ والوقت\nمثال: '+curStr,curStr);
-if(inp===null)return undefined;
-if(!inp.trim())return cur;
-try{const p=new Date(inp.trim().replace(' ','T'));if(isNaN(p.getTime()))throw new Error();return p.toISOString();}catch(e){toast('❌ تاريخ غير صحيح',true);return undefined;}
-}
-
-// ═══════════════════════════════════════════════════════════
-// ✅ [تعديل] _getDepositPool — يقرأ من deposits + reservations
-// ═══════════════════════════════════════════════════════════
-function _getDepositPool(buyer, typeName){
-  const bC = _cleanPerson(buyer);
-  const tC = _cleanType(typeName);
-  const pools = [];
-  
-  // ✅ 1. اقرأ من db.deposits (الإيداعات العادية)
-  (db.deposits || []).forEach(d => {
-    if(d.isWithdrawal || d.isCarry || d.cashPayment) return;
-    if(_cleanPerson(d.person) !== bC) return;
-    
-    const dType = _cleanType(d.typeName || '');
-    const origQty = +d.originalQty || +d.qty || 0;
-    const origAmt = +d.originalAmount || +d.amount || 0;
-    const usedQty = +d._usedQty || 0;
-    const usedAmt = +d._usedMoney || 0;
-    const remQty = Math.max(0, origQty - usedQty);
-    const remAmt = Math.max(0, origAmt - usedAmt);
-    
-    if(remQty <= 0 && remAmt <= 0) return;
-    
-    if(dType === tC){
-      pools.push({
-        depositId: d.id, 
-        kind: 'specific', 
-        source: 'deposit',
-        date: d.date, 
-        remainingQty: remQty, 
-        remainingAmt: remAmt, 
-        unitPrice: +d.unitPrice || 0
-      });
-    } else if(dType === ''){
-      pools.push({
-        depositId: d.id, 
-        kind: 'free', 
-        source: 'deposit',
-        date: d.date, 
-        remainingQty: remQty, 
-        remainingAmt: remAmt, 
-        unitPrice: 0
-      });
-    }
-  });
-  
-  // ✅ 2. اقرأ من db.reservations (الحجوزات)
-  (db.reservations || []).forEach(r => {
-    if(_cleanPerson(r.person) !== bC) return;
-    if(_cleanType(r.typeName) !== tC) return;
-    
-    const remQty = Math.max(0, (r.totalQty || 0) - (r.usedQty || 0));
-    if(remQty <= 0) return;
-    
-    // ✅ تحقق إذا ما مكرر
-    const alreadyInPools = pools.some(p => p.depositId === r.id);
-    if(alreadyInPools) return;
-    
-    pools.push({
-      depositId: r.id, 
-      kind: 'specific', 
-      source: 'reservation',
-      date: r.date || r.lastDate, 
-      remainingQty: remQty, 
-      remainingAmt: 0,
-      unitPrice: 0
-    });
-  });
-  
-  pools.sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  return pools;
-}
-
-function getAvailableDeposit(buyer, typeName){
-if(!buyer || !typeName) return 0;
-const pools = _getDepositPool(buyer, typeName);
-let total = 0;
-pools.forEach(p => { if(p.kind === 'specific') total += p.remainingQty; });
-return Math.max(0, total);
-}
-
-function getAvailableMoneyDeposit(buyer){
-if(!buyer) return 0;
-const bC=_cleanPerson(buyer);
-let total = 0;
-(db.deposits||[]).forEach(d=>{
-if(d.isWithdrawal||d.isCarry||d.cashPayment) return;
-if(_cleanPerson(d.person)!==bC) return;
-if(_cleanType(d.typeName||'') !== '') return;
-const origAmt = +d.originalAmount || +d.amount || 0;
-const usedAmt = +d._usedMoney || 0;
-const remAmt = Math.max(0, origAmt - usedAmt);
-total += remAmt;
-});
-return total;
-}
-
-function everHadDepositOfType(buyer, typeName){
-if(!buyer || !typeName) return false;
-const bC=_cleanPerson(buyer);const tC=_cleanType(typeName);let found=false;
-(db.deposits||[]).forEach(d=>{if(d.isWithdrawal||d.isCarry||d.cashPayment)return;if(_cleanPerson(d.person)!==bC)return;if(_cleanType(d.typeName)!==tC)return;if((+d.originalQty||+d.qty||0) > 0) found=true;});
-if(!found){(db.reservations||[]).forEach(r=>{if(_cleanPerson(r.person)===bC && _cleanType(r.typeName)===tC) found=true;});}
-return found;
-}
-
-function getReservedQty(typeName, excludePerson){
-if(!typeName) return 0;
-const tC=_cleanType(typeName);
-const bC=excludePerson ? _cleanPerson(excludePerson) : '';
-let sum=0;
-(db.reservations||[]).forEach(r=>{if(_cleanType(r.typeName)!==tC) return;if(bC && _cleanPerson(r.person)===bC) return;const rem=Math.max(0, (r.totalQty||0) - (r.usedQty||0));sum += rem;});
-return sum;
-}
-
-function normalizeDeposits(){
-if(!db||!db.deposits)return;
-let fixed=0;
-db.deposits.forEach(d=>{if(d.originalAmount===undefined){d.originalAmount=(d.amount||0);fixed++;}if(d.originalQty===undefined){d.originalQty=(d.qty||0);fixed++;}if(d._usedQty === undefined){d._usedQty = 0;fixed++;}if(d._usedMoney === undefined){d._usedMoney = 0;fixed++;}});
-if(fixed>0){try{localStorage.setItem(DATA_PREFIX+currentUser,JSON.stringify(db));}catch(e){}}
-return fixed;
-}
-
-function deduplicateFlourTypes(){
-if(!db) return 0;
-if(!Array.isArray(db.flourTypes)) db.flourTypes = [];
-db.flourTypes.forEach(t=>{
-if(!t._visibleFrom){
-const firstDate = (t.additions && t.additions[0] && t.additions[0].date) || t.updatedAt || nowISO();
-t._visibleFrom = firstDate;
-}
-});
-if(db.flourTypes.length < 2) return 0;
-const map = new Map();
-const mergedIds = new Set();
-function processItem(t){
-if(!t || !t.name) return;
-const key = _cleanType(t.name);
-if(map.has(key)){
-const existing = map.get(key);
-if(existing.id && existing.id !== t.id) mergedIds.add(t.id);
-const m = _mergeTwoFlourTypes(existing, t);
-if(m._mergedIds) m._mergedIds.forEach(id => { if(id !== m.id) mergedIds.add(id); });
-map.set(key, m);
-} else {
-map.set(key, t);
-}
-}
-db.flourTypes.forEach(processItem);
-const mergedList = Array.from(map.values());
-mergedList.forEach(t => { if(t._mergedIds) delete t._mergedIds; });
-const removed = db.flourTypes.length - mergedList.length;
-db.flourTypes = mergedList;
-mergedIds.forEach(id => markDeleted('flourTypes', id));
-return removed;
-}
-
-function _mergeTwoFlourTypes(a, b){
-const newer = (a._editedAt||0) >= (b._editedAt||0) ? a : b;
-const older = newer === a ? b : a;
-const merged = Object.assign({}, newer);
-merged.qty = (+newer.qty || 0) + (+older.qty || 0);
-merged.totalSold = (+newer.totalSold || 0) + (+older.totalSold || 0);
-merged.unitPrice = +newer.unitPrice || +older.unitPrice || 0;
-const newerManual = newer._manualOverride || 0;
-const olderManual = older._manualOverride || 0;
-merged._manualOverride = Math.max(newerManual, olderManual) || null;
-if(merged._manualOverride){
-const newerHasManual = (newer._manualOverride||0) > 0;
-const olderHasManual = (older._manualOverride||0) > 0;
-if(newerHasManual && !olderHasManual){
-merged.qty = +newer.qty || 0;
-merged.totalSold = +newer.totalSold || 0;
-merged.unitPrice = +newer.unitPrice || 0;
-if(newer._manualOriginal !== undefined) merged._manualOriginal = newer._manualOriginal;
-} else if(olderHasManual && !newerHasManual){
-merged.qty = +older.qty || 0;
-merged.totalSold = +older.totalSold || 0;
-merged.unitPrice = +older.unitPrice || 0;
-if(older._manualOriginal !== undefined) merged._manualOriginal = older._manualOriginal;
-} else {
-if((newer._manualOverride||0) >= (older._manualOverride||0)){
-merged.qty = +newer.qty || 0;
-merged.totalSold = +newer.totalSold || 0;
-merged.unitPrice = +newer.unitPrice || 0;
-if(newer._manualOriginal !== undefined) merged._manualOriginal = newer._manualOriginal;
-} else {
-merged.qty = +older.qty || 0;
-merged.totalSold = +older.totalSold || 0;
-merged.unitPrice = +older.unitPrice || 0;
-if(older._manualOriginal !== undefined) merged._manualOriginal = older._manualOriginal;
-}
-}
-}
-const seen = new Map();
-[...(newer.additions||[]), ...(older.additions||[])].forEach(add => {
-if(!add) return;
-const q = +add.qty || 0;
-const d = String(add.date||'');
-const n = String(add.note||'');
-const sig = q + '|' + d + '|' + n;
-if(!seen.has(sig)) seen.set(sig, add);
-});
-const allAdds = Array.from(seen.values());
-allAdds.sort((x,y)=>String(x.date||'').localeCompare(String(y.date||'')));
-merged.additions = allAdds;
-const va = newer._visibleFrom || '';
-const vb = older._visibleFrom || '';
-merged._visibleFrom = va > vb ? va : vb;
-const prev = [...(newer._mergedIds||[]), ...(older._mergedIds||[]), older.id].filter(x=>x && x !== merged.id);
-merged._mergedIds = [...new Set(prev)];
-return merged;
-}
-
-function markDeleted(cat,id){
-if(!db)return;
-if(!db._deleted)db._deleted={};
-if(!db._deleted[cat])db._deleted[cat]=[];
-if(!db._deleted[cat].includes(id)){db._deleted[cat].push(id);}
-}
-
-function calcRemAfterCurrent(buyer, typeName, currentQty, currentPrice){
-const qty=+currentQty || 0;
-const price=+currentPrice || 0;
-const needMoney=qty * price;
-const hadQtyDep=everHadDepositOfType(buyer, typeName);
-const availQty=getAvailableDeposit(buyer, typeName);
-const availMoney=getAvailableMoneyDeposit(buyer);
-if(price > 0 && needMoney > 0){
-const over = availMoney < needMoney;
-return {mode: 'money',availQty: availQty,remQty: null,availMoney: availMoney,remMoney: Math.max(0, availMoney - needMoney),over: over,overType: over ? 'money' : null};
-}
-if(hadQtyDep){
-const over = availQty < qty;
-return {mode: 'qty',availQty: availQty,remQty: Math.max(0, availQty - qty),availMoney: availMoney,remMoney: null,over: over,overType: over ? 'qty' : null};
-}
-return {mode:'none',availQty:0,remQty:null,availMoney:0,remMoney:null,over:false,overType:null};
-}
-
-function recalcAllRemaining(){
-const buyer=(document.getElementById('sBuyer')?.value||'').trim();
-if(!buyer){_saleItems.forEach(it=>{it.remQty=null;it.remMoney=null;it._over=false;it._overType=null;it._availableQty=0;it._availableMoney=0;it._mode='none';});refreshRemInputs();return;}
-_saleItems.forEach(it=>{
-if(!it.typeId){it.remQty=null;it.remMoney=null;it._over=false;it._overType=null;it._availableQty=0;it._availableMoney=0;it._mode='none';return;}
-const t=db.flourTypes.find(x=>x.id===it.typeId);
-if(!t){it.remQty=null;it.remMoney=null;it._over=false;it._overType=null;it._availableQty=0;it._availableMoney=0;it._mode='none';return;}
-const r=calcRemAfterCurrent(buyer, t.name, it.qty, it.price);
-it._mode=r.mode;it._availableQty=r.availQty;it._availableMoney=r.availMoney;it.remQty=r.remQty;it.remMoney=r.remMoney;it._over=r.over;it._overType=r.overType;
-});
-refreshRemInputs();
-}
-
-function refreshRemInputs(){
-const rows=document.querySelectorAll('.sale-item-row');
-const isWassel=currentMethod==='واصل';
-_saleItems.forEach((it,idx)=>{
-const row=rows[idx];if(!row)return;
-const remQtyInp=row.querySelector('.rem-qty-input');
-const remMoneyInp=row.querySelector('.rem-money-input');
-if(!isWassel){
-if(remQtyInp){remQtyInp.value='';remQtyInp.placeholder='—';remQtyInp.classList.remove('rem-finished','rem-over');remQtyInp.classList.add('rem-disabled');}
-if(remMoneyInp){remMoneyInp.value='';remMoneyInp.placeholder='—';remMoneyInp.classList.remove('rem-finished','rem-over');remMoneyInp.classList.add('rem-disabled');}
-row.classList.remove('rem-error');return;
-}
-if(remQtyInp){
-remQtyInp.classList.remove('rem-disabled');
-if(it._over && (it._overType==='qty' || it._overType==='both')){remQtyInp.value='';remQtyInp.placeholder='❌';remQtyInp.classList.add('rem-over');remQtyInp.classList.remove('rem-finished');}
-else if(it.remQty===0){remQtyInp.value='';remQtyInp.placeholder='انتهى';remQtyInp.classList.add('rem-finished');remQtyInp.classList.remove('rem-over');}
-else if(it.remQty===null||it.remQty===undefined){remQtyInp.value='';remQtyInp.placeholder='📦';remQtyInp.classList.remove('rem-finished','rem-over');}
-else{remQtyInp.value=it.remQty;remQtyInp.placeholder='📦';remQtyInp.classList.remove('rem-finished','rem-over');}
-}
-if(remMoneyInp){
-remMoneyInp.classList.remove('rem-disabled');
-if(it._over && (it._overType==='money' || it._overType==='both')){remMoneyInp.value='';remMoneyInp.placeholder='❌';remMoneyInp.classList.add('rem-over');remMoneyInp.classList.remove('rem-finished');}
-else if(it.remMoney===0){remMoneyInp.value='';remMoneyInp.placeholder='انتهى';remMoneyInp.classList.add('rem-finished');remMoneyInp.classList.remove('rem-over');}
-else if(it.remMoney===null||it.remMoney===undefined){remMoneyInp.value='';remMoneyInp.placeholder='💰';remMoneyInp.classList.remove('rem-finished','rem-over');}
-else{remMoneyInp.value=it.remMoney;remMoneyInp.placeholder='💰';remMoneyInp.classList.remove('rem-finished','rem-over');}
-}
-if(it._over) row.classList.add('rem-error'); else row.classList.remove('rem-error');
-});
-}
-
-function renderSaleItems(){
-const wrap=document.getElementById('saleItemsWrap');if(!wrap)return;
-function fillBuyersDatalist(){
-const bl=document.getElementById('buyersList');
-if(!bl || !db) return;
-const flourNames = new Set((db.flourTypes||[]).map(t => _cleanType(t.name)));
-const persons=new Set();
-(db.deposits||[]).forEach(d=>{if(d.person&&!d.isWithdrawal)persons.add(d.person);});
-(db.reservations||[]).forEach(r=>{if(r.person)persons.add(r.person);});
-(db.sales||[]).forEach(s=>{if(s.buyer)persons.add(s.buyer);});
-(db.debts||[]).forEach(d=>{if(d.person)persons.add(d.person);});
-(db.payments||[]).forEach(p=>{if(p.person)persons.add(p.person);});
-const filteredPersons = [...persons].filter(p => !flourNames.has(_cleanType(p)));
-bl.innerHTML = filteredPersons.map(p=>`<option value="${p}">`).join('');
-}
-fillBuyersDatalist();
-const buyerInp=document.getElementById('sBuyer');
-if(buyerInp && !buyerInp._bound){buyerInp._bound=true;buyerInp.addEventListener('focus',function(){fillBuyersDatalist();});buyerInp.addEventListener('input',function(){fillBuyersDatalist();if(currentMethod==='واصل'){recalcAllRemaining();}});}
-if(!db||!db.flourTypes||!db.flourTypes.length){wrap.innerHTML='<div class="empty">لا توجد أنواع — أضف أنواع أولاً</div>';return;}
-if(!_saleItems.length){_saleItems=[{id:uid(),typeId:'',qty:'',price:'',remQty:null,remMoney:null}];}
-const isWassel=currentMethod==='واصل';
-let h='';
-_saleItems.forEach((it)=>{
-const typeOpts='<option value="">-- اختر النوع --</option>'+db.flourTypes.map(t=>`<option value="${t.id}"${it.typeId===t.id?' selected':''}>${t.name} (${money(t.qty)})</option>`).join('');
-const itemTotal=(+it.qty||0)*(+it.price||0);
-const isOver=isWassel && !!it._over;
-const isFinishedQty=isWassel && !isOver && it.remQty===0;
-const isFinishedMoney=isWassel && !isOver && it.remMoney===0;
-let remQtyPh='📦',remQtyCls='rem-qty-input',remQtyVal='';
-let remMoneyPh='💰',remMoneyCls='rem-money-input',remMoneyVal='';
-let rowClass='sale-item-row';
-if(isWassel){
-if(isOver && (it._overType==='qty' || it._overType==='both')){remQtyPh='❌';remQtyCls+=' rem-over';rowClass+=' rem-error';}
-else if(isFinishedQty){remQtyPh='انتهى';remQtyCls+=' rem-finished';}
-else if(it.remQty!==null && it.remQty!==undefined){remQtyVal=it.remQty;}
-if(isOver && (it._overType==='money' || it._overType==='both')){remMoneyPh='❌';remMoneyCls+=' rem-over';rowClass+=' rem-error';}
-else if(isFinishedMoney){remMoneyPh='انتهى';remMoneyCls+=' rem-finished';}
-else if(it.remMoney!==null && it.remMoney!==undefined){remMoneyVal=it.remMoney;}
-} else {remQtyPh='—';remQtyCls+=' rem-disabled';remMoneyPh='—';remMoneyCls+=' rem-disabled';}
-h+=`<div class="${rowClass}">
-<select onchange="updateSaleItem('${it.id}','typeId',this.value)">${typeOpts}</select>
-<input type="number" placeholder="كمية" min="0" value="${it.qty||''}" oninput="updateSaleItem('${it.id}','qty',this.value)">
-<input type="number" placeholder="سعر" min="0" value="${it.price||''}" oninput="updateSaleItem('${it.id}','price',this.value)">
-<input type="number" placeholder="${remQtyPh}" min="0" value="${remQtyVal}" oninput="updateSaleItem('${it.id}','remQty',this.value)" class="${remQtyCls}">
-<input type="number" placeholder="${remMoneyPh}" min="0" value="${remMoneyVal}" oninput="updateSaleItem('${it.id}','remMoney',this.value)" class="${remMoneyCls}">
-<div class="item-total">${money(itemTotal)}</div>
-<button class="del-btn" onclick="removeSaleItem('${it.id}')">✖</button>
-</div>`;
-});
-wrap.innerHTML=h;
-updateSaleGrandTotal();
-}
-
-function updateSaleItem(id,key,val){
-const it=_saleItems.find(x=>x.id===id);if(!it)return;
-it[key]=val;
-if(key==='typeId'&&val){
-const buyer=document.getElementById('sBuyer').value.trim();
-const t=db.flourTypes.find(x=>x.id===val);
-if(t&&buyer&&!it.price){
-  const dep = (db.deposits||[]).find(d=>
-    _cleanPerson(d.person)===_cleanPerson(buyer) &&
-    _cleanType(d.typeName)===_cleanType(t.name) &&
-    d.typeName && d.typeName !== '' &&
-    !d.isWithdrawal && !d._finished && !d.cashPayment && !d.isCarry &&
-    (+d.unitPrice||0) > 0 &&
-    ((+d.originalQty||+d.qty||0) - (+d._usedQty||0)) > 0
-  );
-  if(dep) it.price = +dep.unitPrice;
-  if(!it.price){
-    const c=(db.customerPrices||[]).find(x=>x.name===buyer);
-    if(c){const pp=c.prices.find(x=>x.typeName===t.name);if(pp)it.price=pp.price;}
-  }
-}
-}
-const rows=document.querySelectorAll('.sale-item-row');
-const idx=_saleItems.findIndex(x=>x.id===id);
-if(rows[idx]){const tot=(+it.qty||0)*(+it.price||0);const el=rows[idx].querySelector('.item-total');if(el)el.textContent=money(tot);}
-if(currentMethod==='واصل'){recalcAllRemaining();}else{refreshRemInputs();}
-updateSaleGrandTotal();
-}
-
-function removeSaleItem(id){if(_saleItems.length===1){_saleItems=[{id:uid(),typeId:'',qty:'',price:'',remQty:null,remMoney:null}];}else{_saleItems=_saleItems.filter(x=>x.id!==id);}renderSaleItems();if(currentMethod==='واصل') recalcAllRemaining();}
-function addSaleItem(){_saleItems.push({id:uid(),typeId:'',qty:'',price:'',remQty:null,remMoney:null});renderSaleItems();if(currentMethod==='واصل') recalcAllRemaining();}
-function updateSaleGrandTotal(){const gross=_saleItems.reduce((a,it)=>a+((+it.qty||0)*(+it.price||0)),0);const disc=+document.getElementById('sDiscount')?.value||0;const net=Math.max(0,gross-disc);const el=document.getElementById('saleGrandTotal');if(el){if(disc>0)el.innerHTML=money(net)+' <span style="font-size:12px;color:#27ae60">(خصم: '+money(disc)+')</span>';else el.textContent=money(net);}}
-
-function setMethod(m){
-currentMethod=m;
-document.querySelectorAll('.pay-methods button[data-m]').forEach(b=>{
-b.classList.toggle('active',b.dataset.m===m);
-b.removeAttribute('style');
-b.style.flex='1';
-});
-if(m==='هدية'){_saleItems.forEach(it=>{it.price='';});}
-if(m==='واصل'){recalcAllRemaining();}
-else{_saleItems.forEach(it=>{it.remQty=null;it.remMoney=null;it._over=false;it._overType=null;it._availableQty=0;it._availableMoney=0;it._mode='none';});refreshRemInputs();}
-renderSaleItems();
-}
-
-function renderDepositTypes(){
-const wrap=document.getElementById('multiDepRows');if(!wrap)return;
-if(!db||!db.flourTypes||!db.flourTypes.length){wrap.innerHTML='<div class="empty" style="padding:10px">لا توجد أنواع</div>';updateMultiDepSum();return;}
-if(!_depositItems.length){_depositItems=[{id:uid(),typeId:'',qty:'',price:''}];}
-const dl=document.getElementById('depBuyersList');
-if(dl){
-const flourNames = new Set((db.flourTypes||[]).map(t => _cleanType(t.name)));
-const persons=new Set();
-(db.deposits||[]).forEach(d=>{if(d.person)persons.add(d.person);});
-(db.sales||[]).forEach(s=>{if(s.buyer)persons.add(s.buyer);});
-(db.debts||[]).forEach(d=>{if(d.person)persons.add(d.person);});
-(db.reservations||[]).forEach(r=>{if(r.person)persons.add(r.person);});
-(db.payments||[]).forEach(p=>{if(p.person)persons.add(p.person);});
-const filteredPersons = [...persons].filter(p => !flourNames.has(_cleanType(p)));
-dl.innerHTML = filteredPersons.map(p=>`<option value="${p}">`).join('');
-}
-let h='';
-_depositItems.forEach((it)=>{
-const typeOpts='<option value="">-- اختر النوع (اختياري) --</option>'+db.flourTypes.map(t=>`<option value="${t.id}"${it.typeId===t.id?' selected':''}>${t.name} (${money(t.qty)})</option>`).join('');
-h+=`<div class="multi-deposit-row">
-<select onchange="updateDepositItem('${it.id}','typeId',this.value)">${typeOpts}</select>
-<input type="number" placeholder="كمية" min="0" value="${it.qty||''}" oninput="updateDepositItem('${it.id}','qty',this.value)">
-<input type="number" placeholder="سعر المفرد" min="0" value="${it.price||''}" oninput="updateDepositItem('${it.id}','price',this.value)">
-<button class="del-btn" onclick="removeDepositItem('${it.id}')">✖</button>
-</div>`;
-});
-wrap.innerHTML=h;
-updateMultiDepSum();
-}
-
-function updateDepositItem(id,key,val){
-const it=_depositItems.find(x=>x.id===id);if(!it)return;
-it[key]=val;
-if(key==='typeId'&&val){
-const buyer=(document.getElementById('dPerson')?.value||'').trim();
-const t=db.flourTypes.find(x=>x.id===val);
-if(t&&buyer&&!it.price){const c=(db.customerPrices||[]).find(x=>x.name===buyer);if(c){const pp=c.prices.find(x=>x.typeName===t.name);if(pp)it.price=pp.price;}}
-renderDepositTypes();return;
-}
-updateMultiDepSum();
-}
-function removeDepositItem(id){if(_depositItems.length===1){_depositItems=[{id:uid(),typeId:'',qty:'',price:''}];}else{_depositItems=_depositItems.filter(x=>x.id!==id);}renderDepositTypes();}
-function addDepositTypeRow(){_depositItems.push({id:uid(),typeId:'',qty:'',price:''});renderDepositTypes();}
-function updateMultiDepSum(){const sum=_depositItems.reduce((a,it)=>a+((+it.qty||0)*(+it.price||0)),0);const el=document.getElementById('multiDepSum');if(el)el.textContent=money(sum)+' د.ع';}
 </script><script>
 function recordBuyer(b,items,m,d,car,total){
 let x=db.buyers.find(y=>y.name===b);
@@ -5115,6 +4830,824 @@ document.addEventListener('keydown', function(e){
   }
 });
 </script><script>
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function nowISO(){return new Date().toISOString();}
+function fmt(dt){if(!dt)return '-';const d=new Date(dt);const p=n=>String(n).padStart(2,'0');const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];const dn=days[d.getDay()];let h=d.getHours();const ap=h>=12?'م':'ص';h=h%12;if(h===0)h=12;return`${dn} ${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${h}:${p(d.getMinutes())} ${ap}`;}
+function fmtShort(dt){if(!dt)return '-';const d=new Date(dt);const p=n=>String(n).padStart(2,'0');const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];const dn=days[d.getDay()];let h=d.getHours();const ap=h>=12?'م':'ص';h=h%12;if(h===0)h=12;return`${dn} ${p(d.getDate())}/${p(d.getMonth()+1)} ${h}:${p(d.getMinutes())} ${ap}`;}
+function fmtTime(dt){if(!dt)return '-';const d=new Date(dt);const now=new Date();const isToday=d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&d.getDate()===now.getDate();let h=d.getHours();const ap=h>=12?'م':'ص';h=h%12;if(h===0)h=12;const t=`${h}:${String(d.getMinutes()).padStart(2,'0')} ${ap}`;if(isToday)return t;const p=n=>String(n).padStart(2,'0');return`${p(d.getDate())}/${p(d.getMonth()+1)} ${t}`;}
+function money(n){return Number(n||0).toLocaleString('en-US');}
+function toast(m,e){const t=document.getElementById('toast');t.textContent=m;t.className='toast show'+(e?' err':'');setTimeout(()=>t.className='toast',2500);}
+
+function getArchiveTime(){if(db && db._lastArchiveAt) return db._lastArchiveAt;if(db && db.archive && db.archive.length > 0 && db.archive[0].archivedAt){db._lastArchiveAt = db.archive[0].archivedAt;return db._lastArchiveAt;}return null;}
+
+function promptDateTime(cur){
+const d=new Date(cur);const curStr=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+const inp=prompt('📅 التاريخ والوقت\nمثال: '+curStr,curStr);
+if(inp===null)return undefined;
+if(!inp.trim())return cur;
+try{const p=new Date(inp.trim().replace(' ','T'));if(isNaN(p.getTime()))throw new Error();return p.toISOString();}catch(e){toast('❌ تاريخ غير صحيح',true);return undefined;}
+}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ [إصلاح "انتهى"] _getDepositPool
+// ═══════════════════════════════════════════════════════════
+// ✅ التغيير الجذري: إذا الشخص عنده reservations (حجز/مطلوبين)
+//    نعتمد عليها كأساس لحساب المتبقي، وليس deposits
+// ═══════════════════════════════════════════════════════════
+function _getDepositPool(buyer, typeName){
+  const bC = _cleanPerson(buyer);
+  const tC = _cleanType(typeName);
+  const pools = [];
+  
+  // ✅ 1. ابحث في reservations أولاً (المصدر الحقيقي للكميات)
+  const matchingRes = (db.reservations || []).filter(r => 
+    _cleanPerson(r.person) === bC && 
+    _cleanType(r.typeName) === tC
+  );
+  
+  const totalResQty = matchingRes.reduce((a,r)=>a+Math.max(0, (r.totalQty||0) - (r.usedQty||0)), 0);
+  
+  // ✅ إذا في reservations → استخدمها (لأنها تعكس المتبقي الحقيقي)
+  if(matchingRes.length > 0 && totalResQty > 0){
+    // ✅ ابحث عن deposits مطابق لجلب السعر
+    const matchingDep = (db.deposits || []).find(d =>
+      _cleanPerson(d.person) === bC &&
+      _cleanType(d.typeName) === tC &&
+      !d.isWithdrawal && !d.cashPayment && !d.isCarry
+    );
+    
+    const unitPrice = matchingDep ? (+matchingDep.unitPrice || 0) : 0;
+    
+    // ✅ أنشئ pool من reservations
+    matchingRes.forEach(r => {
+      const remQty = Math.max(0, (r.totalQty || 0) - (r.usedQty || 0));
+      if(remQty <= 0) return;
+      
+      // ✅ حساب المبلغ المتبقي من deposits (بنسبة الكمية)
+      let remAmt = 0;
+      if(matchingDep && (+matchingDep.originalAmount || 0) > 0){
+        const origQty = +matchingDep.originalQty || +matchingDep.qty || 0;
+        const origAmt = +matchingDep.originalAmount || +matchingDep.amount || 0;
+        const usedAmt = +matchingDep._usedMoney || 0;
+        const pricePerUnit = origQty > 0 ? (origAmt / origQty) : 0;
+        remAmt = remQty * pricePerUnit;
+        const totalRemAmt = Math.max(0, origAmt - usedAmt);
+        if(remAmt > totalRemAmt) remAmt = totalRemAmt;
+      }
+      
+      pools.push({
+        depositId: r.id,
+        depositParentId: matchingDep ? matchingDep.id : null,
+        kind: 'specific',
+        source: 'reservation',
+        date: r.date || r.lastDate,
+        remainingQty: remQty,
+        remainingAmt: remAmt,
+        unitPrice: unitPrice
+      });
+    });
+    
+    pools.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    return pools;
+  }
+  
+  // ✅ 2. إذا ما في reservations → استخدم deposits العادي
+  (db.deposits || []).forEach(d => {
+    if(d.isWithdrawal || d.isCarry || d.cashPayment) return;
+    if(_cleanPerson(d.person) !== bC) return;
+    
+    const dType = _cleanType(d.typeName || '');
+    const origQty = +d.originalQty || +d.qty || 0;
+    const origAmt = +d.originalAmount || +d.amount || 0;
+    const usedQty = +d._usedQty || 0;
+    const usedAmt = +d._usedMoney || 0;
+    const remQty = Math.max(0, origQty - usedQty);
+    const remAmt = Math.max(0, origAmt - usedAmt);
+    
+    if(remQty <= 0 && remAmt <= 0) return;
+    
+    if(dType === tC){
+      pools.push({
+        depositId: d.id, 
+        kind: 'specific', 
+        source: 'deposit',
+        date: d.date, 
+        remainingQty: remQty, 
+        remainingAmt: remAmt, 
+        unitPrice: +d.unitPrice || 0
+      });
+    } else if(dType === ''){
+      pools.push({
+        depositId: d.id, 
+        kind: 'free', 
+        source: 'deposit',
+        date: d.date, 
+        remainingQty: remQty, 
+        remainingAmt: remAmt, 
+        unitPrice: 0
+      });
+    }
+  });
+  
+  pools.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  return pools;
+}
+
+function getAvailableDeposit(buyer, typeName){
+if(!buyer || !typeName) return 0;
+const pools = _getDepositPool(buyer, typeName);
+let total = 0;
+pools.forEach(p => { if(p.kind === 'specific') total += p.remainingQty; });
+return Math.max(0, total);
+}
+
+function getAvailableMoneyDeposit(buyer){
+if(!buyer) return 0;
+const bC=_cleanPerson(buyer);
+let total = 0;
+(db.deposits||[]).forEach(d=>{
+if(d.isWithdrawal||d.isCarry||d.cashPayment) return;
+if(_cleanPerson(d.person)!==bC) return;
+if(_cleanType(d.typeName||'') !== '') return;
+const origAmt = +d.originalAmount || +d.amount || 0;
+const usedAmt = +d._usedMoney || 0;
+const remAmt = Math.max(0, origAmt - usedAmt);
+total += remAmt;
+});
+return total;
+}
+
+function everHadDepositOfType(buyer, typeName){
+if(!buyer || !typeName) return false;
+const bC=_cleanPerson(buyer);const tC=_cleanType(typeName);let found=false;
+(db.deposits||[]).forEach(d=>{if(d.isWithdrawal||d.isCarry||d.cashPayment)return;if(_cleanPerson(d.person)!==bC)return;if(_cleanType(d.typeName)!==tC)return;if((+d.originalQty||+d.qty||0) > 0) found=true;});
+if(!found){(db.reservations||[]).forEach(r=>{if(_cleanPerson(r.person)===bC && _cleanType(r.typeName)===tC) found=true;});}
+return found;
+}
+
+function getReservedQty(typeName, excludePerson){
+if(!typeName) return 0;
+const tC=_cleanType(typeName);
+const bC=excludePerson ? _cleanPerson(excludePerson) : '';
+let sum=0;
+(db.reservations||[]).forEach(r=>{if(_cleanType(r.typeName)!==tC) return;if(bC && _cleanPerson(r.person)===bC) return;const rem=Math.max(0, (r.totalQty||0) - (r.usedQty||0));sum += rem;});
+return sum;
+}
+
+function normalizeDeposits(){
+if(!db||!db.deposits)return;
+let fixed=0;
+db.deposits.forEach(d=>{if(d.originalAmount===undefined){d.originalAmount=(d.amount||0);fixed++;}if(d.originalQty===undefined){d.originalQty=(d.qty||0);fixed++;}if(d._usedQty === undefined){d._usedQty = 0;fixed++;}if(d._usedMoney === undefined){d._usedMoney = 0;fixed++;}});
+if(fixed>0){try{localStorage.setItem(DATA_PREFIX+currentUser,JSON.stringify(db));}catch(e){}}
+return fixed;
+}
+
+function deduplicateFlourTypes(){
+if(!db) return 0;
+if(!Array.isArray(db.flourTypes)) db.flourTypes = [];
+db.flourTypes.forEach(t=>{
+if(!t._visibleFrom){
+const firstDate = (t.additions && t.additions[0] && t.additions[0].date) || t.updatedAt || nowISO();
+t._visibleFrom = firstDate;
+}
+});
+if(db.flourTypes.length < 2) return 0;
+const map = new Map();
+const mergedIds = new Set();
+function processItem(t){
+if(!t || !t.name) return;
+const key = _cleanType(t.name);
+if(map.has(key)){
+const existing = map.get(key);
+if(existing.id && existing.id !== t.id) mergedIds.add(t.id);
+const m = _mergeTwoFlourTypes(existing, t);
+if(m._mergedIds) m._mergedIds.forEach(id => { if(id !== m.id) mergedIds.add(id); });
+map.set(key, m);
+} else {
+map.set(key, t);
+}
+}
+db.flourTypes.forEach(processItem);
+const mergedList = Array.from(map.values());
+mergedList.forEach(t => { if(t._mergedIds) delete t._mergedIds; });
+const removed = db.flourTypes.length - mergedList.length;
+db.flourTypes = mergedList;
+mergedIds.forEach(id => markDeleted('flourTypes', id));
+return removed;
+}
+
+function _mergeTwoFlourTypes(a, b){
+const newer = (a._editedAt||0) >= (b._editedAt||0) ? a : b;
+const older = newer === a ? b : a;
+const merged = Object.assign({}, newer);
+merged.qty = (+newer.qty || 0) + (+older.qty || 0);
+merged.totalSold = (+newer.totalSold || 0) + (+older.totalSold || 0);
+merged.unitPrice = +newer.unitPrice || +older.unitPrice || 0;
+const newerManual = newer._manualOverride || 0;
+const olderManual = older._manualOverride || 0;
+merged._manualOverride = Math.max(newerManual, olderManual) || null;
+if(merged._manualOverride){
+const newerHasManual = (newer._manualOverride||0) > 0;
+const olderHasManual = (older._manualOverride||0) > 0;
+if(newerHasManual && !olderHasManual){
+merged.qty = +newer.qty || 0;
+merged.totalSold = +newer.totalSold || 0;
+merged.unitPrice = +newer.unitPrice || 0;
+if(newer._manualOriginal !== undefined) merged._manualOriginal = newer._manualOriginal;
+} else if(olderHasManual && !newerHasManual){
+merged.qty = +older.qty || 0;
+merged.totalSold = +older.totalSold || 0;
+merged.unitPrice = +older.unitPrice || 0;
+if(older._manualOriginal !== undefined) merged._manualOriginal = older._manualOriginal;
+} else {
+if((newer._manualOverride||0) >= (older._manualOverride||0)){
+merged.qty = +newer.qty || 0;
+merged.totalSold = +newer.totalSold || 0;
+merged.unitPrice = +newer.unitPrice || 0;
+if(newer._manualOriginal !== undefined) merged._manualOriginal = newer._manualOriginal;
+} else {
+merged.qty = +older.qty || 0;
+merged.totalSold = +older.totalSold || 0;
+merged.unitPrice = +older.unitPrice || 0;
+if(older._manualOriginal !== undefined) merged._manualOriginal = older._manualOriginal;
+}
+}
+}
+const seen = new Map();
+[...(newer.additions||[]), ...(older.additions||[])].forEach(add => {
+if(!add) return;
+const q = +add.qty || 0;
+const d = String(add.date||'');
+const n = String(add.note||'');
+const sig = q + '|' + d + '|' + n;
+if(!seen.has(sig)) seen.set(sig, add);
+});
+const allAdds = Array.from(seen.values());
+allAdds.sort((x,y)=>String(x.date||'').localeCompare(String(y.date||'')));
+merged.additions = allAdds;
+const va = newer._visibleFrom || '';
+const vb = older._visibleFrom || '';
+merged._visibleFrom = va > vb ? va : vb;
+const prev = [...(newer._mergedIds||[]), ...(older._mergedIds||[]), older.id].filter(x=>x && x !== merged.id);
+merged._mergedIds = [...new Set(prev)];
+return merged;
+}
+
+function markDeleted(cat,id){
+if(!db)return;
+if(!db._deleted)db._deleted={};
+if(!db._deleted[cat])db._deleted[cat]=[];
+if(!db._deleted[cat].includes(id)){db._deleted[cat].push(id);}
+}
+
+function calcRemAfterCurrent(buyer, typeName, currentQty, currentPrice){
+const qty=+currentQty || 0;
+const price=+currentPrice || 0;
+const needMoney=qty * price;
+const hadQtyDep=everHadDepositOfType(buyer, typeName);
+const availQty=getAvailableDeposit(buyer, typeName);
+const availMoney=getAvailableMoneyDeposit(buyer);
+if(price > 0 && needMoney > 0){
+const over = availMoney < needMoney;
+return {mode: 'money',availQty: availQty,remQty: null,availMoney: availMoney,remMoney: Math.max(0, availMoney - needMoney),over: over,overType: over ? 'money' : null};
+}
+if(hadQtyDep){
+const over = availQty < qty;
+return {mode: 'qty',availQty: availQty,remQty: Math.max(0, availQty - qty),availMoney: availMoney,remMoney: null,over: over,overType: over ? 'qty' : null};
+}
+return {mode:'none',availQty:0,remQty:null,availMoney:0,remMoney:null,over:false,overType:null};
+}
+
+function recalcAllRemaining(){
+const buyer=(document.getElementById('sBuyer')?.value||'').trim();
+if(!buyer){_saleItems.forEach(it=>{it.remQty=null;it.remMoney=null;it._over=false;it._overType=null;it._availableQty=0;it._availableMoney=0;it._mode='none';});refreshRemInputs();return;}
+_saleItems.forEach(it=>{
+if(!it.typeId){it.remQty=null;it.remMoney=null;it._over=false;it._overType=null;it._availableQty=0;it._availableMoney=0;it._mode='none';return;}
+const t=db.flourTypes.find(x=>x.id===it.typeId);
+if(!t){it.remQty=null;it.remMoney=null;it._over=false;it._overType=null;it._availableQty=0;it._availableMoney=0;it._mode='none';return;}
+const r=calcRemAfterCurrent(buyer, t.name, it.qty, it.price);
+it._mode=r.mode;it._availableQty=r.availQty;it._availableMoney=r.availMoney;it.remQty=r.remQty;it.remMoney=r.remMoney;it._over=r.over;it._overType=r.overType;
+});
+refreshRemInputs();
+}
+
+function refreshRemInputs(){
+const rows=document.querySelectorAll('.sale-item-row');
+const isWassel=currentMethod==='واصل';
+_saleItems.forEach((it,idx)=>{
+const row=rows[idx];if(!row)return;
+const remQtyInp=row.querySelector('.rem-qty-input');
+const remMoneyInp=row.querySelector('.rem-money-input');
+if(!isWassel){
+if(remQtyInp){remQtyInp.value='';remQtyInp.placeholder='—';remQtyInp.classList.remove('rem-finished','rem-over');remQtyInp.classList.add('rem-disabled');}
+if(remMoneyInp){remMoneyInp.value='';remMoneyInp.placeholder='—';remMoneyInp.classList.remove('rem-finished','rem-over');remMoneyInp.classList.add('rem-disabled');}
+row.classList.remove('rem-error');return;
+}
+if(remQtyInp){
+remQtyInp.classList.remove('rem-disabled');
+if(it._over && (it._overType==='qty' || it._overType==='both')){remQtyInp.value='';remQtyInp.placeholder='❌';remQtyInp.classList.add('rem-over');remQtyInp.classList.remove('rem-finished');}
+else if(it.remQty===0){remQtyInp.value='';remQtyInp.placeholder='انتهى';remQtyInp.classList.add('rem-finished');remQtyInp.classList.remove('rem-over');}
+else if(it.remQty===null||it.remQty===undefined){remQtyInp.value='';remQtyInp.placeholder='📦';remQtyInp.classList.remove('rem-finished','rem-over');}
+else{remQtyInp.value=it.remQty;remQtyInp.placeholder='📦';remQtyInp.classList.remove('rem-finished','rem-over');}
+}
+if(remMoneyInp){
+remMoneyInp.classList.remove('rem-disabled');
+if(it._over && (it._overType==='money' || it._overType==='both')){remMoneyInp.value='';remMoneyInp.placeholder='❌';remMoneyInp.classList.add('rem-over');remMoneyInp.classList.remove('rem-finished');}
+else if(it.remMoney===0){remMoneyInp.value='';remMoneyInp.placeholder='انتهى';remMoneyInp.classList.add('rem-finished');remMoneyInp.classList.remove('rem-over');}
+else if(it.remMoney===null||it.remMoney===undefined){remMoneyInp.value='';remMoneyInp.placeholder='💰';remMoneyInp.classList.remove('rem-finished','rem-over');}
+else{remMoneyInp.value=it.remMoney;remMoneyInp.placeholder='💰';remMoneyInp.classList.remove('rem-finished','rem-over');}
+}
+if(it._over) row.classList.add('rem-error'); else row.classList.remove('rem-error');
+});
+}
+
+function renderSaleItems(){
+const wrap=document.getElementById('saleItemsWrap');if(!wrap)return;
+function fillBuyersDatalist(){
+const bl=document.getElementById('buyersList');
+if(!bl || !db) return;
+const flourNames = new Set((db.flourTypes||[]).map(t => _cleanType(t.name)));
+const persons=new Set();
+(db.deposits||[]).forEach(d=>{if(d.person&&!d.isWithdrawal)persons.add(d.person);});
+(db.reservations||[]).forEach(r=>{if(r.person)persons.add(r.person);});
+(db.sales||[]).forEach(s=>{if(s.buyer)persons.add(s.buyer);});
+(db.debts||[]).forEach(d=>{if(d.person)persons.add(d.person);});
+(db.payments||[]).forEach(p=>{if(p.person)persons.add(p.person);});
+const filteredPersons = [...persons].filter(p => !flourNames.has(_cleanType(p)));
+bl.innerHTML = filteredPersons.map(p=>`<option value="${p}">`).join('');
+}
+fillBuyersDatalist();
+const buyerInp=document.getElementById('sBuyer');
+if(buyerInp && !buyerInp._bound){buyerInp._bound=true;buyerInp.addEventListener('focus',function(){fillBuyersDatalist();});buyerInp.addEventListener('input',function(){fillBuyersDatalist();if(currentMethod==='واصل'){recalcAllRemaining();}});}
+if(!db||!db.flourTypes||!db.flourTypes.length){wrap.innerHTML='<div class="empty">لا توجد أنواع — أضف أنواع أولاً</div>';return;}
+if(!_saleItems.length){_saleItems=[{id:uid(),typeId:'',qty:'',price:'',remQty:null,remMoney:null}];}
+const isWassel=currentMethod==='واصل';
+let h='';
+_saleItems.forEach((it)=>{
+const typeOpts='<option value="">-- اختر النوع --</option>'+db.flourTypes.map(t=>`<option value="${t.id}"${it.typeId===t.id?' selected':''}>${t.name} (${money(t.qty)})</option>`).join('');
+const itemTotal=(+it.qty||0)*(+it.price||0);
+const isOver=isWassel && !!it._over;
+const isFinishedQty=isWassel && !isOver && it.remQty===0;
+const isFinishedMoney=isWassel && !isOver && it.remMoney===0;
+let remQtyPh='📦',remQtyCls='rem-qty-input',remQtyVal='';
+let remMoneyPh='💰',remMoneyCls='rem-money-input',remMoneyVal='';
+let rowClass='sale-item-row';
+if(isWassel){
+if(isOver && (it._overType==='qty' || it._overType==='both')){remQtyPh='❌';remQtyCls+=' rem-over';rowClass+=' rem-error';}
+else if(isFinishedQty){remQtyPh='انتهى';remQtyCls+=' rem-finished';}
+else if(it.remQty!==null && it.remQty!==undefined){remQtyVal=it.remQty;}
+if(isOver && (it._overType==='money' || it._overType==='both')){remMoneyPh='❌';remMoneyCls+=' rem-over';rowClass+=' rem-error';}
+else if(isFinishedMoney){remMoneyPh='انتهى';remMoneyCls+=' rem-finished';}
+else if(it.remMoney!==null && it.remMoney!==undefined){remMoneyVal=it.remMoney;}
+} else {remQtyPh='—';remQtyCls+=' rem-disabled';remMoneyPh='—';remMoneyCls+=' rem-disabled';}
+h+=`<div class="${rowClass}">
+<select onchange="updateSaleItem('${it.id}','typeId',this.value)">${typeOpts}</select>
+<input type="number" placeholder="كمية" min="0" value="${it.qty||''}" oninput="updateSaleItem('${it.id}','qty',this.value)">
+<input type="number" placeholder="سعر" min="0" value="${it.price||''}" oninput="updateSaleItem('${it.id}','price',this.value)">
+<input type="number" placeholder="${remQtyPh}" min="0" value="${remQtyVal}" oninput="updateSaleItem('${it.id}','remQty',this.value)" class="${remQtyCls}">
+<input type="number" placeholder="${remMoneyPh}" min="0" value="${remMoneyVal}" oninput="updateSaleItem('${it.id}','remMoney',this.value)" class="${remMoneyCls}">
+<div class="item-total">${money(itemTotal)}</div>
+<button class="del-btn" onclick="removeSaleItem('${it.id}')">✖</button>
+</div>`;
+});
+wrap.innerHTML=h;
+updateSaleGrandTotal();
+}
+
+function updateSaleItem(id,key,val){
+const it=_saleItems.find(x=>x.id===id);if(!it)return;
+it[key]=val;
+if(key==='typeId'&&val){
+const buyer=document.getElementById('sBuyer').value.trim();
+const t=db.flourTypes.find(x=>x.id===val);
+if(t&&buyer&&!it.price){
+  const bC = _cleanPerson(buyer);
+  const tC = _cleanType(t.name);
+  
+  const dep = (db.deposits||[]).find(d=>
+    _cleanPerson(d.person)===bC &&
+    _cleanType(d.typeName)===tC &&
+    d.typeName && d.typeName !== '' &&
+    !d.isWithdrawal && !d._finished && !d.cashPayment && !d.isCarry &&
+    (+d.unitPrice||0) > 0 &&
+    ((+d.originalQty||+d.qty||0) - (+d._usedQty||0)) > 0
+  );
+  if(dep) it.price = +dep.unitPrice;
+  if(!it.price){
+    const c=(db.customerPrices||[]).find(x=>x.name===buyer);
+    if(c){const pp=c.prices.find(x=>x.typeName===t.name);if(pp)it.price=pp.price;}
+  }
+}
+}
+const rows=document.querySelectorAll('.sale-item-row');
+const idx=_saleItems.findIndex(x=>x.id===id);
+if(rows[idx]){const tot=(+it.qty||0)*(+it.price||0);const el=rows[idx].querySelector('.item-total');if(el)el.textContent=money(tot);}
+if(currentMethod==='واصل'){recalcAllRemaining();}else{refreshRemInputs();}
+updateSaleGrandTotal();
+}
+
+function removeSaleItem(id){if(_saleItems.length===1){_saleItems=[{id:uid(),typeId:'',qty:'',price:'',remQty:null,remMoney:null}];}else{_saleItems=_saleItems.filter(x=>x.id!==id);}renderSaleItems();if(currentMethod==='واصل') recalcAllRemaining();}
+function addSaleItem(){_saleItems.push({id:uid(),typeId:'',qty:'',price:'',remQty:null,remMoney:null});renderSaleItems();if(currentMethod==='واصل') recalcAllRemaining();}
+function updateSaleGrandTotal(){const gross=_saleItems.reduce((a,it)=>a+((+it.qty||0)*(+it.price||0)),0);const disc=+document.getElementById('sDiscount')?.value||0;const net=Math.max(0,gross-disc);const el=document.getElementById('saleGrandTotal');if(el){if(disc>0)el.innerHTML=money(net)+' <span style="font-size:12px;color:#27ae60">(خصم: '+money(disc)+')</span>';else el.textContent=money(net);}}
+
+function setMethod(m){
+currentMethod=m;
+document.querySelectorAll('.pay-methods button[data-m]').forEach(b=>{
+b.classList.toggle('active',b.dataset.m===m);
+b.removeAttribute('style');
+b.style.flex='1';
+});
+if(m==='هدية'){_saleItems.forEach(it=>{it.price='';});}
+if(m==='واصل'){recalcAllRemaining();}
+else{_saleItems.forEach(it=>{it.remQty=null;it.remMoney=null;it._over=false;it._overType=null;it._availableQty=0;it._availableMoney=0;it._mode='none';});refreshRemInputs();}
+renderSaleItems();
+}
+
+function renderDepositTypes(){
+const wrap=document.getElementById('multiDepRows');if(!wrap)return;
+if(!db||!db.flourTypes||!db.flourTypes.length){wrap.innerHTML='<div class="empty" style="padding:10px">لا توجد أنواع</div>';updateMultiDepSum();return;}
+if(!_depositItems.length){_depositItems=[{id:uid(),typeId:'',qty:'',price:''}];}
+const dl=document.getElementById('depBuyersList');
+if(dl){
+const flourNames = new Set((db.flourTypes||[]).map(t => _cleanType(t.name)));
+const persons=new Set();
+(db.deposits||[]).forEach(d=>{if(d.person)persons.add(d.person);});
+(db.sales||[]).forEach(s=>{if(s.buyer)persons.add(s.buyer);});
+(db.debts||[]).forEach(d=>{if(d.person)persons.add(d.person);});
+(db.reservations||[]).forEach(r=>{if(r.person)persons.add(r.person);});
+(db.payments||[]).forEach(p=>{if(p.person)persons.add(p.person);});
+const filteredPersons = [...persons].filter(p => !flourNames.has(_cleanType(p)));
+dl.innerHTML = filteredPersons.map(p=>`<option value="${p}">`).join('');
+}
+let h='';
+_depositItems.forEach((it)=>{
+const typeOpts='<option value="">-- اختر النوع (اختياري) --</option>'+db.flourTypes.map(t=>`<option value="${t.id}"${it.typeId===t.id?' selected':''}>${t.name} (${money(t.qty)})</option>`).join('');
+h+=`<div class="multi-deposit-row">
+<select onchange="updateDepositItem('${it.id}','typeId',this.value)">${typeOpts}</select>
+<input type="number" placeholder="كمية" min="0" value="${it.qty||''}" oninput="updateDepositItem('${it.id}','qty',this.value)">
+<input type="number" placeholder="سعر المفرد" min="0" value="${it.price||''}" oninput="updateDepositItem('${it.id}','price',this.value)">
+<button class="del-btn" onclick="removeDepositItem('${it.id}')">✖</button>
+</div>`;
+});
+wrap.innerHTML=h;
+updateMultiDepSum();
+}
+
+function updateDepositItem(id,key,val){
+const it=_depositItems.find(x=>x.id===id);if(!it)return;
+it[key]=val;
+if(key==='typeId'&&val){
+const buyer=(document.getElementById('dPerson')?.value||'').trim();
+const t=db.flourTypes.find(x=>x.id===val);
+if(t&&buyer&&!it.price){const c=(db.customerPrices||[]).find(x=>x.name===buyer);if(c){const pp=c.prices.find(x=>x.typeName===t.name);if(pp)it.price=pp.price;}}
+renderDepositTypes();return;
+}
+updateMultiDepSum();
+}
+function removeDepositItem(id){if(_depositItems.length===1){_depositItems=[{id:uid(),typeId:'',qty:'',price:''}];}else{_depositItems=_depositItems.filter(x=>x.id!==id);}renderDepositTypes();}
+function addDepositTypeRow(){_depositItems.push({id:uid(),typeId:'',qty:'',price:''});renderDepositTypes();}
+function updateMultiDepSum(){const sum=_depositItems.reduce((a,it)=>a+((+it.qty||0)*(+it.price||0)),0);const el=document.getElementById('multiDepSum');if(el)el.textContent=money(sum)+' د.ع';}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ [إصلاح] _calculateAndApplyWasselDeductions — تزامن كامل
+// ═══════════════════════════════════════════════════════════
+function _calculateAndApplyWasselDeductions(saleBuyer, saleItems, saleId, saleDate){
+const wasselRemByType = {};
+const wasselWithdrawals = [];
+
+saleItems.forEach(it=>{
+const price=+it.unitPrice||0;
+const qty=+it.qty;
+const typeName=it.typeName;
+const bC = _cleanPerson(saleBuyer);
+const tC = _cleanType(typeName);
+
+const pools=_getDepositPool(saleBuyer, typeName);
+const hasSpecificDeposit = pools.some(p => p.kind === 'specific');
+
+let remainingQtyToDeduct = qty;
+let remainingAmtToDeduct = price > 0 ? (qty * price) : 0;
+
+// ✅ 1. خصم من المحدد (كمية + مبلغ)
+pools.forEach(p => {
+if(p.kind === 'specific'){
+if(remainingQtyToDeduct > 0 && p.remainingQty > 0){
+const qtyToTake = Math.min(remainingQtyToDeduct, p.remainingQty);
+const depositPrice = p.unitPrice > 0 ? p.unitPrice : price;
+let amtFromThis = 0;
+if(price > 0 && p.remainingAmt > 0 && remainingAmtToDeduct > 0){
+const effectivePrice = depositPrice > 0 ? depositPrice : price;
+const desiredAmt = qtyToTake * effectivePrice;
+amtFromThis = Math.min(desiredAmt, p.remainingAmt, remainingAmtToDeduct);
+}
+if(!p._deductedQty) p._deductedQty = 0;
+if(!p._deductedAmt) p._deductedAmt = 0;
+p._deductedQty += qtyToTake;
+p._deductedAmt += amtFromThis;
+remainingQtyToDeduct -= qtyToTake;
+remainingAmtToDeduct -= amtFromThis;
+}
+}
+});
+
+// ✅ 2. خصم من المبلغ الحر
+pools.forEach(p => {
+if(p.kind !== 'free') return;
+if(hasSpecificDeposit){
+const specificStillActive = pools.some(sp => 
+sp.kind === 'specific' && 
+((sp.remainingQty - (sp._deductedQty||0)) > 0 || (sp.remainingAmt - (sp._deductedAmt||0)) > 0)
+);
+if(specificStillActive) return;
+}
+if(remainingAmtToDeduct > 0 && p.remainingAmt > 0){
+const amtToTake = Math.min(p.remainingAmt, remainingAmtToDeduct);
+if(!p._deductedAmt) p._deductedAmt = 0;
+p._deductedAmt += amtToTake;
+remainingAmtToDeduct -= amtToTake;
+}
+});
+
+// ✅ 3. تطبيق الخصم
+pools.forEach(p => {
+  const usedQty = p._deductedQty || 0;
+  const usedAmt = p._deductedAmt || 0;
+  if(usedQty <= 0 && usedAmt <= 0) return;
+  
+  if(p.source === 'reservation'){
+    // ✅ خصم من reservations
+    const r = db.reservations.find(x => x.id === p.depositId);
+    if(r){
+      r.usedQty = (r.usedQty || 0) + usedQty;
+      r._editedAt = Date.now();
+    }
+    // ✅ خصم من deposits المرتبط
+    if(p.depositParentId){
+      const dep = db.deposits.find(x => x.id === p.depositParentId);
+      if(dep){
+        if(usedQty > 0){
+          dep._usedQty = (+dep._usedQty || 0) + usedQty;
+        }
+        if(usedAmt > 0){
+          dep._usedMoney = (+dep._usedMoney || 0) + usedAmt;
+        }
+        dep._editedAt = Date.now();
+        const origQty = +dep.originalQty || +dep.qty || 0;
+        const origAmt = +dep.originalAmount || +dep.amount || 0;
+        const remQ = Math.max(0, origQty - (dep._usedQty || 0));
+        const remA = Math.max(0, origAmt - (dep._usedMoney || 0));
+        if(remQ <= 0 && remA <= 0){
+          dep._finished = true;
+        }
+      }
+    }
+  } else {
+    // ✅ خصم من deposits مباشرة
+    const dep = db.deposits.find(x => x.id === p.depositId);
+    if(dep){
+      if(usedQty > 0){
+        dep._usedQty = (+dep._usedQty || 0) + usedQty;
+      }
+      if(usedAmt > 0){
+        dep._usedMoney = (+dep._usedMoney || 0) + usedAmt;
+      }
+      dep._editedAt = Date.now();
+      const origQty = +dep.originalQty || +dep.qty || 0;
+      const origAmt = +dep.originalAmount || +dep.amount || 0;
+      const remQ = Math.max(0, origQty - (dep._usedQty || 0));
+      const remA = Math.max(0, origAmt - (dep._usedMoney || 0));
+      if(remQ <= 0 && remA <= 0){
+        dep._finished = true;
+      }
+      
+      // ✅ تزامن reservations
+      if(_cleanType(dep.typeName) === tC && _cleanType(dep.typeName) !== ''){
+        const matchingRes = (db.reservations || []).filter(r => 
+          _cleanPerson(r.person) === bC && 
+          _cleanType(r.typeName) === tC &&
+          (r.totalQty - r.usedQty) > 0
+        );
+        let qtyToApply = usedQty;
+        matchingRes.forEach(r => {
+          if(qtyToApply <= 0) return;
+          const rem = Math.max(0, (r.totalQty || 0) - (r.usedQty || 0));
+          if(rem <= 0) return;
+          const take = Math.min(qtyToApply, rem);
+          r.usedQty = (r.usedQty || 0) + take;
+          r._editedAt = Date.now();
+          qtyToApply -= take;
+        });
+      }
+    }
+  }
+});
+
+// ✅ 4. إنشاء withdrawal records
+pools.forEach(p => {
+const usedQty = p._deductedQty || 0;
+const usedAmt = p._deductedAmt || 0;
+if(usedQty > 0 || usedAmt > 0){
+wasselWithdrawals.push({
+id:uid(),person:saleBuyer,amount:-usedAmt,originalAmount:-usedAmt,
+typeName:typeName,qty:-usedQty,originalQty:-usedQty,unitPrice:price,totalPrice:-usedAmt,
+date:nowISO(),note:'استقطاع واصل',isWithdrawal:true,
+depositId: p.source === 'reservation' ? p.depositParentId : p.depositId,
+source: p.source,
+remQtyAfter:null,remMoneyAfter:null,_editedAt:Date.now()
+});
+}
+});
+
+// ✅ 5. حساب المتبقي للعرض
+let remQtyShow = null;
+let remMoneyShow = null;
+let hasQtyDeposit = false;
+let hasMoneyDeposit = false;
+
+if(hasSpecificDeposit){
+let specificQtyAfter = 0;
+let specificAmtAfter = 0;
+let specificHasQty = false;
+let specificHasAmt = false;
+
+pools.forEach(p => {
+if(p.kind !== 'specific') return;
+const usedQty = p._deductedQty || 0;
+const usedAmt = p._deductedAmt || 0;
+const rQ = Math.max(0, p.remainingQty - usedQty);
+const rA = Math.max(0, p.remainingAmt - usedAmt);
+specificQtyAfter += rQ;
+specificAmtAfter += rA;
+if(p.remainingQty > 0 || usedQty > 0) specificHasQty = true;
+if(p.remainingAmt > 0 || usedAmt > 0) specificHasAmt = true;
+});
+
+if(specificHasQty){
+remQtyShow = specificQtyAfter;
+hasQtyDeposit = true;
+}
+if(specificHasAmt){
+remMoneyShow = specificAmtAfter;
+hasMoneyDeposit = true;
+}
+} else {
+let freeAmtAfter = 0;
+let freeHasAmt = false;
+
+pools.forEach(p => {
+if(p.kind !== 'free') return;
+const usedAmt = p._deductedAmt || 0;
+const rA = Math.max(0, p.remainingAmt - usedAmt);
+freeAmtAfter += rA;
+if(p.remainingAmt > 0 || usedAmt > 0) freeHasAmt = true;
+});
+
+remQtyShow = null;
+if(freeHasAmt){
+remMoneyShow = freeAmtAfter;
+hasMoneyDeposit = true;
+}
+}
+
+wasselRemByType[typeName] = {
+mode: price > 0 ? 'money' : 'qty',
+qty: remQtyShow,
+money: price > 0 ? remMoneyShow : null,
+hasQtyDeposit: hasQtyDeposit,
+hasMoneyDeposit: price > 0 ? hasMoneyDeposit : false
+};
+});
+
+return {wasselRemByType, wasselWithdrawals};
+}
+
+function doSale(){
+_matchedFlourIds.clear();
+const buyer=document.getElementById('sBuyer').value.trim();
+const carrier=document.getElementById('sCarrier')?document.getElementById('sCarrier').value.trim():'';
+const discount=+document.getElementById('sDiscount')?.value||0;
+const remaining=+document.getElementById('sRemaining').value||0;
+if(!buyer)return toast('اكتب اسم المشتري',true);
+const flourNames = new Set((db.flourTypes||[]).map(t => _cleanType(t.name)));
+if(flourNames.has(_cleanType(buyer)))return toast('❌ هذا اسم نوع طحين، وليس اسم مشتري',true);
+const validItems=_saleItems.filter(it=>it.typeId&&+it.qty>0);
+if(!validItems.length)return toast('أضف نوع واحد على الأقل',true);
+for(const it of validItems){
+const t=db.flourTypes.find(x=>x.id===it.typeId);
+if(!t){return toast('❌ نوع غير موجود',true);}
+const reservedOthers=getReservedQty(t.name, buyer);
+const available=Math.max(0, t.qty - reservedOthers);
+if(reservedOthers > 0 && +it.qty > available){
+if(!confirm('⚠️ تنبيه:\n\nنوع "'+t.name+'" عنده حجز لزبائن آخرين: '+money(reservedOthers)+' كيس.\nالمتاح: '+money(available)+' كيس\nالمطلوب: '+money(it.qty)+' كيس\n\nهل تريد البيع على أي حال؟')){return;}
+}
+if(+it.qty > t.qty){
+if(!confirm('⚠️ تنبيه:\n\nكمية "'+t.name+'" في المخزون: '+money(t.qty)+' كيس\nالمطلوب: '+money(it.qty)+' كيس\n\nهل تريد البيع على أي حال؟')){return;}
+}
+if(currentMethod!=='هدية'&&currentMethod!=='واصل'&&(!+it.price||+it.price<=0)){return toast('اكتب السعر للنوع "'+t.name+'"',true);}
+}
+
+if(currentMethod==='واصل'){
+for(const it of validItems){
+  const t=db.flourTypes.find(x=>x.id===it.typeId);
+  if(!t) continue;
+  const availQty = getAvailableDeposit(buyer, t.name);
+  const availMoney = getAvailableMoneyDeposit(buyer);
+  const price = +it.price||0;
+  const qty = +it.qty||0;
+  const needMoney = price * qty;
+  
+  const hasSpecific = availQty > 0;
+  const hasMoney = availMoney > 0;
+  
+  if(!hasSpecific && !hasMoney){
+    return toast('❌ الزبون ما عنده إيداع من نوع "'+t.name+'" ولا مبلغ حر',true);
+  }
+  
+  if(!hasSpecific && hasMoney && needMoney > availMoney){
+    if(!confirm('⚠️ نوع "'+t.name+'" غير موجود بالإيداع!\n\nالمبلغ الحر المتاح: '+money(availMoney)+' د.ع\nالمطلوب: '+money(needMoney)+' د.ع\n\nمتابعة؟')){return;}
+  }
+  
+  if(hasSpecific && availQty < qty){
+    if(!confirm('⚠️ نوع "'+t.name+'" الكمية غير كافية!\n\nالمتاح: '+money(availQty)+' كيس\nالمطلوب: '+money(qty)+' كيس\n\nمتابعة؟')){return;}
+  }
+}
+}
+
+let d=nowISO();
+const dtInput=document.getElementById('sDateTime');
+if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(parsed.getTime())){d=parsed.toISOString();}}catch(e){}}
+
+let saleTotal=0;
+const saleItems=[];
+
+const qtyByType={};
+validItems.forEach(it=>{
+if(!qtyByType[it.typeId]) qtyByType[it.typeId]=0;
+qtyByType[it.typeId]+=(+it.qty||0);
+});
+
+Object.keys(qtyByType).forEach(typeId=>{
+const t=db.flourTypes.find(x=>x.id===typeId);
+if(!t) return;
+const totalQty=qtyByType[typeId];
+t.qty=(+t.qty||0) - totalQty;
+t.totalSold=(+t.totalSold||0) + totalQty;
+t._editedAt=Date.now();
+});
+
+validItems.forEach(it=>{
+const t=db.flourTypes.find(x=>x.id===it.typeId);
+const qty=+it.qty;
+const price=(currentMethod==='هدية')?0:(+it.price||0);
+const itemTotal=qty*price;
+saleTotal+=itemTotal;
+saleItems.push({typeId:t.id,typeName:t.name,qty,unitPrice:price,total:itemTotal,remQty:null,remMoney:null});
+});
+
+const grossTotal=saleTotal;
+const netTotal=Math.max(0,grossTotal-discount);
+const tt=Math.max(0,netTotal-remaining);
+
+let wasselRemByType=null;
+let wasselWithdrawals=[];
+
+if(currentMethod==='واصل'){
+const result = _calculateAndApplyWasselDeductions(buyer, saleItems, null, d);
+wasselRemByType = result.wasselRemByType;
+wasselWithdrawals = result.wasselWithdrawals;
+}
+
+const saleRecord={id:uid(),buyer,items:saleItems,qty:saleItems.reduce((a,i)=>a+i.qty,0),grossTotal,discount,netTotal,total:tt,method:currentMethod,date:d,carrier,remaining,remQty:null,remMoney:null,_editedAt:Date.now()};
+if(wasselRemByType){saleRecord.remByType=wasselRemByType;}
+db.sales.push(saleRecord);
+wasselWithdrawals.forEach(w=>{w.saleId=saleRecord.id;db.deposits.push(w);});
+if(currentMethod==='دين'){
+saleItems.forEach(it=>{const ratio=grossTotal>0?(it.total/grossTotal):0;const itemDebt=netTotal*ratio;db.debts.push({id:uid(),person:buyer,amount:itemDebt,typeName:it.typeName,qty:it.qty,unitPrice:it.unitPrice||0,date:d,carrier:carrier,fromSale:true,saleId:saleRecord.id,_editedAt:Date.now()});});
+}
+if(remaining>0){db.debts.push({id:uid(),person:buyer,amount:remaining,typeName:'(الباقي)',qty:0,date:d,carrier:carrier,manual:true,fromSale:true,saleId:saleRecord.id,_editedAt:Date.now()});}
+recordBuyer(buyer,saleItems,currentMethod,d,carrier,tt);
+save();renderAll();
+document.getElementById('sBuyer').value='';
+if(document.getElementById('sCarrier'))document.getElementById('sCarrier').value='';
+if(document.getElementById('sDiscount'))document.getElementById('sDiscount').value='';
+if(document.getElementById('sRemaining'))document.getElementById('sRemaining').value='';
+if(document.getElementById('sDateTime'))document.getElementById('sDateTime').value='';
+_saleItems=[{id:uid(),typeId:'',qty:'',price:'',remQty:null,remMoney:null}];
+renderSaleItems();
+const extra=[];
+if(discount>0)extra.push('خصم: '+money(discount));
+if(remaining>0)extra.push('باقي: '+money(remaining));
+toast((currentMethod==='هدية'?'🎁 هدية':'تم تسجيل البيع ✅')+(extra.length?' — '+extra.join(' — '):''));
+}
+
+function recordBuyer(b,items,m,d,car,total){
+let x=db.buyers.find(y=>y.name===b);
+const tq=items.reduce((a,i)=>a+(+i.qty||0),0);
+const trans={date:d,items:items.map(i=>({typeName:i.typeName,qty:i.qty,price:i.unitPrice,total:i.total})),method:m,carrier:car,total};
+if(!x){db.buyers.push({name:b,firstDate:d,lastDate:d,totalQty:tq,totalAmount:total,transactions:[trans],id:uid(),_editedAt:Date.now()});}
+else{x.lastDate=d;x.totalQty+=tq;x.totalAmount+=total;x.transactions.push(trans);x._editedAt=Date.now();}
+}
+</script><script>
 function editDateTime(type,id){
 let coll=null;
 if(type==='payment')coll=db.payments;
@@ -5281,8 +5814,6 @@ reportTotal += paid;
 });
 reportTotal += db.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0);
 reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-
-// ✅ [تعديل 1] — يظهر الإيداعات اللي عندها _showInReport حتى لو كانت legacy
 reportTotal += (db.deposits||[]).filter(d=>{
   if(!(+d.originalAmount>0)) return false;
   if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;
@@ -5391,7 +5922,7 @@ save();renderHome();toast('✅');
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [تعديل 2] addDeposit — إيداع حر جديد منفصل + _showInReport آمن
+// ✅ addDeposit — رصيد قديم ما يظهر بالمطابقة (بحذف _showInReport)
 // ═══════════════════════════════════════════════════════════
 function addDeposit(){
 const p=document.getElementById('dPerson').value.trim();
@@ -5402,6 +5933,8 @@ let remainingDiscount=_discEl?+_discEl.value||0:0;
 const originalDiscount=remainingDiscount;
 const rem=+document.getElementById('dRemaining').value||0;
 const isLegacy=document.getElementById('dLegacy')&&document.getElementById('dLegacy').checked;
+const _deductCheck=document.getElementById('dDeductDebt');
+const shouldDeductDebt=_deductCheck?!!_deductCheck.checked:false;
 
 if(!p)return toast('اكتب اسم الشخص',true);
 const flourNames = new Set((db.flourTypes||[]).map(t => _cleanType(t.name)));
@@ -5418,7 +5951,6 @@ return toast('اكتب مبلغ أو كمية',true);
 
 const bC = _cleanPerson(p);
 
-// ✅ 1. احسب قيمة الأنواع
 let itemsValue = 0;
 const itemsList = [];
 validItems.forEach(it => {
@@ -5428,191 +5960,32 @@ validItems.forEach(it => {
   const price = +it.price || 0;
   const total = qty * price;
   itemsValue += total;
-  itemsList.push({
-    name: t.name,
-    qty: qty,
-    price: price,
-    total: total
-  });
+  itemsList.push({ name: t.name, qty: qty, price: price, total: total });
 });
 
-// ✅ 2. الدين قبل
 const debtBefore = debtBalance(p);
-
-// ═══════════════════════════════════════════════════════════
-// 🎯 الحالة أ: الشخص ما عنده دين
-// ═══════════════════════════════════════════════════════════
-if(debtBefore <= 0){
-  // ✅ إيداع مبلغ حر — دائماً صف جديد منفصل
-  if(amountEntered > 0){
-    let amountToRegister = amountEntered;
-    if(remainingDiscount > 0){
-      const applied = Math.min(amountToRegister, remainingDiscount);
-      amountToRegister -= applied;
-      remainingDiscount -= applied;
-    }
-    
-    const newDep = {
-      id:uid(),
-      person:p,
-      carrier:carrier,
-      amount:amountToRegister,
-      originalAmount:amountToRegister,
-      typeName:'',
-      qty:0,
-      originalQty:0,
-      unitPrice:0,
-      totalPrice:0,
-      date:d,
-      legacy:isLegacy,
-      note:'💵 مبلغ حر',
-      _usedQty:0,
-      _usedMoney:0,
-      _editedAt:Date.now()
-    };
-    if(isLegacy) newDep._showInReport = true;
-    db.deposits.push(newDep);
-  }
-  
-  // ✅ إيداع كل نوع منفصل
-  validItems.forEach(it => {
-    const t = db.flourTypes.find(x => x.id === it.typeId);
-    if(!t) return;
-    const qty = +it.qty || 0;
-    const price = +it.price || 0;
-    let total = qty * price;
-    
-    if(remainingDiscount > 0 && total > 0){
-      const applied = Math.min(total, remainingDiscount);
-      total -= applied;
-      remainingDiscount -= applied;
-    }
-    
-    const tC = _cleanType(t.name);
-    
-    let dep = db.deposits.find(x => 
-      _cleanPerson(x.person) === bC && 
-      _cleanType(x.typeName) === tC && 
-      !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && 
-      x.originalQty !== undefined && 
-      !!x.legacy === !!isLegacy
-    );
-    
-    if(dep){
-      dep.originalQty = (+dep.originalQty || 0) + qty;
-      dep.qty = (+dep.qty || 0) + qty;
-      if(total > 0){
-        dep.originalAmount = (+dep.originalAmount || 0) + total;
-        dep.amount = (+dep.amount || 0) + total;
-      }
-      if(price > 0) dep.unitPrice = price;
-      if(isLegacy && !dep._showInReport) dep._showInReport = true;
-      dep._editedAt = Date.now();
-    } else {
-      const newTypeDep = {
-        id:uid(),
-        person:p,
-        carrier:carrier,
-        amount:total,
-        originalAmount:total,
-        typeName:t.name,
-        qty:qty,
-        originalQty:qty,
-        unitPrice:price,
-        totalPrice:total,
-        date:d,
-        legacy:isLegacy,
-        note:total>0?'💰+🌾':'📦 كمية فقط',
-        _usedQty:0,
-        _usedMoney:0,
-        _editedAt:Date.now()
-      };
-      if(isLegacy) newTypeDep._showInReport = true;
-      db.deposits.push(newTypeDep);
-    }
-    
-    // ✅ إضافة الحجز
-    let r = db.reservations.find(x => 
-      _cleanPerson(x.person) === bC && 
-      _cleanType(x.typeName) === tC && 
-      (x.totalQty - x.usedQty) > 0
-    );
-    if(r){
-      r.totalQty += qty;
-      r.lastDate = d;
-      r._editedAt = Date.now();
-    } else {
-      db.reservations.push({
-        id: uid(),
-        person: p,
-        typeName: t.name,
-        totalQty: qty,
-        usedQty: 0,
-        date: d,
-        lastDate: d,
-        _editedAt: Date.now()
-      });
-    }
-  });
-  
-  // ✅ إضافة باقي كلي (dRemaining) كدين
-  if(rem > 0){
-    db.debts.push({
-      id: uid(),
-      person: p,
-      amount: rem,
-      typeName: '(الباقي من إيداع)',
-      qty: 0,
-      date: d,
-      manual: true,
-      fromDeposit: true,
-      _editedAt: Date.now()
-    });
-  }
-  
-  if(document.getElementById('dLegacy'))document.getElementById('dLegacy').checked=false;
-  
-  save();renderAll();
-  document.getElementById('dPerson').value='';
-  if(document.getElementById('dCarrier'))document.getElementById('dCarrier').value='';
-  document.getElementById('dAmount').value='';
-  if(document.getElementById('dDiscount'))document.getElementById('dDiscount').value='';
-  document.getElementById('dRemaining').value='';
-  if(document.getElementById('dDateTime'))document.getElementById('dDateTime').value='';
-  _depositItems=[{id:uid(),typeId:'',qty:'',price:''}];
-  renderDepositTypes();
-  
-  let msg = '✅ تم الإيداع';
-  if(amountEntered > 0) msg += ` — مبلغ: ${money(amountEntered)}`;
-  if(itemsValue > 0) msg += ` — أنواع: ${money(itemsValue)}`;
-  if(rem > 0) msg += ` — باقي للديون: ${money(rem)}`;
-  if(originalDiscount > 0) msg += ` — خصم: ${money(originalDiscount)}`;
-  if(isLegacy) msg += ` 📜 قديم`;
-  toast(msg);
-  return;
-}
-
-// ═══════════════════════════════════════════════════════════
-// 🎯 الحالة ب: الشخص عنده دين
-// ═══════════════════════════════════════════════════════════
-const cashRemaining = amountEntered - itemsValue;
 
 let debtDeducted = 0;
 let freeDisplay = 0;
 let newDebtAmount = 0;
 
-if(cashRemaining > 0){
-  debtDeducted = Math.min(debtBefore, cashRemaining);
-  freeDisplay = cashRemaining - debtDeducted;
-} else if(cashRemaining < 0){
-  newDebtAmount = Math.abs(cashRemaining);
+if(shouldDeductDebt && debtBefore > 0){
+  const cashRemaining = amountEntered - itemsValue;
+  if(cashRemaining > 0){
+    debtDeducted = Math.min(debtBefore, cashRemaining);
+    freeDisplay = cashRemaining - debtDeducted;
+  } else if(cashRemaining < 0){
+    newDebtAmount = Math.abs(cashRemaining);
+  }
+} else {
+  freeDisplay = amountEntered;
 }
 
 if(rem > 0){
   newDebtAmount += rem;
 }
 
-// ✅ سجّل المبلغ الكامل كصف واحد
+// ✅ تسجيل المبلغ الحر (دائماً صف جديد) — بدون _showInReport
 if(amountEntered > 0){
   let amountToRegister = amountEntered;
   if(remainingDiscount > 0){
@@ -5634,97 +6007,101 @@ if(amountEntered > 0){
     _date: d
   };
 
-  // ✅ ابحث عن إيداع حر موجود
-  let freeDep = db.deposits.find(x => 
-    _cleanPerson(x.person) === bC && 
-    (!x.typeName || x.typeName === '') && 
-    !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && 
-    !!x.legacy === !!isLegacy &&
-    !x._isDebtOverflow
-  );
-  
-  if(freeDep){
-    const oldAmount = +freeDep.originalAmount || 0;
-    const oldUsed = +freeDep._usedMoney || 0;
-    const oldRem = +freeDep.amount || 0;
-    
-    freeDep.originalAmount = oldAmount + amountToRegister;
-    freeDep._usedMoney = oldUsed + totalUsedMoney;
-    freeDep.amount = oldRem + freeDisplay;
-    if(isLegacy && !freeDep._showInReport) freeDep._showInReport = true;
-    
-    if(freeDep._lastDepositInfo && freeDep._lastDepositInfo._itemsList){
-      freeDep._lastDepositInfo._itemsList = [
-        ...freeDep._lastDepositInfo._itemsList,
-        ...itemsList
-      ];
-      freeDep._lastDepositInfo._itemsValue = (freeDep._lastDepositInfo._itemsValue || 0) + itemsValue;
-      freeDep._lastDepositInfo._debtBefore = debtBefore;
-      freeDep._lastDepositInfo._debtDeducted = (freeDep._lastDepositInfo._debtDeducted || 0) + debtDeducted;
-      freeDep._lastDepositInfo._freeRemaining = (freeDep._lastDepositInfo._freeRemaining || 0) + freeDisplay;
-      freeDep._lastDepositInfo._fullAmount = (freeDep._lastDepositInfo._fullAmount || 0) + amountEntered;
-      freeDep._lastDepositInfo._usedMoney = (freeDep._lastDepositInfo._usedMoney || 0) + totalUsedMoney;
-    } else {
-      freeDep._lastDepositInfo = depositInfo;
-    }
-    freeDep._editedAt = Date.now();
-  } else {
-    const newDebtDep = {
-      id:uid(),
-      person:p,
-      carrier:carrier,
-      amount:freeDisplay,
-      originalAmount:amountToRegister,
-      _usedMoney:totalUsedMoney,
-      typeName:'',
-      qty:0,
-      originalQty:0,
-      unitPrice:0,
-      totalPrice:0,
-      date:d,
-      legacy:isLegacy,
-      note:'💵 المبلغ',
-      _usedQty:0,
-      _editedAt:Date.now(),
-      _lastDepositInfo: depositInfo
-    };
-    if(isLegacy) newDebtDep._showInReport = true;
-    db.deposits.push(newDebtDep);
-  }
+  const newFreeDep = {
+    id:uid(),
+    person:p,
+    carrier:carrier,
+    amount:freeDisplay,
+    originalAmount:amountToRegister,
+    _usedMoney:totalUsedMoney,
+    typeName:'',
+    qty:0,
+    originalQty:0,
+    unitPrice:0,
+    totalPrice:0,
+    date:d,
+    legacy:isLegacy,
+    note:debtDeducted > 0 ? '💵 المبلغ (خصم دين)' : '💵 المبلغ',
+    _usedQty:0,
+    _editedAt:Date.now(),
+    _lastDepositInfo: depositInfo
+  };
+  db.deposits.push(newFreeDep);
 }
 
-// ✅ سجّل الأنواع في reservations
+// ✅ الأنواع (حجز + إيداع)
 validItems.forEach(it=>{
   const t=db.flourTypes.find(x=>x.id===it.typeId);
   if(!t)return;
   const qty=+it.qty||0;
+  const price=+it.price||0;
+  let total=qty*price;
+  
+  if(remainingDiscount > 0 && total > 0){
+    const applied = Math.min(total, remainingDiscount);
+    total -= applied;
+    remainingDiscount -= applied;
+  }
+  
   const tC = _cleanType(t.name);
+  
+  let dep = db.deposits.find(x => 
+    _cleanPerson(x.person) === bC && 
+    _cleanType(x.typeName) === tC && 
+    !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && 
+    x.originalQty !== undefined && 
+    !!x.legacy === !!isLegacy
+  );
+  
+  if(dep){
+    dep.originalQty = (+dep.originalQty || 0) + qty;
+    dep.qty = (+dep.qty || 0) + qty;
+    if(total > 0){
+      dep.originalAmount = (+dep.originalAmount || 0) + total;
+      dep.amount = (+dep.amount || 0) + total;
+    }
+    if(price > 0) dep.unitPrice = price;
+    dep._editedAt = Date.now();
+  } else {
+    const newTypeDep = {
+      id:uid(), person:p, carrier:carrier,
+      amount:total, originalAmount:total,
+      typeName:t.name, qty:qty, originalQty:qty,
+      unitPrice:price, totalPrice:total,
+      date:d, legacy:isLegacy,
+      note:total>0?'💰+🌾':'📦 كمية فقط',
+      _usedQty:0, _usedMoney:0, _editedAt:Date.now()
+    };
+    db.deposits.push(newTypeDep);
+  }
   
   let r = db.reservations.find(x => 
     _cleanPerson(x.person) === bC && 
     _cleanType(x.typeName) === tC && 
     (x.totalQty - x.usedQty) > 0
   );
-  
   if(r){
     r.totalQty += qty;
     r.lastDate = d;
     r._editedAt = Date.now();
   } else {
     db.reservations.push({
-      id: uid(),
-      person: p,
-      typeName: t.name,
-      totalQty: qty,
-      usedQty: 0,
-      date: d,
-      lastDate: d,
+      id: uid(), person: p, typeName: t.name,
+      totalQty: qty, usedQty: 0, date: d, lastDate: d,
       _editedAt: Date.now()
     });
   }
 });
 
-// ✅ اخصم من الدين
+if(rem > 0){
+  db.debts.push({
+    id: uid(), person: p, amount: rem,
+    typeName: '(الباقي من إيداع)',
+    qty: 0, date: d, manual: true,
+    fromDeposit: true, _editedAt: Date.now()
+  });
+}
+
 if(debtDeducted > 0){
   const sortedDebts = db.debts
     .filter(x => _cleanPerson(x.person) === bC)
@@ -5744,39 +6121,28 @@ if(debtDeducted > 0){
   );
 
   db.payments.push({
-    id: uid(),
-    person: p,
-    amount: debtDeducted,
-    typeName: '💳 خصم تلقائي',
-    qty: 0,
+    id: uid(), person: p, amount: debtDeducted,
+    typeName: '💳 خصم تلقائي', qty: 0,
     details: `أنواع: ${money(itemsValue)} — مطلوب: ${money(debtBefore)} — باقي: ${money(freeDisplay)}`,
-    date: d,
-    _fromDeposit: true,
-    _debtBefore: debtBefore,
-    _debtDeducted: debtDeducted,
+    date: d, _fromDeposit: true,
+    _debtBefore: debtBefore, _debtDeducted: debtDeducted,
     _debtAfter: Math.max(0, debtBefore - debtDeducted),
     _editedAt: Date.now()
   });
 }
 
-// ✅ دين جديد (الباقي سالب أو dRemaining)
 if(newDebtAmount > 0){
   db.debts.push({
-    id: uid(),
-    person: p,
-    amount: newDebtAmount,
-    typeName: '💳 باقي',
-    qty: 0,
-    unitPrice: 0,
-    date: d,
-    manual: true,
-    _fromDeposit: true,
-    _note: cashRemaining < 0 ? 'الباقي سالب' : 'باقي كلي',
+    id: uid(), person: p, amount: newDebtAmount,
+    typeName: '💳 باقي', qty: 0, unitPrice: 0,
+    date: d, manual: true, _fromDeposit: true,
+    _note: amountEntered - itemsValue < 0 ? 'الباقي سالب' : 'باقي كلي',
     _editedAt: Date.now()
   });
 }
 
 if(document.getElementById('dLegacy'))document.getElementById('dLegacy').checked=false;
+if(_deductCheck)_deductCheck.checked=false;
 
 save();renderAll();
 document.getElementById('dPerson').value='';
@@ -5798,9 +6164,6 @@ if(isLegacy) msg += ` 📜 قديم`;
 toast(msg);
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ renderDeposit — يدعم الحالتين (بدون تغيير)
-// ═══════════════════════════════════════════════════════════
 function renderDeposit(){
 const bal=document.getElementById('depositBalances');
 const _plSet=new Set([...db.deposits.filter(d=>!d._finished&&!d.isWithdrawal&&!d.isCarry&&!d.cashPayment).map(d=>d.person),...db.reservations.map(r=>r.person)]);
@@ -5942,7 +6305,7 @@ if(a > debtBefore && debtBefore > 0){
   const paymentAmount = debtBefore;
   const excess = a - debtBefore;
 
-  db.payments.push({id:uid(),person:p,amount:paymentAmount,typeName:tn||'',qty:q,details:(det||'')+(excess>0?' (فائض '+money(excess)+' للإيداع)':''),date:d,_editedAt:Date.now()});
+  db.payments.push({id:uid(),person:p,amount:paymentAmount,typeName:tn||'',qty:q,details:(det||'')+' (فائض '+money(excess)+' للإيداع)',date:d,_editedAt:Date.now()});
 
   const bC = _cleanPerson(p);
   let freeDep = db.deposits.find(x => _cleanPerson(x.person) === bC && (!x.typeName || x.typeName === '') && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished);
@@ -6016,7 +6379,72 @@ return {mode:'qty',qty:null,money:0,hasQtyDeposit:false,hasMoneyDeposit:false};
 let _finalCashbox=0;let _finalTotal=0;let _finalExpenses=0;
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [تعديل] renderReport — استثناء _fromDeposit + عرض _itemsList
+// ✅ [مشكلة 3] — تجميع الإيداعات الحرة بنفس _accumulateId
+// ═══════════════════════════════════════════════════════════
+function _aggregateFreeDeposits(deposits){
+  const result = [];
+  const freeGroups = new Map(); // accId → aggregated item
+  
+  deposits.forEach(d => {
+    if(d._accumulateId && (!d.typeName || d.typeName === '')){
+      // ← إيداع حر قابل للتجميع
+      if(!freeGroups.has(d._accumulateId)){
+        freeGroups.set(d._accumulateId, {
+          id: d.id,
+          _aggregatedIds: [d.id],
+          _accumulateId: d._accumulateId,
+          person: d.person,
+          carrier: d.carrier || '',
+          typeName: '',
+          qty: 0,
+          originalQty: 0,
+          unitPrice: 0,
+          totalPrice: 0,
+          amount: 0,
+          originalAmount: 0,
+          _usedQty: 0,
+          _usedMoney: 0,
+          legacy: d.legacy,
+          _showInReport: d._showInReport,
+          date: d.date,
+          note: d.note || '💵 مبلغ حر',
+          _editedAt: d._editedAt,
+          _dates: [d.date]
+        });
+      }
+      const agg = freeGroups.get(d._accumulateId);
+      agg._aggregatedIds.push(d.id);
+      agg.originalAmount = (+agg.originalAmount || 0) + (+d.originalAmount || +d.amount || 0);
+      agg.amount = (+agg.amount || 0) + (+d.amount || 0);
+      agg._usedMoney = (+agg._usedMoney || 0) + (+d._usedMoney || 0);
+      agg.originalQty = (+agg.originalQty || 0) + (+d.originalQty || 0);
+      agg.qty = (+agg.qty || 0) + (+d.qty || 0);
+      agg._usedQty = (+agg._usedQty || 0) + (+d._usedQty || 0);
+      agg._dates.push(d.date);
+      // استخدم أحدث تاريخ
+      if(String(d.date) > String(agg.date)) agg.date = d.date;
+      if(!agg._showInReport && d._showInReport) agg._showInReport = true;
+      if((+d._editedAt || 0) > (+agg._editedAt || 0)) agg._editedAt = d._editedAt;
+    } else {
+      // ← إيداع نوع محدد — يبقى كما هو
+      result.push(d);
+    }
+  });
+  
+  // ✅ أضف الإيداعات الحرة المجمعة
+  freeGroups.forEach(agg => {
+    // احسب المجموع المتبقي
+    const remQty = Math.max(0, (+agg.originalQty || 0) - (+agg._usedQty || 0));
+    const remAmt = Math.max(0, (+agg.originalAmount || 0) - (+agg._usedMoney || 0));
+    if(remQty <= 0 && remAmt <= 0) return; // ← تخطى المنتهية
+    result.push(agg);
+  });
+  
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ [مشكلة 2] — renderReport — الإيداعات الحرة تُجمع
 // ═══════════════════════════════════════════════════════════
 function renderReport(){
 var _archT=getArchiveTime();
@@ -6055,9 +6483,19 @@ db.debts.filter(d=>d.manual && !d.fromSale && !d.fromDeposit && !d.fromExchange)
 rows.push({date:d.date,type:d.typeName||'دين يدوي',qty:'',unitPrice:d.amount,buyer:d.person,carrier:'—',amount:0,displayAmount:0,method:'دين يدوي',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});
 });
 
-// ✅ الإيداعات — مع _itemsList
-db.deposits.filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).forEach(d=>{
-  const amountFull = +d.originalAmount!==undefined?+d.originalAmount:+d.amount;
+// ✅ [مشكلة 3] الإيداعات — تجميع الحرة بـ _accumulateId
+const _reportableDeps = (db.deposits||[]).filter(d=>{
+  if(!(+d.originalAmount>0)) return false;
+  if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;
+  if(d.legacy && d._showInReport !== true) return false;
+  if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;
+  if(d._archived) return false;
+  if(_archT && d.date && d.date <= _archT) return false;
+  return true;
+});
+const _aggregatedDeps = _aggregateFreeDeposits(_reportableDeps);
+_aggregatedDeps.forEach(d=>{
+  const amountFull = +d.originalAmount !== undefined ? +d.originalAmount : +d.amount;
   const info = d._lastDepositInfo || null;
   const itemsList = info && Array.isArray(info._itemsList) ? info._itemsList : [];
   const itemsValue = info ? +info._itemsValue || 0 : 0;
@@ -6065,6 +6503,9 @@ db.deposits.filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.is
   const debtDeducted = info ? +info._debtDeducted || 0 : 0;
   const freeRemaining = info ? +info._freeRemaining || 0 : 0;
   const hasDetails = (info !== null && (itemsList.length > 0 || debtBefore > 0 || freeRemaining > 0));
+  
+  const isAggregated = d._aggregatedIds && d._aggregatedIds.length > 1;
+  const datesStr = isAggregated ? d._dates.map(x=>fmtShort(x)).join(' + ') : null;
   
   rows.push({
     date:d.date,
@@ -6085,7 +6526,10 @@ db.deposits.filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.is
     _debtBefore: (hasDetails && debtBefore > 0) ? debtBefore : null,
     _debtDeducted: hasDetails ? debtDeducted : null,
     _freeRemaining: hasDetails ? freeRemaining : null,
-    _hasDetails: hasDetails
+    _hasDetails: hasDetails,
+    _isAggregated: isAggregated,
+    _aggregatedDates: datesStr,
+    _aggregatedCount: isAggregated ? d._aggregatedIds.length : 0
   });
 });
 
@@ -6120,7 +6564,7 @@ rows.forEach((r,rowIdx)=>{
 let badgeHtml;
 if(['نقد','دين','واصل','هدية'].includes(r.method)){badgeHtml=`<span class="badge b-${r.method}">${r.method}</span>`;}
 else if(r.method==='تسديد'){badgeHtml=`<span style="background:#27ae60;color:#fff;padding:3px 9px;border-radius:11px;font-size:10px;font-weight:bold">✅ تسديد</span>`;}
-else if(r.method==='إيداع'){badgeHtml=`<span style="background:#3498db;color:#fff;padding:3px 9px;border-radius:11px;font-size:10px;font-weight:bold">💰 إيداع</span>`;}
+else if(r.method==='إيداع'){badgeHtml=`<span style="background:#3498db;color:#fff;padding:3px 9px;border-radius:11px;font-size:10px;font-weight:bold">💰 إيداع${r._isAggregated?' ('+r._aggregatedCount+')':''}</span>`;}
 else if(r.method==='إضافات'){badgeHtml=`<span style="background:#f39c12;color:#fff;padding:3px 9px;border-radius:11px;font-size:10px;font-weight:bold">💵 إضافات</span>`;}
 else if(r.method==='استرجاع'){badgeHtml=`<span class="badge b-استرجاع">↩️ استرجاع</span>`;}
 else if(r.method==='تبديل'){badgeHtml=`<span class="badge b-تبديل">🔄 تبديل</span>`;}
@@ -6139,7 +6583,6 @@ else{_amtShow=money(r.amount);}
 let _remQtyShow='—';
 if(r.remQty!==null && r.remQty!==undefined){if(r.remQty<=0){_remQtyShow='<span style="color:#8b0000;font-weight:bold">انتهى</span>';}else{_remQtyShow='<span style="color:#c0392b;font-weight:bold">'+money(r.remQty)+'</span>';}}
 
-// ✅ خلية "المطلوب" — مع _itemsList
 let _matloobCell;
 if(r.method==='إيداع'){
   if(r._hasDetails){
@@ -6149,14 +6592,9 @@ if(r.method==='إيداع'){
         details += `<div>🌾 ${item.name}: ${money(item.qty)} × ${money(item.price)} = <b style="color:#2980b9">${money(item.total)}</b></div>`;
       });
     }
-    if(r._debtBefore !== null && r._debtBefore > 0){
-      details += `<div>💳 مطلوب: <b style="color:#c0392b">${money(r._debtBefore)}</b></div>`;
-    }
-    if(r._freeRemaining > 0){
-      details += `<div>✅ باقي: <b style="color:#27ae60">${money(r._freeRemaining)} إيداع حر</b></div>`;
-    } else if(r._debtBefore !== null && r._debtBefore > 0 && r._freeRemaining === 0){
-      details += `<div>✅ باقي: <b style="color:#888">0</b></div>`;
-    }
+    if(r._debtBefore !== null && r._debtBefore > 0){details += `<div>💳 مطلوب: <b style="color:#c0392b">${money(r._debtBefore)}</b></div>`;}
+    if(r._freeRemaining > 0){details += `<div>✅ باقي: <b style="color:#27ae60">${money(r._freeRemaining)} إيداع حر</b></div>`;}
+    else if(r._debtBefore !== null && r._debtBefore > 0 && r._freeRemaining === 0){details += `<div>✅ باقي: <b style="color:#888">0</b></div>`;}
     details += `</div>`;
     _matloobCell = details;
   } else {
@@ -6168,7 +6606,12 @@ if(r.method==='إيداع'){
   _matloobCell = _remMoneyShow;
 }
 
-h+=`<tr><td style="text-align:center;font-weight:bold;color:#888">${rowIdx+1}</td><td>${r.type}</td><td style="color:#2980b9;font-weight:bold">${r.qty?money(r.qty):'—'}</td><td>${r.method==='إيداع' ? '<span style="color:#ccc">—</span>' : _remQtyShow}</td><td>${r.buyer}</td><td style="font-size:10px">${r.carrier}</td><td style="color:#27ae60;font-weight:bold">${r.unitPrice?money(r.unitPrice):'—'}</td><td style="color:#8B4513;font-weight:bold">${_amtShow}</td><td>${_matloobCell}</td><td>${badgeHtml}</td><td class="time-cell">${fmtTime(r.date)}</td></tr>`;
+// ✅ عرض تواريخ التجميع تحت نوع الإيداع
+const _typeDisplay = r._isAggregated && r._aggregatedDates
+  ? `${r.type}<div style="font-size:9px;color:#3498db;margin-top:2px">📅 ${r._aggregatedDates}</div>`
+  : r.type;
+
+h+=`<tr><td style="text-align:center;font-weight:bold;color:#888">${rowIdx+1}</td><td>${_typeDisplay}</td><td style="color:#2980b9;font-weight:bold">${r.qty?money(r.qty):'—'}</td><td>${r.method==='إيداع' ? '<span style="color:#ccc">—</span>' : _remQtyShow}</td><td>${r.buyer}</td><td style="font-size:10px">${r.carrier}</td><td style="color:#27ae60;font-weight:bold">${r.unitPrice?money(r.unitPrice):'—'}</td><td style="color:#8B4513;font-weight:bold">${_amtShow}</td><td>${_matloobCell}</td><td>${badgeHtml}</td><td class="time-cell">${fmtTime(r.date)}</td></tr>`;
 });
 h+=`<tr style="background:#faf0e6;font-weight:bold"><td colspan="7" style="text-align:center">المجموع</td><td style="color:#8B4513;font-size:14px">${money(totalSales + _carryAmount)}</td><td colspan="3"></td></tr>`;
 }else{
@@ -6204,10 +6647,10 @@ else if(s.method==='هدية'){paid=0;}
 _reportTotal += paid;
 });
 });
-// ✅ استثناء _fromDeposit
 _reportTotal += db.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0);
 _reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-_reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
+// ✅ [مشكلة 3] — الإيداعات: تجميع الحرة (بدون تكرار)
+_reportTotal += _aggregatedDeps.reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
 _reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
 
 const _te=db.expenses.reduce((a,e)=>a+e.amount,0);
@@ -6397,6 +6840,9 @@ function _formatDateArabic(dateKey){
   }catch(e){ return dateKey; }
 }
 
+// ═══════════════════════════════════════════════════════════
+// ✅ [مشكلة 4] doArchive — يرفع الأرشيف للسحابة مباشرة
+// ═══════════════════════════════════════════════════════════
 function doArchive(){
 const hd=db.sales.length||db.payments.length||db.expenses.length||db.buyers.length||(db.cashAdditions||[]).length||(db.exchanges||[]).length||db.debts.some(d=>d.manual);
 if(!hd)return toast('لا توجد بيانات',true);
@@ -6491,10 +6937,16 @@ datesSorted.forEach(dateKey=>{
       dayTotal += paid;
     });
   });
-  // ✅ استثناء _fromDeposit
   dayTotal += dayData.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0);
   dayTotal += dayData.exchanges.filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-  dayTotal += dayData.deposits.filter(d=>+d.amount>0 && !d.legacy && !d.isWithdrawal && !d.cashPayment && !d.isCarry && !(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل')))).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
+  // ✅ الإيداعات — يدعم _showInReport
+  dayTotal += dayData.deposits.filter(d=>{
+    if(!(+d.amount>0)) return false;
+    if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;
+    if(d.legacy && d._showInReport !== true) return false;
+    if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;
+    return true;
+  }).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
   dayTotal += dayData.cashAdditions.filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
   const dayExpenses = dayData.expenses.reduce((a,e)=>a+e.amount,0);
   
@@ -6575,7 +7027,33 @@ db.debts = db.debts.filter(d => +d.amount > 0.01);
 _skipNextMerge=true;
 db._lastActionBy = _deviceId;
 db._actionId = _deviceId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+
+// ✅ [مشكلة 4] — إضافة archive + كل الأقسام المتغيرة للـ pendingCategories
+if(!_pendingCategories) _pendingCategories = new Set();
+_pendingCategories.add('archive');
+_pendingCategories.add('deposits');
+_pendingCategories.add('flourTypes');
+_pendingCategories.add('debts');
+_pendingCategories.add('reservations');
+_pendingCategories.add('sales');
+_pendingCategories.add('payments');
+_pendingCategories.add('expenses');
+_pendingCategories.add('buyers');
+_pendingCategories.add('cashAdditions');
+_pendingCategories.add('exchanges');
+
 save();
+
+// ✅ [مشكلة 4] — رفع فوري صريح بعد save
+setTimeout(async () => {
+  try {
+    await _doUpload();
+    console.log('✅ تم رفع الأرشيف للسحابة');
+  } catch(e) {
+    console.warn('فشل رفع الأرشيف:', e);
+  }
+}, 500);
+
 renderAll();
 renderArchive();
 renderReport();
@@ -7508,11 +7986,47 @@ function addNewAccount(){
   renderAdminPanel();
   toast('✅');
 }
-async function switchAccount(u){if(!confirm('التبديل إلى '+u+'؟'))return;stopRealtimeListener();localStorage.setItem(CUR_KEY,u);currentUser=u;const a=getAccounts();currentAccount=a.find(x=>x.username===u);await loadUserData();showApp();toast('تم');}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ [مشكلة 1] switchAccount — تفريغ كامل قبل التبديل
+// ═══════════════════════════════════════════════════════════
+async function switchAccount(u){
+  if(!confirm('التبديل إلى '+u+'؟'))return;
+  
+  stopRealtimeListener();
+  
+  currentUser = null;
+  currentAccount = null;
+  db = null;
+  _saleItems = [];
+  _depositItems = [];
+  _exReturnItems = [];
+  _exSwapItems = [];
+  _currentViewHTML = '';
+  _lastCashboxValue = 0;
+  _lastCloudState = null;
+  _lastCloudServerTime = 0;
+  _migrated = false;
+  _pendingCategories = new Set();
+  
+  document.getElementById('appWrap').classList.remove('show');
+  document.getElementById('authScreen').classList.add('hidden');
+  
+  localStorage.setItem(CUR_KEY, u);
+  currentUser = u;
+  const a = getAccounts();
+  currentAccount = a.find(x => x.username === u);
+  
+  await loadUserData();
+  
+  showApp();
+  toast('تم التبديل ✅');
+}
+
 function delAccountByName(u){if(!isAdmin()&&u!==currentUser)return toast('غير مصرح',true);if(u===currentUser)return deleteAccount();if(!confirm('حذف '+u+'؟'))return;const a=getAccounts().filter(x=>x.username!==u);saveAccounts(a);localStorage.removeItem(DATA_PREFIX+u);if(cloudDataRef){try{cloudDataRef.doc(u).delete().catch(e=>console.warn(e));}catch(e){}}renderAccountsList();renderAdminPanel();toast('تم');}
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [تعديل] deleteAccount — حذف كامل من السحابة
+// ✅ حذف الحساب
 // ═══════════════════════════════════════════════════════════
 async function deleteAccount(){
   const a = getAccounts();
@@ -7523,25 +8037,21 @@ async function deleteAccount(){
   const isUserAdmin = currentAccount && currentAccount.role === 'admin';
 
   try{
-    // ✅ 1. حذف من قائمة الحسابات محلياً
     const remainingAccs = a.filter(x => x.username !== deletedUser);
     if(remainingAccs.length > 0 && isUserAdmin && !remainingAccs.find(x => x.role === 'admin')){
       remainingAccs[0].role = 'admin';
     }
     localStorage.setItem(ACC_KEY, JSON.stringify(remainingAccs));
 
-    // ✅ 2. حذف من قائمة الحسابات في السحابة
     if(cloudEnabled && cloudAccountsRef){
       try{
         await cloudAccountsRef.doc('shared').set({
           list: remainingAccs,
           updatedAt: Date.now()
         });
-        console.log('✅ تم حذف الحساب من قائمة السحابة');
       }catch(e){ console.warn('حذف من السحابة:', e); }
     }
 
-    // ✅ 3. حذف كل بيانات المستخدم من Firestore (subcollections + meta + main doc)
     if(cloudEnabled && _firestoreDB){
       try{
         const userRef = _firestoreDB.collection('userdata').doc(deletedUser);
@@ -7554,34 +8064,24 @@ async function deleteAccount(){
               const batch = _firestoreDB.batch();
               snap.forEach(doc => batch.delete(doc.ref));
               await batch.commit();
-              console.log(`✅ تم حذف ${cat}: ${snap.size} مستند`);
             }
           }catch(e){ console.warn(`حذف ${cat}:`, e); }
         }
         
-        // حذف المستند الرئيسي القديم
         try{ await userRef.delete(); }catch(e){}
-        
-        // حذف cloudDataRef القديم
         try{ await cloudDataRef.doc(deletedUser).delete(); }catch(e){}
-        
-        console.log('✅ تم حذف كل بيانات المستخدم من Firestore');
       }catch(e){ console.warn('حذف بيانات المستخدم:', e); }
     }
 
-    // ✅ 4. حذف من Firebase Auth (إذا موجود)
     try{
       if(window._auth && window._auth.currentUser){
         await window._auth.currentUser.delete();
-        console.log('✅ تم حذف المستخدم من Firebase Auth');
       }
     }catch(e){ console.warn('حذف Auth:', e); }
 
-    // ✅ 5. حذف من localStorage
     localStorage.removeItem(DATA_PREFIX + deletedUser);
     localStorage.removeItem(CUR_KEY);
 
-    // ✅ 6. إيقاف المستمعين
     stopRealtimeListener();
 
     currentUser = null;
@@ -7603,7 +8103,182 @@ async function deleteAccount(){
 
 function exportData(){const d={user:currentUser,role:currentAccount?currentAccount.role:'user',data:db,exportedAt:nowISO()};const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`flour_backup_${currentUser}_${Date.now()}.json`;a.click();URL.revokeObjectURL(u);toast('تم التصدير ✅');}
 function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=(ev)=>{try{const p=JSON.parse(ev.target.result);const d=p.data||p;if(!confirm('استيراد؟'))return;db=Object.assign(emptyDB(),d);_fixDBFields(db);save();renderAll();renderArchive();renderSettings();toast('تم ✅');}catch(err){toast('ملف غير صالح',true);}};r.readAsText(f);e.target.value='';}
-function clearAll(){if(!confirm('حذف كل البيانات؟'))return;if(!confirm('تأكيد؟'))return;db=emptyDB();save();renderAll();renderArchive();toast('تم');}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ [تعديل] clearAll — يحذف من السحابة + المحلي
+// ═══════════════════════════════════════════════════════════
+async function clearAll(){
+  if(!confirm('⚠️ حذف كل البيانات؟\n\nسيتم حذف كل البيانات من:\n✅ جهازك\n✅ السحابة (Firestore)\n\n⚠️ لا يمكن التراجع!'))return;
+  if(!confirm('تأكيد نهائي؟ — كل شي راح ينمسح نهائياً'))return;
+  
+  const _overlay = document.createElement('div');
+  _overlay.id = 'clearAllOverlay';
+  _overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:999999;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;direction:rtl;padding:20px';
+  _overlay.innerHTML = '<div style="font-size:60px;margin-bottom:15px">🗑️</div><div style="font-size:18px;font-weight:bold;margin-bottom:10px">جاري حذف كل البيانات...</div><div id="clearAllStatus" style="font-size:13px;opacity:0.9;background:rgba(255,255,255,0.15);padding:10px 20px;border-radius:10px">جاري التحضير...</div><div style="font-size:11px;opacity:0.7;margin-top:10px">لا تغلق التطبيق</div>';
+  document.body.appendChild(_overlay);
+  
+  const _updateStatus = (msg) => {
+    const el = document.getElementById('clearAllStatus');
+    if(el) el.textContent = msg;
+  };
+  
+  try{
+    // ✅ 1. حذف من السحابة
+    if(cloudEnabled && _firestoreDB && currentUser){
+      _updateStatus('☁️ جاري حذف البيانات من السحابة...');
+      
+      const userRef = _firestoreDB.collection('userdata').doc(currentUser);
+      const categories = ['sales','debts','deposits','payments','expenses','exchanges','cashAdditions','reservations','buyers','customerPrices','flourTypes','archive'];
+      
+      for(const cat of categories){
+        try{
+          _updateStatus('🗑️ حذف ' + cat + ' من السحابة...');
+          const snap = await userRef.collection(cat).get();
+          if(snap.size > 0){
+            const docs = [];
+            snap.forEach(doc => docs.push(doc.ref));
+            // دفعات 400 (حد Firestore 500)
+            for(let i = 0; i < docs.length; i += 400){
+              const batch = _firestoreDB.batch();
+              docs.slice(i, i + 400).forEach(ref => batch.delete(ref));
+              await batch.commit();
+            }
+          }
+        }catch(e){ console.warn('حذف ' + cat + ':', e); }
+      }
+      
+      _updateStatus('🗑️ حذف meta من السحابة...');
+      try{
+        if(cloudMetaRef) await cloudMetaRef.delete();
+      }catch(e){ console.warn('حذف meta:', e); }
+      
+      _updateStatus('🗑️ حذف المستند الرئيسي من السحابة...');
+      try{
+        if(cloudDataRef) await cloudDataRef.doc(currentUser).delete();
+      }catch(e){ console.warn('حذف main:', e); }
+    }
+    
+    // ✅ 2. تفريغ محلي
+    _updateStatus('📱 تفريغ البيانات المحلية...');
+    db = emptyDB();
+    db._migratedToSplit = true;
+    db._lastSaved = Date.now();
+    db._lastActionBy = _deviceId;
+    db._lastArchiveAt = Date.now();
+    db._clearedAt = Date.now();
+    db._clearedBy = _deviceId;
+    
+    try{
+      localStorage.setItem(DATA_PREFIX + currentUser, JSON.stringify(db));
+    }catch(e){}
+    
+    // ✅ 3. حفظ meta فارغة جديدة في السحابة (مع علامة المسح)
+    if(cloudEnabled && cloudMetaRef){
+      _updateStatus('📝 حفظ علامة المسح في السحابة...');
+      try{
+        await cloudMetaRef.set({
+          _migratedToSplit: true,
+          _lastArchiveAt: Date.now(),
+          _clearedAt: Date.now(),
+          _clearedBy: _deviceId,
+          _permanentCarry: 0,
+          _cashboxOffset: 0,
+          _manualOverrides: {},
+          _notifications: [],
+          _lastSaved: Date.now(),
+          _lastActionBy: _deviceId
+        });
+      }catch(e){ console.warn('حفظ meta جديد:', e); }
+    }
+    
+    // ✅ 4. إيقاف المستمعين (عشان ما يرجعون البيانات)
+    stopRealtimeListener();
+    
+    // ✅ 5. إعادة رسم كل الواجهات
+    _updateStatus('✅ جاري تحديث الواجهة...');
+    renderAll();
+    renderArchive();
+    renderReport();
+    renderSettings();
+    
+    // ✅ 6. إعادة تشغيل المستمعين بعد لحظة
+    setTimeout(() => {
+      startRealtimeListener();
+    }, 1500);
+    
+    _overlay.remove();
+    toast('✅ تم حذف كل البيانات من الجهاز والسحابة');
+    
+  }catch(e){
+    console.error('clearAll error:', e);
+    const ov = document.getElementById('clearAllOverlay');
+    if(ov) ov.remove();
+    toast('⚠️ فشل الحذف — تحقق من الإنترنت', true);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ [جديد] clearCloudOnly — يحذف من السحابة فقط
+// ═══════════════════════════════════════════════════════════
+async function clearCloudOnly(){
+  if(!confirm('⚠️ حذف البيانات من السحابة فقط؟\n\n✅ البيانات المحلية ستبقى كما هي\n☁️ سيتم حذف كل البيانات من Firestore\n\n⚠️ الأجهزة الثانية راح ترجع فاضية!'))return;
+  if(!confirm('تأكيد نهائي؟ — السحابة راح تنمسح'))return;
+  
+  if(!cloudEnabled || !_firestoreDB){
+    return toast('❌ لا يوجد اتصال بالسحابة', true);
+  }
+  
+  const _overlay = document.createElement('div');
+  _overlay.id = 'clearCloudOverlay';
+  _overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:999999;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;direction:rtl;padding:20px';
+  _overlay.innerHTML = '<div style="font-size:60px;margin-bottom:15px">☁️</div><div style="font-size:18px;font-weight:bold;margin-bottom:10px">جاري حذف البيانات من السحابة...</div><div id="clearCloudStatus" style="font-size:13px;opacity:0.9;background:rgba(255,255,255,0.15);padding:10px 20px;border-radius:10px">جاري التحضير...</div>';
+  document.body.appendChild(_overlay);
+  
+  const _updateStatus = (msg) => {
+    const el = document.getElementById('clearCloudStatus');
+    if(el) el.textContent = msg;
+  };
+  
+  try{
+    const userRef = _firestoreDB.collection('userdata').doc(currentUser);
+    const categories = ['sales','debts','deposits','payments','expenses','exchanges','cashAdditions','reservations','buyers','customerPrices','flourTypes','archive'];
+    
+    for(const cat of categories){
+      try{
+        _updateStatus('🗑️ حذف ' + cat + '...');
+        const snap = await userRef.collection(cat).get();
+        if(snap.size > 0){
+          const docs = [];
+          snap.forEach(doc => docs.push(doc.ref));
+          for(let i = 0; i < docs.length; i += 400){
+            const batch = _firestoreDB.batch();
+            docs.slice(i, i + 400).forEach(ref => batch.delete(ref));
+            await batch.commit();
+          }
+        }
+      }catch(e){ console.warn('حذف ' + cat + ':', e); }
+    }
+    
+    _updateStatus('🗑️ حذف meta...');
+    try{
+      if(cloudMetaRef) await cloudMetaRef.delete();
+    }catch(e){}
+    
+    _updateStatus('🗑️ حذف المستند الرئيسي...');
+    try{
+      if(cloudDataRef) await cloudDataRef.doc(currentUser).delete();
+    }catch(e){}
+    
+    _overlay.remove();
+    toast('✅ تم حذف البيانات من السحابة — المحلي سليم');
+    
+  }catch(e){
+    console.error('clearCloudOnly error:', e);
+    const ov = document.getElementById('clearCloudOverlay');
+    if(ov) ov.remove();
+    toast('⚠️ فشل الحذف', true);
+  }
+}
 
 async function recalculateAll(){
 if(!confirm('🔄 سيتم تحديث الأرقام.\n\n✅ يجلب أحدث البيانات من السحابة أولاً\n\nمتابعة؟'))return;
@@ -7932,6 +8607,16 @@ setInterval(async function(){
         const metaDoc = await cloudMetaRef.get();
         if(metaDoc.exists){
           const meta = metaDoc.data();
+          // ✅ إذا في علامة مسح من جهاز ثاني
+          if(meta._clearedAt && meta._clearedAt > (db._clearedAt || 0) && meta._clearedBy !== _deviceId){
+            db = emptyDB();
+            db._migratedToSplit = true;
+            db._clearedAt = meta._clearedAt;
+            try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
+            renderAll();renderArchive();
+            showSyncNotification('🗑️ تم مسح البيانات من جهاز آخر','err');
+            return;
+          }
           if(meta._lastActionBy !== _deviceId){
             const metaTime = +meta._lastSaved || 0;
             const localTime = +db._lastSaved || 0;
@@ -7981,63 +8666,89 @@ document.addEventListener('input', function(e){
   }
 });
 
+// ═══════════════════════════════════════════════════════════
+// ✅ [مشكلة 1] init — تفريغ كامل + انتظار + منع التسريب
+// ═══════════════════════════════════════════════════════════
 (async function init(){
-  const s=localStorage.getItem(CUR_KEY);
+  db = null;
+  currentUser = null;
+  currentAccount = null;
+  _saleItems = [];
+  _depositItems = [];
+  _exReturnItems = [];
+  _exSwapItems = [];
+  _currentViewHTML = '';
+  _lastCashboxValue = 0;
+  _lastCloudState = null;
+  _lastCloudServerTime = 0;
+  _migrated = false;
+  _pendingCategories = new Set();
+  
+  const s = localStorage.getItem(CUR_KEY);
   const localAccounts = getAccounts();
   
-  if(s && localAccounts.find(x=>x.username===s)){
+  if(s && localAccounts.find(x => x.username === s)){
     currentUser = s;
-    currentAccount = localAccounts.find(x=>x.username===s);
+    currentAccount = localAccounts.find(x => x.username === s);
     
-    const localData = localStorage.getItem(DATA_PREFIX+currentUser);
-    if(localData){
-      try{
-        db = Object.assign(emptyDB(), JSON.parse(localData));
-        _fixDBFields(db);
-      }catch(e){ db = emptyDB(); }
-      showApp();
-      
-      setTimeout(async function(){
-        try{
-          const cloudAccounts = await loadAccountsCloud();
-          const freshAcc = cloudAccounts.find(x=>x.username===currentUser);
-          if(freshAcc) currentAccount = freshAcc;
-          
-          await loadUserData();
-          
-          renderAll(); renderArchive(); renderSettings();
-          renderSaleItems(); renderExItems(); renderDepositTypes();
-          _updateNotifBadge();
-          
-          if(navigator.onLine && cloudEnabled){
-            startRealtimeListener();
-            showSyncNotification('📥 تم تحديث البيانات','ok');
-          }
-          
-          normalizeDeposits();
-          const _dedupAuto = deduplicateFlourTypes();
-          if(_dedupAuto > 0){ try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){} }
-        }catch(e){ console.warn('background sync err:', e); }
-      }, 500);
-      return;
+    try{
+      await loadUserData();
+    }catch(e){
+      console.warn('init loadUserData failed:', e);
+      db = emptyDB();
     }
     
-    await loadUserData();
-    normalizeDeposits();
     showApp();
+    
+    setTimeout(async function(){
+      try{
+        const cloudAccounts = await loadAccountsCloud();
+        const freshAcc = cloudAccounts.find(x => x.username === currentUser);
+        if(freshAcc) currentAccount = freshAcc;
+        
+        await loadUserData();
+        renderAll();
+        renderArchive();
+        renderSettings();
+        renderSaleItems();
+        renderExItems();
+        renderDepositTypes();
+        _updateNotifBadge();
+        
+        if(navigator.onLine && cloudEnabled){
+          startRealtimeListener();
+          showSyncNotification('📥 تم تحديث البيانات','ok');
+        }
+        
+        normalizeDeposits();
+        const _dedupAuto = deduplicateFlourTypes();
+        if(_dedupAuto > 0){
+          try{ localStorage.setItem(DATA_PREFIX + currentUser, JSON.stringify(db)); }catch(e){}
+        }
+      }catch(e){
+        console.warn('background sync err:', e);
+      }
+    }, 500);
     return;
   }
   
   await loadAccountsCloud();
-  const a=getAccounts();
-  if(s && a.find(x=>x.username===s)){
-    currentUser=s;
-    currentAccount=a.find(x=>x.username===s);
-    await loadUserData();
+  const a = getAccounts();
+  
+  if(s && a.find(x => x.username === s)){
+    currentUser = s;
+    currentAccount = a.find(x => x.username === s);
+    
+    try{
+      await loadUserData();
+    }catch(e){
+      db = emptyDB();
+    }
+    
     normalizeDeposits();
     showApp();
   } else {
-    if(!a.length)showRegister();
+    if(!a.length) showRegister();
   }
 })();
 </script>
