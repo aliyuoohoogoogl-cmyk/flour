@@ -1378,7 +1378,10 @@ if(typeof firebase!=='undefined'&&firebase.initializeApp&&!cloudEnabled){
 firebase.initializeApp(firebaseConfig);
 const cloudDB=firebase.firestore();
 _firestoreDB=cloudDB;
-try{if(cloudDB.enablePersistence){cloudDB.enablePersistence({synchronizeTabs:true}).then(()=>{console.log('✅ Offline persistence');}).catch(err=>{console.warn('Persistence:',err.code);});}}catch(e){}
+
+// ⛔ تعطيل enablePersistence — لتحسين السرعة
+// try{if(cloudDB.enablePersistence){cloudDB.enablePersistence({synchronizeTabs:true}).then(()=>{console.log('✅ Offline persistence');}).catch(err=>{console.warn('Persistence:',err.code);});}}catch(e){}
+
 cloudAccountsRef=cloudDB.collection('accounts');
 cloudDataRef=cloudDB.collection('userdata');
 cloudOffersRef=cloudDB.collection('offers');
@@ -1441,7 +1444,7 @@ function emptyDB(){return{
   archive:[],buyers:[],reservations:[],cashAdditions:[],customerPrices:[],
   exchanges:[],_notifications:[],_manualOverrides:{},_lastSaved:0,
   _needsSync:false,_pendingUpload:false,_permanentCarry:0,_cashboxOffset:0,
-  _deleted:{},myOffers:[],_migratedToSplit:false
+  _deleted:{},myOffers:[],_migratedToSplit:false,_lastSync:0
 };}
 
 function showError(m){const e=document.getElementById('authError');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),4000);}
@@ -1493,6 +1496,7 @@ if(d._permanentCarry === undefined) d._permanentCarry=0;
 if(d._cashboxOffset === undefined) d._cashboxOffset=0;
 if(d._lastArchiveAt === undefined) d._lastArchiveAt=null;
 if(d._pendingUpload === undefined) d._pendingUpload=false;
+if(d._lastSync === undefined) d._lastSync=0;
 (d.sales||[]).forEach(s=>{if(!s.items&&s.typeName){s.items=[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice||0,total:s.total||0}];}});
 (d.deposits||[]).forEach(dep=>{
 if(dep._usedQty === undefined) dep._usedQty=0;
@@ -3208,7 +3212,36 @@ function mergeSmart(localDb, cloudDb){
 }
 
 // ═══════════════════════════════════════════════════════════
-// 📥 loadUserData
+// ✅ _applyCloudDB — للفرع القديم
+// ═══════════════════════════════════════════════════════════
+function _applyCloudDB(cloudDb){
+  try{
+    if(!cloudDb) return false;
+    if(_skipNextMerge){
+      _skipNextMerge = false;
+      return false;
+    }
+    
+    const cloudTime = +cloudDb._lastSaved || 0;
+    const localTime = +db._lastSaved || 0;
+    
+    if(cloudTime <= localTime) return false;
+    
+    const merged = mergeSmart(db, cloudDb);
+    _fixDBFields(merged);
+    db = merged;
+    
+    try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
+    
+    return true;
+  }catch(e){
+    console.error('_applyCloudDB error:', e);
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 📥 loadUserData — انتظار Firebase
 // ═══════════════════════════════════════════════════════════
 async function loadUserData(){
   const key = DATA_PREFIX+currentUser;
@@ -3219,6 +3252,15 @@ async function loadUserData(){
   }catch(e){ localDb = null; }
   
   setSyncStatus('loading','☁️ جاري المزامنة...');
+  
+  if(!cloudEnabled || !cloudDataRef){
+    let waited = 0;
+    while((!cloudEnabled || !cloudDataRef) && waited < 100){
+      await new Promise(r => setTimeout(r, 100));
+      tryInitFirebase();
+      waited++;
+    }
+  }
   
   if(!cloudEnabled || !cloudDataRef){
     setSyncStatus('err','📱 محلي فقط');
@@ -3271,13 +3313,16 @@ async function loadUserData(){
     await _reloadFromSplitDocs();
   }
   
+  // ✅ تحديث _lastSync بعد التحميل الأولي
+  db._lastSync = Date.now();
+  
   try{ localStorage.setItem(key, JSON.stringify(db)); }catch(e){}
   
   setSyncStatus('ok','☁️ متزامن');
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ إعادة تحميل البيانات من المستندات المقسّمة
+// ✅ إعادة تحميل البيانات
 // ═══════════════════════════════════════════════════════════
 async function _reloadFromSplitDocs(){
   try{
@@ -3308,7 +3353,7 @@ async function _reloadFromSplitDocs(){
 }
 
 // ═══════════════════════════════════════════════════════════
-// 💾 save
+// 💾 save — مع تتبع التغييرات
 // ═══════════════════════════════════════════════════════════
 let _saveTimer = null;
 let _pendingCategories = new Set();
@@ -3355,13 +3400,29 @@ function saveCategory(category){
 }
 
 // ═══════════════════════════════════════════════════════════
-// 📤 _doUpload — رفع المستندات المقسّمة
+// 📤 _doUpload — يرفع الأقسام المتغيرة فقط
 // ═══════════════════════════════════════════════════════════
 async function _doUpload(){
-  if(!currentUser || !cloudEnabled){
+  if(!currentUser){
     if(db) db._pendingUpload = false;
     return;
   }
+  
+  if(!cloudEnabled || !cloudDataRef){
+    let waited = 0;
+    while((!cloudEnabled || !cloudDataRef) && waited < 50){
+      await new Promise(r => setTimeout(r, 100));
+      tryInitFirebase();
+      waited++;
+    }
+  }
+  
+  if(!cloudEnabled || !cloudDataRef){
+    if(db) db._pendingUpload = false;
+    setSyncStatus('warn','📱 محلي');
+    return;
+  }
+  
   if(!navigator.onLine){
     if(db) db._pendingUpload = false;
     setSyncStatus('warn','📱 محلي');
@@ -3407,9 +3468,33 @@ async function _doUpload(){
       return;
     }
     
-    const categoriesToUpload = _pendingCategories.size > 0 
-      ? Array.from(_pendingCategories)
-      : SPLIT_CATEGORIES;
+    // ✅ اكتشاف الأقسام المتغيرة
+    let categoriesToUpload = [];
+    
+    if(_pendingCategories.size > 0){
+      // إذا الأقسام محدد يدوياً
+      categoriesToUpload = Array.from(_pendingCategories);
+    } else {
+      // اكتشاف تلقائي عبر _lastSync
+      const lastSync = db._lastSync || 0;
+      for(const cat of SPLIT_CATEGORIES){
+        const items = db[cat] || [];
+        const hasChanges = items.some(item => (item._editedAt || 0) > lastSync);
+        const hasDeletes = (db._deleted && db._deleted[cat] && db._deleted[cat].length > 0);
+        if(hasChanges || hasDeletes){
+          categoriesToUpload.push(cat);
+        }
+      }
+    }
+    
+    // ✅ إذا ما في تغيير → تخطي
+    if(categoriesToUpload.length === 0){
+      db._pendingUpload = false;
+      setSyncStatus('ok','☁️ متزامن');
+      return;
+    }
+    
+    console.log('📤 رفع الأقسام:', categoriesToUpload.join(', '));
     
     for(const category of categoriesToUpload){
       const items = db[category] || [];
@@ -3421,9 +3506,18 @@ async function _doUpload(){
         try{ await ref.doc(delId).delete(); }catch(e){}
       }
       
+      // ✅ فقط المستندات اللي تغيرت
+      const lastSync = db._lastSync || 0;
+      const changedItems = items.filter(item => (item._editedAt || 0) > lastSync);
+      
+      // إذا ما في تغييرات لهذا القسم (بس فيه حذف) → تخطي الرفع
+      if(changedItems.length === 0 && deletedItems.length === 0) continue;
+      
       let batchCount = 0;
       let batch = _firestoreDB.batch();
-      for(const item of items){
+      
+      // رفع المستندات المتغيرة فقط
+      for(const item of changedItems){
         if(!item || !item.id) continue;
         batch.set(ref.doc(item.id), {
           ...item,
@@ -3440,6 +3534,12 @@ async function _doUpload(){
       }
       if(batchCount > 0) await batch.commit();
     }
+    
+    // ✅ تحديث _lastSync بعد الرفع الناجح
+    db._lastSync = Date.now();
+    
+    // ✅ تصفير _deleted بعد الرفع
+    db._deleted = {};
     
     _pendingCategories.clear();
     db._pendingUpload = false;
@@ -3466,7 +3566,17 @@ window.addEventListener('beforeunload', function(){
 // 🔄 مزامنة تلقائية
 // ═══════════════════════════════════════════════════════════
 async function autoSyncOnConnect(){
-  if(!currentUser || !cloudEnabled || !navigator.onLine) return;
+  if(!currentUser || !navigator.onLine) return;
+  
+  if(!cloudEnabled || !cloudDataRef){
+    let waited = 0;
+    while((!cloudEnabled || !cloudDataRef) && waited < 50){
+      await new Promise(r => setTimeout(r, 100));
+      tryInitFirebase();
+      waited++;
+    }
+  }
+  if(!cloudEnabled || !cloudDataRef) return;
   
   const subStatus = checkSubscription();
   if(subStatus === 'expired') return;
@@ -3496,7 +3606,17 @@ async function autoSyncOnConnect(){
 
 async function forceSync(){
   if(!currentUser) return;
-  if(!cloudEnabled){ toast('📱 محلي', true); return; }
+  
+  if(!cloudEnabled || !cloudDataRef){
+    let waited = 0;
+    while((!cloudEnabled || !cloudDataRef) && waited < 50){
+      await new Promise(r => setTimeout(r, 100));
+      tryInitFirebase();
+      waited++;
+    }
+  }
+  if(!cloudEnabled || !cloudDataRef){ toast('📱 Firebase غير متصل', true); return; }
+  if(!navigator.onLine){ toast('📱 ما يوجد إنترنت', true); return; }
   
   const subStatus = checkSubscription();
   if(subStatus === 'expired'){
@@ -3517,6 +3637,7 @@ async function forceSync(){
         _fixDBFields(db);
       }
     }
+    db._lastSync = Date.now();
     localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db));
     renderAll();renderArchive();renderSettings();
     setSyncStatus('ok','☁️ متزامن');
@@ -3526,7 +3647,7 @@ async function forceSync(){
 
 async function sendMyData(){
   if(!currentUser) return;
-  if(!cloudEnabled){ toast('❌ لا يوجد اتصال', true); return; }
+  if(!cloudEnabled){ toast('❌ Firebase غير متصل', true); return; }
   
   const subStatus = checkSubscription();
   if(subStatus === 'expired'){
@@ -3546,6 +3667,7 @@ async function sendMyData(){
     
     db._lastSaved = Date.now() + 1000;
     db._lastActionBy = _deviceId;
+    db._lastSync = 0;  // ← لرفع كل شي
     await _uploadMetaConfig();
     
     _pendingCategories = new Set(SPLIT_CATEGORIES);
@@ -3563,7 +3685,7 @@ async function sendMyData(){
 
 async function receiveFromCloud(){
   if(!currentUser) return;
-  if(!cloudEnabled){ toast('❌ لا يوجد اتصال', true); return; }
+  if(!cloudEnabled){ toast('❌ Firebase غير متصل', true); return; }
   
   const subStatus = checkSubscription();
   if(subStatus === 'expired'){
@@ -3585,6 +3707,7 @@ async function receiveFromCloud(){
         _fixDBFields(db);
       }
     }
+    db._lastSync = Date.now();
     localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db));
     renderAll();renderArchive();renderSettings();renderSaleItems();renderExItems();renderDepositTypes();
     setSyncStatus('ok','☁️ متزامن');
@@ -3613,29 +3736,77 @@ if(!inp.trim())return cur;
 try{const p=new Date(inp.trim().replace(' ','T'));if(isNaN(p.getTime()))throw new Error();return p.toISOString();}catch(e){toast('❌ تاريخ غير صحيح',true);return undefined;}
 }
 
+// ═══════════════════════════════════════════════════════════
+// ✅ [تعديل] _getDepositPool — يقرأ من deposits + reservations
+// ═══════════════════════════════════════════════════════════
 function _getDepositPool(buyer, typeName){
-const bC=_cleanPerson(buyer);
-const tC=_cleanType(typeName);
-const pools=[];
-(db.deposits||[]).forEach(d=>{
-if(d.isWithdrawal||d.isCarry||d.cashPayment) return;
-if(_cleanPerson(d.person)!==bC) return;
-const dType = _cleanType(d.typeName||'');
-const origQty = +d.originalQty || +d.qty || 0;
-const origAmt = +d.originalAmount || +d.amount || 0;
-const usedQty = +d._usedQty || 0;
-const usedAmt = +d._usedMoney || 0;
-const remQty = Math.max(0, origQty - usedQty);
-const remAmt = Math.max(0, origAmt - usedAmt);
-if(remQty<=0 && remAmt<=0) return;
-if(dType === tC){
-pools.push({depositId: d.id, kind: 'specific', date: d.date, remainingQty: remQty, remainingAmt: remAmt, unitPrice: +d.unitPrice||0, hasQty: remQty>0, hasAmt: remAmt>0});
-} else if(dType === ''){
-pools.push({depositId: d.id, kind: 'free', date: d.date, remainingQty: remQty, remainingAmt: remAmt, unitPrice: 0, hasQty: remQty>0, hasAmt: remAmt>0});
-}
-});
-pools.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
-return pools;
+  const bC = _cleanPerson(buyer);
+  const tC = _cleanType(typeName);
+  const pools = [];
+  
+  // ✅ 1. اقرأ من db.deposits (الإيداعات العادية)
+  (db.deposits || []).forEach(d => {
+    if(d.isWithdrawal || d.isCarry || d.cashPayment) return;
+    if(_cleanPerson(d.person) !== bC) return;
+    
+    const dType = _cleanType(d.typeName || '');
+    const origQty = +d.originalQty || +d.qty || 0;
+    const origAmt = +d.originalAmount || +d.amount || 0;
+    const usedQty = +d._usedQty || 0;
+    const usedAmt = +d._usedMoney || 0;
+    const remQty = Math.max(0, origQty - usedQty);
+    const remAmt = Math.max(0, origAmt - usedAmt);
+    
+    if(remQty <= 0 && remAmt <= 0) return;
+    
+    if(dType === tC){
+      pools.push({
+        depositId: d.id, 
+        kind: 'specific', 
+        source: 'deposit',
+        date: d.date, 
+        remainingQty: remQty, 
+        remainingAmt: remAmt, 
+        unitPrice: +d.unitPrice || 0
+      });
+    } else if(dType === ''){
+      pools.push({
+        depositId: d.id, 
+        kind: 'free', 
+        source: 'deposit',
+        date: d.date, 
+        remainingQty: remQty, 
+        remainingAmt: remAmt, 
+        unitPrice: 0
+      });
+    }
+  });
+  
+  // ✅ 2. اقرأ من db.reservations (الحجوزات)
+  (db.reservations || []).forEach(r => {
+    if(_cleanPerson(r.person) !== bC) return;
+    if(_cleanType(r.typeName) !== tC) return;
+    
+    const remQty = Math.max(0, (r.totalQty || 0) - (r.usedQty || 0));
+    if(remQty <= 0) return;
+    
+    // ✅ تحقق إذا ما مكرر
+    const alreadyInPools = pools.some(p => p.depositId === r.id);
+    if(alreadyInPools) return;
+    
+    pools.push({
+      depositId: r.id, 
+      kind: 'specific', 
+      source: 'reservation',
+      date: r.date || r.lastDate, 
+      remainingQty: remQty, 
+      remainingAmt: 0,
+      unitPrice: 0
+    });
+  });
+  
+  pools.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  return pools;
 }
 
 function getAvailableDeposit(buyer, typeName){
@@ -3998,6 +4169,9 @@ if(!x){db.buyers.push({name:b,firstDate:d,lastDate:d,totalQty:tq,totalAmount:tot
 else{x.lastDate=d;x.totalQty+=tq;x.totalAmount+=total;x.transactions.push(trans);x._editedAt=Date.now();}
 }
 
+// ═══════════════════════════════════════════════════════════
+// ✅ [تعديل] _calculateAndApplyWasselDeductions — يخصم من reservations أو deposits
+// ═══════════════════════════════════════════════════════════
 function _calculateAndApplyWasselDeductions(saleBuyer, saleItems, saleId, saleDate){
 const wasselRemByType = {};
 const wasselWithdrawals = [];
@@ -4053,26 +4227,40 @@ remainingAmtToDeduct -= amtToTake;
 }
 });
 
+// ✅ خصم من deposits أو reservations حسب المصدر
 pools.forEach(p => {
-const dep = db.deposits.find(x => x.id === p.depositId);
-if(!dep) return;
-const usedQty = p._deductedQty || 0;
-const usedAmt = p._deductedAmt || 0;
-if(usedQty > 0){
-dep._usedQty = (dep._usedQty || 0) + usedQty;
-dep._editedAt = Date.now();
-}
-if(usedAmt > 0){
-dep._usedMoney = (dep._usedMoney || 0) + usedAmt;
-dep._editedAt = Date.now();
-}
-const origQty = +dep.originalQty || +dep.qty || 0;
-const origAmt = +dep.originalAmount || +dep.amount || 0;
-const remQ = Math.max(0, origQty - (dep._usedQty || 0));
-const remA = Math.max(0, origAmt - (dep._usedMoney || 0));
-if(remQ <= 0 && remA <= 0){
-dep._finished = true;
-}
+  const usedQty = p._deductedQty || 0;
+  const usedAmt = p._deductedAmt || 0;
+  if(usedQty <= 0 && usedAmt <= 0) return;
+  
+  if(p.source === 'reservation'){
+    // ✅ خصم من reservations
+    const r = db.reservations.find(x => x.id === p.depositId);
+    if(r){
+      r.usedQty = (r.usedQty || 0) + usedQty;
+      r._editedAt = Date.now();
+    }
+  } else {
+    // ✅ خصم من deposits
+    const dep = db.deposits.find(x => x.id === p.depositId);
+    if(dep){
+      if(usedQty > 0){
+        dep._usedQty = (dep._usedQty || 0) + usedQty;
+        dep._editedAt = Date.now();
+      }
+      if(usedAmt > 0){
+        dep._usedMoney = (dep._usedMoney || 0) + usedAmt;
+        dep._editedAt = Date.now();
+      }
+      const origQty = +dep.originalQty || +dep.qty || 0;
+      const origAmt = +dep.originalAmount || +dep.amount || 0;
+      const remQ = Math.max(0, origQty - (dep._usedQty || 0));
+      const remA = Math.max(0, origAmt - (dep._usedMoney || 0));
+      if(remQ <= 0 && remA <= 0){
+        dep._finished = true;
+      }
+    }
+  }
 });
 
 pools.forEach(p => {
@@ -4084,6 +4272,7 @@ id:uid(),person:saleBuyer,amount:-usedAmt,originalAmount:-usedAmt,
 typeName:typeName,qty:-usedQty,originalQty:-usedQty,unitPrice:price,totalPrice:-usedAmt,
 date:nowISO(),note:'استقطاع واصل',isWithdrawal:true,
 depositId: p.depositId,
+source: p.source,   // ← مهم
 remQtyAfter:null,remMoneyAfter:null,_editedAt:Date.now()
 });
 }
@@ -4604,7 +4793,7 @@ return Math.max(0,debtSum-allPayments);
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [تعديل] renderDebt — زر ✏️ + popup + صف المجموع
+// ✅ renderDebt — زر ✏️ + popup + صف المجموع
 // ═══════════════════════════════════════════════════════════
 function renderDebt(){
 const el=document.getElementById('debtList');
@@ -4702,7 +4891,6 @@ ap.forEach(p=>{
     pRemAmt += remAmt;
     pTypeCount++;
     
-    // ✅ صف عادي — مع زر ✏️
     h+=`<tr class="deposit-row" data-debt-id="${debtId}" data-person="${p.replace(/"/g,'&quot;')}" data-type="${type.replace(/"/g,'&quot;')}">`;
     h+=`<td class="num">${counter}</td>`;
     h+=`<td class="name">👤 ${nameHtml}</td>`;
@@ -4714,12 +4902,10 @@ ap.forEach(p=>{
     h+=`<td class="used">${paidAmt>0?money(paidAmt):'—'}</td>`;
     h+=`<td class="money-r">${remHtml}</td>`;
     h+=`<td class="time">${fmtShort(lastDate)}</td>`;
-    // ✅ زر ✏️
     h+=`<td style="text-align:center"><button class="debt-edit-btn" onclick="openDebtEditModal('${debtId}','${p.replace(/'/g,"\\'")}','${type.replace(/'/g,"\\'")}')">✏️</button></td>`;
     h+=`</tr>`;
   });
   
-  // ✅ صف المجموع
   if(pTypeCount > 1){
     h+=`<tr class="debt-summary-row" style="background:#fff3e0;border-top:2px solid #f39c12">`;
     h+=`<td style="text-align:center;color:#f39c12;font-size:14px">📊</td>`;
@@ -4750,9 +4936,6 @@ h+=`</div>`;
 el.innerHTML=h;
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ [تعديل] openDebtEditModal + saveDebtEdit + deleteDebtEdit
-// ═══════════════════════════════════════════════════════════
 function openDebtEditModal(debtId, person, typeName){
   const matchingDebts = db.debts.filter(d => 
     d.person === person && 
@@ -4925,7 +5108,6 @@ function delCashAmount(id){if(!confirm('حذف؟'))return;markDeleted('cashAddit
 function delExpense(id){if(!confirm('حذف؟'))return;markDeleted('expenses',id);db.expenses=db.expenses.filter(x=>x.id!==id);save();renderAll();}
 function delRecent(t,id){if(t==='sale')return delSale(id);if(t==='deposit')return delDeposit(id);if(t==='payment')return delPayment(id);if(t==='expense')return delExpense(id);if(t==='cash')return delCashAmount(id);if(t==='exchange')return delExchange(id);}
 
-// ✅ دعم ESC لإغلاق النافذة
 document.addEventListener('keydown', function(e){
   if(e.key === 'Escape'){
     const modal = document.getElementById('debtEditModal');
@@ -5099,7 +5281,18 @@ reportTotal += paid;
 });
 reportTotal += db.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0);
 reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-reportTotal += (db.deposits||[]).filter(d=>{if(!(+d.originalAmount>0)) return false;if(d.legacy||d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;if(d._archived) return false;if(_archT && d.date && d.date <= _archT) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
+
+// ✅ [تعديل 1] — يظهر الإيداعات اللي عندها _showInReport حتى لو كانت legacy
+reportTotal += (db.deposits||[]).filter(d=>{
+  if(!(+d.originalAmount>0)) return false;
+  if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;
+  if(d.legacy && d._showInReport !== true) return false;
+  if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;
+  if(d._archived) return false;
+  if(_archT && d.date && d.date <= _archT) return false;
+  return true;
+}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
+
 reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
 const gs=db.sales.filter(s=>s.method==='هدية').reduce((a,s)=>a+(s.qty||0),0);
 const _debtPersons=[...new Set(db.debts.map(d=>d.person))];
@@ -5198,19 +5391,7 @@ save();renderHome();toast('✅');
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [تعديل] addDeposit — النسخة النهائية
-// ═══════════════════════════════════════════════════════════
-// المنطق:
-//   - لو الشخص ما عنده دين → السلوك الأصلي (صفوف منفصلة):
-//     * مبلغ حر → صف واحد
-//     * كل نوع → صف منفصل
-//   - لو الشخص عنده دين → صف واحد فقط (مع التفاصيل):
-//     * المبلغ الكامل في originalAmount
-//     * _usedMoney = itemsValue + debtDeducted
-//     * amount = freeDisplay (الباقي الفعلي)
-//     * _lastDepositInfo فيه itemsList + debtBefore + ...
-//     * الأنواع تُسجّل في reservations فقط
-//     * الدين يُخصم
+// ✅ [تعديل 2] addDeposit — إيداع حر جديد منفصل + _showInReport آمن
 // ═══════════════════════════════════════════════════════════
 function addDeposit(){
 const p=document.getElementById('dPerson').value.trim();
@@ -5259,10 +5440,10 @@ validItems.forEach(it => {
 const debtBefore = debtBalance(p);
 
 // ═══════════════════════════════════════════════════════════
-// 🎯 الحالة أ: الشخص ما عنده دين → السلوك الأصلي
+// 🎯 الحالة أ: الشخص ما عنده دين
 // ═══════════════════════════════════════════════════════════
 if(debtBefore <= 0){
-  // ✅ إيداع مبلغ حر
+  // ✅ إيداع مبلغ حر — دائماً صف جديد منفصل
   if(amountEntered > 0){
     let amountToRegister = amountEntered;
     if(remainingDiscount > 0){
@@ -5271,39 +5452,26 @@ if(debtBefore <= 0){
       remainingDiscount -= applied;
     }
     
-    // ✅ ابحث عن إيداع حر موجود
-    let freeDep = db.deposits.find(x => 
-      _cleanPerson(x.person) === bC && 
-      (!x.typeName || x.typeName === '') && 
-      !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && 
-      !!x.legacy === !!isLegacy &&
-      !x._isDebtOverflow
-    );
-    
-    if(freeDep){
-      freeDep.amount = (+freeDep.amount || 0) + amountToRegister;
-      freeDep.originalAmount = (+freeDep.originalAmount || 0) + amountToRegister;
-      freeDep._editedAt = Date.now();
-    } else {
-      db.deposits.push({
-        id:uid(),
-        person:p,
-        carrier:carrier,
-        amount:amountToRegister,
-        originalAmount:amountToRegister,
-        typeName:'',
-        qty:0,
-        originalQty:0,
-        unitPrice:0,
-        totalPrice:0,
-        date:d,
-        legacy:isLegacy,
-        note:'💵 مبلغ حر',
-        _usedQty:0,
-        _usedMoney:0,
-        _editedAt:Date.now()
-      });
-    }
+    const newDep = {
+      id:uid(),
+      person:p,
+      carrier:carrier,
+      amount:amountToRegister,
+      originalAmount:amountToRegister,
+      typeName:'',
+      qty:0,
+      originalQty:0,
+      unitPrice:0,
+      totalPrice:0,
+      date:d,
+      legacy:isLegacy,
+      note:'💵 مبلغ حر',
+      _usedQty:0,
+      _usedMoney:0,
+      _editedAt:Date.now()
+    };
+    if(isLegacy) newDep._showInReport = true;
+    db.deposits.push(newDep);
   }
   
   // ✅ إيداع كل نوع منفصل
@@ -5338,9 +5506,10 @@ if(debtBefore <= 0){
         dep.amount = (+dep.amount || 0) + total;
       }
       if(price > 0) dep.unitPrice = price;
+      if(isLegacy && !dep._showInReport) dep._showInReport = true;
       dep._editedAt = Date.now();
     } else {
-      db.deposits.push({
+      const newTypeDep = {
         id:uid(),
         person:p,
         carrier:carrier,
@@ -5357,7 +5526,9 @@ if(debtBefore <= 0){
         _usedQty:0,
         _usedMoney:0,
         _editedAt:Date.now()
-      });
+      };
+      if(isLegacy) newTypeDep._showInReport = true;
+      db.deposits.push(newTypeDep);
     }
     
     // ✅ إضافة الحجز
@@ -5416,12 +5587,13 @@ if(debtBefore <= 0){
   if(itemsValue > 0) msg += ` — أنواع: ${money(itemsValue)}`;
   if(rem > 0) msg += ` — باقي للديون: ${money(rem)}`;
   if(originalDiscount > 0) msg += ` — خصم: ${money(originalDiscount)}`;
+  if(isLegacy) msg += ` 📜 قديم`;
   toast(msg);
   return;
 }
 
 // ═══════════════════════════════════════════════════════════
-// 🎯 الحالة ب: الشخص عنده دين → صف واحد (مع التفاصيل)
+// 🎯 الحالة ب: الشخص عنده دين
 // ═══════════════════════════════════════════════════════════
 const cashRemaining = amountEntered - itemsValue;
 
@@ -5479,6 +5651,7 @@ if(amountEntered > 0){
     freeDep.originalAmount = oldAmount + amountToRegister;
     freeDep._usedMoney = oldUsed + totalUsedMoney;
     freeDep.amount = oldRem + freeDisplay;
+    if(isLegacy && !freeDep._showInReport) freeDep._showInReport = true;
     
     if(freeDep._lastDepositInfo && freeDep._lastDepositInfo._itemsList){
       freeDep._lastDepositInfo._itemsList = [
@@ -5496,7 +5669,7 @@ if(amountEntered > 0){
     }
     freeDep._editedAt = Date.now();
   } else {
-    db.deposits.push({
+    const newDebtDep = {
       id:uid(),
       person:p,
       carrier:carrier,
@@ -5514,7 +5687,9 @@ if(amountEntered > 0){
       _usedQty:0,
       _editedAt:Date.now(),
       _lastDepositInfo: depositInfo
-    });
+    };
+    if(isLegacy) newDebtDep._showInReport = true;
+    db.deposits.push(newDebtDep);
   }
 }
 
@@ -5619,11 +5794,12 @@ if(debtDeducted > 0) msg += ` — خصم دين: ${money(debtDeducted)}`;
 if(freeDisplay > 0) msg += ` — باقي حر: ${money(freeDisplay)}`;
 if(newDebtAmount > 0) msg += ` — دين جديد: ${money(newDebtAmount)}`;
 if(originalDiscount > 0) msg += ` — خصم: ${money(originalDiscount)}`;
+if(isLegacy) msg += ` 📜 قديم`;
 toast(msg);
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ renderDeposit — يدعم الحالتين
+// ✅ renderDeposit — يدعم الحالتين (بدون تغيير)
 // ═══════════════════════════════════════════════════════════
 function renderDeposit(){
 const bal=document.getElementById('depositBalances');
@@ -7190,6 +7366,7 @@ function loadCustomerForEdit(name){document.getElementById('cpPerson').value=nam
 function delCustomerPrice(cid,typeName){if(!confirm('حذف سعر "'+typeName+'"؟'))return;const c=db.customerPrices.find(x=>x.id===cid);if(!c)return;c.prices=c.prices.filter(x=>x.typeName!==typeName);c._editedAt=Date.now();if(!c.prices.length){markDeleted('customerPrices',cid);db.customerPrices=db.customerPrices.filter(x=>x.id!==cid);}save();renderCustomerPrices();renderSaleItems();renderExItems();toast('تم');}
 function delCustomerPrices(cid){if(!confirm('حذف كل أسعار هذا الزبون؟'))return;markDeleted('customerPrices',cid);db.customerPrices=db.customerPrices.filter(x=>x.id!==cid);save();renderCustomerPrices();renderSaleItems();renderExItems();toast('تم');}
 </script><script>
+// ===== حالة ربط الإيميل =====
 function updateLinkEmailStatus(){
 const el=document.getElementById('linkEmailStatus');
 const inp=document.getElementById('linkEmail');
@@ -7333,14 +7510,101 @@ function addNewAccount(){
 }
 async function switchAccount(u){if(!confirm('التبديل إلى '+u+'؟'))return;stopRealtimeListener();localStorage.setItem(CUR_KEY,u);currentUser=u;const a=getAccounts();currentAccount=a.find(x=>x.username===u);await loadUserData();showApp();toast('تم');}
 function delAccountByName(u){if(!isAdmin()&&u!==currentUser)return toast('غير مصرح',true);if(u===currentUser)return deleteAccount();if(!confirm('حذف '+u+'؟'))return;const a=getAccounts().filter(x=>x.username!==u);saveAccounts(a);localStorage.removeItem(DATA_PREFIX+u);if(cloudDataRef){try{cloudDataRef.doc(u).delete().catch(e=>console.warn(e));}catch(e){}}renderAccountsList();renderAdminPanel();toast('تم');}
-function deleteAccount(){const a=getAccounts();if(!confirm('حذف حسابك؟'))return;if(!confirm('تأكيد نهائي؟'))return;stopRealtimeListener();const r=a.filter(x=>x.username!==currentUser);if(r.length>0&&currentAccount.role==='admin'&&!r.find(x=>x.role==='admin'))r[0].role='admin';saveAccounts(r);localStorage.removeItem(DATA_PREFIX+currentUser);localStorage.removeItem(CUR_KEY);if(cloudDataRef){try{cloudDataRef.doc(currentUser).delete().catch(e=>console.warn(e));}catch(e){}}currentUser=null;currentAccount=null;db=null;document.getElementById('appWrap').classList.remove('show');document.body.classList.remove('is-admin');document.getElementById('authScreen').classList.remove('hidden');showLogin();}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ [تعديل] deleteAccount — حذف كامل من السحابة
+// ═══════════════════════════════════════════════════════════
+async function deleteAccount(){
+  const a = getAccounts();
+  if(!confirm('حذف حسابك؟')) return;
+  if(!confirm('تأكيد نهائي؟ — لا يمكن التراجع')) return;
+
+  const deletedUser = currentUser;
+  const isUserAdmin = currentAccount && currentAccount.role === 'admin';
+
+  try{
+    // ✅ 1. حذف من قائمة الحسابات محلياً
+    const remainingAccs = a.filter(x => x.username !== deletedUser);
+    if(remainingAccs.length > 0 && isUserAdmin && !remainingAccs.find(x => x.role === 'admin')){
+      remainingAccs[0].role = 'admin';
+    }
+    localStorage.setItem(ACC_KEY, JSON.stringify(remainingAccs));
+
+    // ✅ 2. حذف من قائمة الحسابات في السحابة
+    if(cloudEnabled && cloudAccountsRef){
+      try{
+        await cloudAccountsRef.doc('shared').set({
+          list: remainingAccs,
+          updatedAt: Date.now()
+        });
+        console.log('✅ تم حذف الحساب من قائمة السحابة');
+      }catch(e){ console.warn('حذف من السحابة:', e); }
+    }
+
+    // ✅ 3. حذف كل بيانات المستخدم من Firestore (subcollections + meta + main doc)
+    if(cloudEnabled && _firestoreDB){
+      try{
+        const userRef = _firestoreDB.collection('userdata').doc(deletedUser);
+        const categories = ['sales','debts','deposits','payments','expenses','exchanges','cashAdditions','reservations','buyers','customerPrices','flourTypes','archive','meta'];
+        
+        for(const cat of categories){
+          try{
+            const snap = await userRef.collection(cat).get();
+            if(snap.size > 0){
+              const batch = _firestoreDB.batch();
+              snap.forEach(doc => batch.delete(doc.ref));
+              await batch.commit();
+              console.log(`✅ تم حذف ${cat}: ${snap.size} مستند`);
+            }
+          }catch(e){ console.warn(`حذف ${cat}:`, e); }
+        }
+        
+        // حذف المستند الرئيسي القديم
+        try{ await userRef.delete(); }catch(e){}
+        
+        // حذف cloudDataRef القديم
+        try{ await cloudDataRef.doc(deletedUser).delete(); }catch(e){}
+        
+        console.log('✅ تم حذف كل بيانات المستخدم من Firestore');
+      }catch(e){ console.warn('حذف بيانات المستخدم:', e); }
+    }
+
+    // ✅ 4. حذف من Firebase Auth (إذا موجود)
+    try{
+      if(window._auth && window._auth.currentUser){
+        await window._auth.currentUser.delete();
+        console.log('✅ تم حذف المستخدم من Firebase Auth');
+      }
+    }catch(e){ console.warn('حذف Auth:', e); }
+
+    // ✅ 5. حذف من localStorage
+    localStorage.removeItem(DATA_PREFIX + deletedUser);
+    localStorage.removeItem(CUR_KEY);
+
+    // ✅ 6. إيقاف المستمعين
+    stopRealtimeListener();
+
+    currentUser = null;
+    currentAccount = null;
+    db = null;
+
+    document.getElementById('appWrap').classList.remove('show');
+    document.body.classList.remove('is-admin');
+    document.getElementById('authScreen').classList.remove('hidden');
+    showLogin();
+
+    toast('✅ تم حذف الحساب نهائياً');
+
+  }catch(e){
+    console.error('deleteAccount error:', e);
+    toast('⚠️ فشل الحذف — حاول مرة ثانية', true);
+  }
+}
+
 function exportData(){const d={user:currentUser,role:currentAccount?currentAccount.role:'user',data:db,exportedAt:nowISO()};const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`flour_backup_${currentUser}_${Date.now()}.json`;a.click();URL.revokeObjectURL(u);toast('تم التصدير ✅');}
 function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=(ev)=>{try{const p=JSON.parse(ev.target.result);const d=p.data||p;if(!confirm('استيراد؟'))return;db=Object.assign(emptyDB(),d);_fixDBFields(db);save();renderAll();renderArchive();renderSettings();toast('تم ✅');}catch(err){toast('ملف غير صالح',true);}};r.readAsText(f);e.target.value='';}
 function clearAll(){if(!confirm('حذف كل البيانات؟'))return;if(!confirm('تأكيد؟'))return;db=emptyDB();save();renderAll();renderArchive();toast('تم');}
 
-// ═══════════════════════════════════════════════════════════
-// ✅ recalculateAll
-// ═══════════════════════════════════════════════════════════
 async function recalculateAll(){
 if(!confirm('🔄 سيتم تحديث الأرقام.\n\n✅ يجلب أحدث البيانات من السحابة أولاً\n\nمتابعة؟'))return;
 
@@ -7717,9 +7981,6 @@ document.addEventListener('input', function(e){
   }
 });
 
-// ═══════════════════════════════════════════════════════════
-// ✅ init — مع الترحيل التلقائي
-// ═══════════════════════════════════════════════════════════
 (async function init(){
   const s=localStorage.getItem(CUR_KEY);
   const localAccounts = getAccounts();
