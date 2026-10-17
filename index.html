@@ -1243,7 +1243,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><script>
 // ===== التحديث التلقائي — إجباري بعد 3 تأجيلات =====
-const APP_VERSION = "2.11";
+const APP_VERSION = "1.8";
 const APP_UPDATE_URL = "https://aliyuoohoogoogl-cmyk.github.io/flour/latest.json";
 const MAX_UPDATE_POSTPONES = 3;
 
@@ -7390,11 +7390,12 @@ function _formatDateArabic(dateKey){
 async function doArchive(){
   const hd = db.sales.length || db.payments.length || db.expenses.length || db.buyers.length || (db.cashAdditions||[]).length || (db.exchanges||[]).length || db.debts.some(d=>d.manual);
   if(!hd) return toast('لا توجد بيانات', true);
+  
   if(!confirm('سيتم أرشفة البيانات.\n\n⚠️ سيتم مسح: المبيعات، التسديدات، الصرفيات، المشترين، إضافات الصندوق، الاسترجاع/التبديل (من الجهاز والسحابة).\n\n✅ سيبقى: الطحين، البايت، الإيداعات، المطلوبين، الأرشيف.\n\nمتابعة؟')) return;
   if(!confirm('⚠️ تأكيد نهائي؟')) return;
 
   if(_saveTimer) clearTimeout(_saveTimer);
-  _isReceivingUpdate = true;
+  _isReceivingUpdate = true; // ✅ إيقاف استقبال البيانات مؤقتاً
 
   const _savedReportHTML = document.getElementById('reportArea')?.innerHTML || '';
   const _savedFinalTotal = _finalTotal;
@@ -7477,6 +7478,7 @@ async function doArchive(){
     const dayData = byDate[dateKey];
     const hasRealOps = dayData.sales.length||dayData.payments.length||dayData.expenses.length||dayData.cashAdditions.length||dayData.exchanges.length||(dayData.debts&&dayData.debts.length);
     if(!hasRealOps) return;
+    
     let dayTotal = 0;
     dayData.sales.forEach(s=>{
       const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
@@ -7497,6 +7499,7 @@ async function doArchive(){
     dayTotal += dayData.deposits.filter(d=>{if(!(+d.amount>0)) return false;if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.legacy && d._showInReport !== true) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
     dayTotal += dayData.cashAdditions.filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
     const dayExpenses = dayData.expenses.reduce((a,e)=>a+e.amount,0);
+    
     const archiveDoc = {
       id: uid(), archivedAt: _archiveTime, archivedBy: currentUser, dateKey: dateKey,
       dateArabic: _formatDateArabic(dateKey), dayName: _getDayName(dateKey),
@@ -7525,6 +7528,7 @@ async function doArchive(){
   db._lastArchiveAt = _archiveTime;
   db._permanentCarry = currentCashbox;
   db._cashboxOffset = 0;
+  
   db.flourTypes.forEach(t=>{
     const currentQty = +t.qty || 0;
     const currentUnitPrice = +t.unitPrice || 0;
@@ -7535,6 +7539,7 @@ async function doArchive(){
     db._manualOverrides[_cleanType(t.name)] = { original: currentQty, sold: 0, remaining: currentQty, timestamp: Date.now() };
     t._visibleFrom = _archiveTime; t._editedAt = Date.now();
   });
+  
   db.sales=[]; db.payments=[]; db.expenses=[]; db.buyers=[]; db.cashAdditions=[]; db.exchanges=[];
   db.deposits=keptDeposits;
   db.debts = db.debts.filter(d => +d.amount > 0.01);
@@ -7547,13 +7552,36 @@ async function doArchive(){
 
   try { localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); } catch(e) {}
 
+  setSyncStatus('loading','⏳ جاري رفع الأرشيف...');
+
+  // ✅ [تعديل جذري]: مسح العمليات القديمة من السحابة مباشرة
+  if(cloudEnabled && _firestoreDB){
+    const catsToClear = ['sales','payments','expenses','buyers','cashAdditions','exchanges'];
+    for(const cat of catsToClear){
+      const ref = _getCategoryRef(cat);
+      if(!ref) continue;
+      try{
+        const snap = await ref.get();
+        if(snap.size > 0){
+          const docs = [];
+          snap.forEach(doc => docs.push(doc.ref));
+          for(let i = 0; i < docs.length; i += 400){
+            const batch = _firestoreDB.batch();
+            docs.slice(i, i + 400).forEach(r => batch.delete(r));
+            await batch.commit();
+          }
+          console.log('🗑️ مسح ' + cat + ' من السحابة (' + docs.length + ')');
+        }
+      }catch(e){ console.warn('فشل مسح ' + cat, e); }
+    }
+  }
+
   if(!_pendingCategories) _pendingCategories = new Set();
   _pendingCategories.add('archive'); _pendingCategories.add('deposits'); _pendingCategories.add('flourTypes');
   _pendingCategories.add('debts'); _pendingCategories.add('reservations'); _pendingCategories.add('sales');
   _pendingCategories.add('payments'); _pendingCategories.add('expenses'); _pendingCategories.add('buyers');
   _pendingCategories.add('cashAdditions'); _pendingCategories.add('exchanges');
 
-  setSyncStatus('loading','⏳ جاري رفع الأرشيف...');
   const uploadOk = await _doUpload();
   await new Promise(r => setTimeout(r, 2000));
   _isReceivingUpdate = false;
@@ -8783,4 +8811,4 @@ document.addEventListener('input', function(e){ if(e.target && e.target.id === '
 })();
 </script>
 </body>
-  </html>
+             </html>
