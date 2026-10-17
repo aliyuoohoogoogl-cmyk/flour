@@ -1243,7 +1243,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><script>
 // ===== التحديث التلقائي — إجباري بعد 3 تأجيلات =====
-const APP_VERSION = "2.9";
+const APP_VERSION = "1.8";
 const APP_UPDATE_URL = "https://aliyuoohoogoogl-cmyk.github.io/flour/latest.json";
 const MAX_UPDATE_POSTPONES = 3;
 
@@ -3119,7 +3119,7 @@ toast('أهلاً بك 👋');
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ doLogout — تفريغ db فوراً
+// ✅ doLogout — تفريغ db
 // ═══════════════════════════════════════════════════════════
 function doLogout(){
 if(!confirm('تسجيل الخروج؟'))return;
@@ -3144,12 +3144,11 @@ showLogin();
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ ترقية الحساب القديم
+// ✅ _upgradeAccount
 // ═══════════════════════════════════════════════════════════
 function _upgradeAccount(){
   if(!currentAccount) return false;
   let changed = false;
-  
   const accs = getAccounts();
   const idx = accs.findIndex(a => a.username === currentUser);
   if(idx === -1) return false;
@@ -3166,12 +3165,10 @@ function _upgradeAccount(){
     };
     changed = true;
   }
-  
   if(accs[idx].city === undefined){
     accs[idx].city = '';
     changed = true;
   }
-  
   if(changed){
     saveAccounts(accs);
     currentAccount = accs[idx];
@@ -3180,11 +3177,10 @@ function _upgradeAccount(){
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ showApp — حماية من عرض بيانات حساب آخر
+// ✅ showApp
 // ═══════════════════════════════════════════════════════════
 function showApp(){
 if(!db) db = emptyDB();
-
 document.getElementById('authScreen').classList.add('hidden');
 document.getElementById('appWrap').classList.add('show');
 const displayName=(currentAccount && currentAccount.fullName)?currentAccount.fullName:currentUser;
@@ -3205,14 +3201,9 @@ badge.style.display='none';
 document.body.classList.remove('is-admin');
 roleEl.innerHTML='<span style="background:#95a5a6;color:#fff;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:bold">👤 مستخدم</span>';
 }
-
 const myNameInput=document.getElementById('myName');
-if(myNameInput && currentAccount && currentAccount.fullName){
-  myNameInput.value=currentAccount.fullName;
-}
-
+if(myNameInput && currentAccount && currentAccount.fullName) myNameInput.value=currentAccount.fullName;
 _upgradeAccount();
-
 if(typeof renderSubscriptionBar === 'function') renderSubscriptionBar();
 if(typeof renderSubscriptionInfo === 'function') renderSubscriptionInfo();
 if(typeof loadMyCity === 'function') loadMyCity();
@@ -3234,11 +3225,7 @@ if(typeof loadPaymentSettings === 'function') {
     }
   });
 }
-
-if(typeof updateLinkEmailStatus==='function'){
-  updateLinkEmailStatus();
-}
-
+if(typeof updateLinkEmailStatus==='function') updateLinkEmailStatus();
 _saleItems=[];
 _exReturnItems=[];
 _exSwapItems=[];
@@ -3254,35 +3241,24 @@ startRealtimeListener();
 }
 
 // ═══════════════════════════════════════════════════════════
-// 🧠 الدمج الذكي
+// 🧠 mergeSmart
 // ═══════════════════════════════════════════════════════════
 function mergeSmart(localDb, cloudDb){
   if(!localDb && !cloudDb) return emptyDB();
   if(!localDb) return JSON.parse(JSON.stringify(cloudDb));
   if(!cloudDb) return JSON.parse(JSON.stringify(localDb));
-  
   const result = JSON.parse(JSON.stringify(cloudDb));
-  
-  const listKeys = ['sales','debts','deposits','payments','expenses','buyers',
-                    'reservations','cashAdditions','customerPrices','exchanges',
-                    'flourTypes','archive','myOffers'];
-  
+  const listKeys = ['sales','debts','deposits','payments','expenses','buyers','reservations','cashAdditions','customerPrices','exchanges','flourTypes','archive','myOffers'];
   listKeys.forEach(key => {
     const localList = Array.isArray(localDb[key]) ? localDb[key] : [];
     const cloudList = Array.isArray(result[key]) ? result[key] : [];
-    
-    if(!localList.length && !cloudList.length){
-      result[key] = [];
-      return;
-    }
-    
+    if(!localList.length && !cloudList.length){ result[key] = []; return; }
     const map = new Map();
     cloudList.forEach(item => { if(item && item.id) map.set(item.id, item); });
     localList.forEach(item => {
       if(!item || !item.id) return;
-      if(!map.has(item.id)){
-        map.set(item.id, item);
-      } else {
+      if(!map.has(item.id)){ map.set(item.id, item); }
+      else {
         const cloudItem = map.get(item.id);
         const cloudEdit = +cloudItem._editedAt || 0;
         const localEdit = +item._editedAt || 0;
@@ -3291,15 +3267,12 @@ function mergeSmart(localDb, cloudDb){
     });
     result[key] = Array.from(map.values());
   });
-  
   const cloudTime = +cloudDb._lastSaved || 0;
   const localTime = +localDb._lastSaved || 0;
   const newer = localTime > cloudTime ? localDb : cloudDb;
-  
   result._permanentCarry = newer._permanentCarry ?? result._permanentCarry ?? 0;
   result._cashboxOffset = newer._cashboxOffset ?? result._cashboxOffset ?? 0;
   result._lastArchiveAt = newer._lastArchiveAt ?? result._lastArchiveAt ?? null;
-  
   const cloudManual = cloudDb._manualOverrides || {};
   const localManual = localDb._manualOverrides || {};
   const mergedManual = {};
@@ -3310,17 +3283,12 @@ function mergeSmart(localDb, cloudDb){
     mergedManual[k] = cT >= lT ? cloudManual[k] : localManual[k];
   });
   result._manualOverrides = mergedManual;
-  
   const cloudNotifs = cloudDb._notifications || [];
   const localNotifs = localDb._notifications || [];
   const notifMap = new Map();
   cloudNotifs.forEach(n => { if(n && n.id) notifMap.set(n.id, n); });
-  localNotifs.forEach(n => {
-    if(!n || !n.id) return;
-    if(!notifMap.has(n.id)) notifMap.set(n.id, n);
-  });
+  localNotifs.forEach(n => { if(!n || !n.id) return; if(!notifMap.has(n.id)) notifMap.set(n.id, n); });
   result._notifications = Array.from(notifMap.values()).slice(0, 100);
-  
   const cloudDel = cloudDb._deleted || {};
   const localDel = localDb._deleted || {};
   const mergedDel = {};
@@ -3331,32 +3299,23 @@ function mergeSmart(localDb, cloudDb){
     mergedDel[k] = [...new Set([...c, ...l])];
   });
   result._deleted = mergedDel;
-  
   return result;
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ _applyCloudDB — للفرع القديم
+// ✅ _applyCloudDB
 // ═══════════════════════════════════════════════════════════
 function _applyCloudDB(cloudDb){
   try{
     if(!cloudDb) return false;
-    if(_skipNextMerge){
-      _skipNextMerge = false;
-      return false;
-    }
-    
+    if(_skipNextMerge){ _skipNextMerge = false; return false; }
     const cloudTime = +cloudDb._lastSaved || 0;
     const localTime = +db._lastSaved || 0;
-    
     if(cloudTime <= localTime) return false;
-    
     const merged = mergeSmart(db, cloudDb);
     _fixDBFields(merged);
     db = merged;
-    
     try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
-    
     return true;
   }catch(e){
     console.error('_applyCloudDB error:', e);
@@ -3365,7 +3324,7 @@ function _applyCloudDB(cloudDb){
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ loadUserData — منع الترحيل المتكرر
+// ✅ loadUserData
 // ═══════════════════════════════════════════════════════════
 async function loadUserData(){
   const key = DATA_PREFIX+currentUser;
@@ -3403,9 +3362,7 @@ async function loadUserData(){
     const metaDoc = await cloudMetaRef.get();
     metaExists = metaDoc.exists;
     metaData = metaExists ? metaDoc.data() : null;
-  }catch(e){
-    console.warn('check migration failed:', e);
-  }
+  }catch(e){ console.warn('check migration failed:', e); }
   
   if(!metaExists){
     let hasOldData = false;
@@ -3413,72 +3370,38 @@ async function loadUserData(){
       const oldDoc = await cloudDataRef.doc(currentUser).get();
       if(oldDoc.exists && oldDoc.data() && oldDoc.data().data){
         const oldData = oldDoc.data().data;
-        hasOldData = (
-          (oldData.sales && oldData.sales.length > 0) ||
-          (oldData.deposits && oldData.deposits.length > 0) ||
-          (oldData.debts && oldData.debts.length > 0) ||
-          (oldData.flourTypes && oldData.flourTypes.length > 0)
-        );
+        hasOldData = (oldData.sales && oldData.sales.length > 0) || (oldData.deposits && oldData.deposits.length > 0) || (oldData.debts && oldData.debts.length > 0) || (oldData.flourTypes && oldData.flourTypes.length > 0);
       }
     }catch(e){}
-    
-    if(hasOldData){
-      migrationNeeded = true;
-    } else if(localDb && (localDb.sales?.length || localDb.deposits?.length || localDb.debts?.length || localDb.flourTypes?.length)){
-      migrationNeeded = true;
-    } else {
+    if(hasOldData) migrationNeeded = true;
+    else if(localDb && (localDb.sales?.length || localDb.deposits?.length || localDb.debts?.length || localDb.flourTypes?.length)) migrationNeeded = true;
+    else {
       try{
         await cloudMetaRef.set({
-          _migratedToSplit: true,
-          _migratedAt: Date.now(),
-          _lastActionBy: _deviceId,
-          _permanentCarry: 0,
-          _cashboxOffset: 0,
-          _manualOverrides: {},
-          _notifications: [],
-          _lastSaved: Date.now()
+          _migratedToSplit: true, _migratedAt: Date.now(), _lastActionBy: _deviceId,
+          _permanentCarry: 0, _cashboxOffset: 0, _manualOverrides: {}, _notifications: [], _lastSaved: Date.now()
         });
         _migrated = true;
-      }catch(e){ console.warn('حفظ meta أولي:', e); }
+      }catch(e){}
     }
-  } else if(metaData && metaData._migratedToSplit !== true){
-    migrationNeeded = true;
-  } else if(metaData && metaData._migratedToSplit === true){
-    _migrated = true;
-  }
+  } else if(metaData && metaData._migratedToSplit !== true){ migrationNeeded = true; }
+  else if(metaData && metaData._migratedToSplit === true){ _migrated = true; }
   
   if(migrationNeeded){
-    console.log('📦 جاري الترحيل (أول مرة فقط)...');
-    
-    if(localDb){
-      db = localDb;
-      _fixDBFields(db);
-    } else {
+    console.log('📦 جاري الترحيل...');
+    if(localDb){ db = localDb; _fixDBFields(db); }
+    else {
       try{
         const oldDoc = await cloudDataRef.doc(currentUser).get();
-        if(oldDoc.exists && oldDoc.data() && oldDoc.data().data){
-          db = Object.assign(emptyDB(), oldDoc.data().data);
-          _fixDBFields(db);
-        } else {
-          db = emptyDB();
-        }
-      }catch(e){
-        db = emptyDB();
-      }
+        if(oldDoc.exists && oldDoc.data() && oldDoc.data().data){ db = Object.assign(emptyDB(), oldDoc.data().data); _fixDBFields(db); }
+        else db = emptyDB();
+      }catch(e){ db = emptyDB(); }
     }
-    
     const migOk = await _migrateToSplitDocs();
     if(migOk){
       db._migratedToSplit = true;
       _migrated = true;
-      try{
-        await cloudMetaRef.set({
-          _migratedToSplit: true,
-          _migratedAt: Date.now(),
-          _lastActionBy: _deviceId
-        }, { merge: true });
-      }catch(e){ console.warn('تأكيد علامة الترحيل:', e); }
-      
+      try{ await cloudMetaRef.set({ _migratedToSplit: true, _migratedAt: Date.now(), _lastActionBy: _deviceId }, { merge: true }); }catch(e){}
       await _reloadFromSplitDocs();
     } else {
       setSyncStatus('warn','⚠️ فشل الترحيل');
@@ -3492,33 +3415,52 @@ async function loadUserData(){
   
   db._lastSync = Date.now();
   db._migratedToSplit = true;
-  
   try{ localStorage.setItem(key, JSON.stringify(db)); }catch(e){}
-  
   setSyncStatus('ok','☁️ متزامن');
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [حماية التعديل اليدوي] _reloadFromSplitDocs
+// ✅ [تعديل جذري] _reloadFromSplitDocs
 // ═══════════════════════════════════════════════════════════
 async function _reloadFromSplitDocs(){
   try{
     const metaDoc = await cloudMetaRef.get();
     if(metaDoc.exists && metaDoc.data()){
       const meta = metaDoc.data();
-      db._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : 0;
-      db._cashboxOffset = meta._cashboxOffset !== undefined ? meta._cashboxOffset : 0;
-      db._lastArchiveAt = meta._lastArchiveAt || null;
       
-      // ✅ دمج التعديلات اليدوية (احتفاظ بالأحدث)
+      // ✅ إذا السحابة مسحت (clearedAt) → نمسح محلياً
+      if(meta._clearedAt && meta._clearedAt > (db._clearedAt || 0) && meta._clearedBy !== _deviceId){
+        db = emptyDB();
+        db._migratedToSplit = true;
+        db._clearedAt = meta._clearedAt;
+        try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
+        return;
+      }
+      
+      // ✅ حماية الأرشفة
+      if(meta._lastArchiveAt && meta._lastArchiveAt > (db._lastArchiveAt || 0)){
+        db._lastArchiveAt = meta._lastArchiveAt;
+        db._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : db._permanentCarry;
+        db._cashboxOffset = meta._cashboxOffset !== undefined ? meta._cashboxOffset : db._cashboxOffset;
+        db.sales = [];
+        db.payments = [];
+        db.expenses = [];
+        db.buyers = [];
+        db.cashAdditions = [];
+        db.exchanges = [];
+      } else {
+        db._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : 0;
+        db._cashboxOffset = meta._cashboxOffset !== undefined ? meta._cashboxOffset : 0;
+        db._lastArchiveAt = meta._lastArchiveAt || null;
+      }
+      
+      // ✅ دمج التعديلات اليدوية (الأحدث يفوز)
       const remoteManual = meta._manualOverrides || {};
       if(!db._manualOverrides) db._manualOverrides = {};
       Object.keys(remoteManual).forEach(k => {
         const localT = (db._manualOverrides[k] && db._manualOverrides[k].timestamp) || 0;
         const remoteT = (remoteManual[k] && remoteManual[k].timestamp) || 0;
-        if(remoteT > localT){
-          db._manualOverrides[k] = remoteManual[k];
-        }
+        if(remoteT > localT) db._manualOverrides[k] = remoteManual[k];
       });
       
       db._notifications = meta._notifications || [];
@@ -3528,46 +3470,79 @@ async function _reloadFromSplitDocs(){
     }
   }catch(e){ console.warn('read meta failed:', e); }
   
+  // ✅ [الجديد] لكل قسم — الوقت الأحدث يفوز
   for(const category of SPLIT_CATEGORIES){
     try{
       const items = await _loadSplitCategory(category);
       
-      // ✅ حماية خاصة لـ flourTypes — لا نمسح التعديلات اليدوية
       if(category === 'flourTypes'){
+        // ✅ حماية خاصة لـ flourTypes (التعديلات اليدوية)
         const localManualMap = new Map();
         (db.flourTypes || []).forEach(t => {
           if(t._manualOverride && t._manualOriginal !== undefined){
-            localManualMap.set(t.id, {
-              _manualOriginal: t._manualOriginal,
-              _manualOverride: t._manualOverride,
-              _manualSold: t._manualSold,
-              _manualQty: t._manualQty
-            });
+            localManualMap.set(t.id, { _manualOriginal: t._manualOriginal, _manualOverride: t._manualOverride, _manualSold: t._manualSold, _manualQty: t._manualQty });
           }
         });
-        
         const merged = items.map(remoteT => {
           const localManual = localManualMap.get(remoteT.id);
           if(localManual){
             const localT = (+localManual._manualOverride || 0);
             const remoteT2 = (+remoteT._manualOverride || 0);
             if(localT > remoteT2){
-              return {
-                ...remoteT,
-                _manualOriginal: localManual._manualOriginal,
-                _manualOverride: localManual._manualOverride,
-                _manualSold: localManual._manualSold,
-                _manualQty: localManual._manualQty,
-                qty: localManual._manualQty !== undefined ? localManual._manualQty : remoteT.qty,
-                totalSold: localManual._manualSold !== undefined ? localManual._manualSold : remoteT.totalSold
-              };
+              return { ...remoteT, ...localManual, qty: localManual._manualQty !== undefined ? localManual._manualQty : remoteT.qty, totalSold: localManual._manualSold !== undefined ? localManual._manualSold : remoteT.totalSold };
             }
           }
           return remoteT;
         });
         db[category] = merged.length ? merged : db[category];
-      } else if(items.length || !(db[category]||[]).length){
-        db[category] = items;
+      } else {
+        // ✅ [الدمج الذكي] لكل عنصر — الأحدث يفوز
+        const localList = Array.isArray(db[category]) ? db[category] : [];
+        const cloudList = Array.isArray(items) ? items : [];
+        
+        const cloudMap = new Map();
+        cloudList.forEach(item => { if(item && item.id) cloudMap.set(item.id, item); });
+        
+        const localMap = new Map();
+        localList.forEach(item => { if(item && item.id) localMap.set(item.id, item); });
+        
+        const allIds = new Set([...cloudMap.keys(), ...localMap.keys()]);
+        const mergedList = [];
+        
+        allIds.forEach(id => {
+          const cloudItem = cloudMap.get(id);
+          const localItem = localMap.get(id);
+          
+          if(!cloudItem && localItem){
+            // ← موجود محلي فقط → احتفظ به
+            mergedList.push(localItem);
+            return;
+          }
+          if(cloudItem && !localItem){
+            // ← موجود بالسحابة فقط → استخدم السحابة
+            mergedList.push(cloudItem);
+            return;
+          }
+          
+          // ← موجود في الاثنين → الأحدث يفوز
+          const cloudEdit = +cloudItem._editedAt || +cloudItem._uploadedAt || 0;
+          const localEdit = +localItem._editedAt || 0;
+          
+          if(cloudEdit > localEdit){
+            mergedList.push(cloudItem);
+          } else if(localEdit > cloudEdit){
+            mergedList.push(localItem);
+          } else {
+            mergedList.push(cloudItem);
+          }
+        });
+        
+        // ✅ ترتيب حسب التاريخ
+        if(category === 'sales' || category === 'payments' || category === 'deposits' || category === 'expenses' || category === 'exchanges' || category === 'cashAdditions'){
+          mergedList.sort((a,b) => String(a.date || '').localeCompare(String(b.date || '')));
+        }
+        
+        db[category] = mergedList;
       }
     }catch(e){ console.warn('read ' + category + ' failed:', e); }
   }
@@ -3576,7 +3551,7 @@ async function _reloadFromSplitDocs(){
 }
 
 // ═══════════════════════════════════════════════════════════
-// 💾 save — مع تتبع التغييرات
+// 💾 save
 // ═══════════════════════════════════════════════════════════
 let _saveTimer = null;
 let _pendingCategories = new Set();
@@ -3584,28 +3559,16 @@ let _pendingCategories = new Set();
 function save(){
   if(!currentUser) return;
   const now = Date.now();
-  
-  ['sales','debts','deposits','payments','expenses','buyers','reservations',
-   'cashAdditions','customerPrices','exchanges','flourTypes','archive'].forEach(key=>{
-    if(Array.isArray(db[key])){
-      db[key].forEach(item=>{if(item && !item._editedAt) item._editedAt = now;});
-    }
+  ['sales','debts','deposits','payments','expenses','buyers','reservations','cashAdditions','customerPrices','exchanges','flourTypes','archive'].forEach(key=>{
+    if(Array.isArray(db[key])){ db[key].forEach(item=>{if(item && !item._editedAt) item._editedAt = now;}); }
   });
-  
   db._lastSaved = now;
   db._lastActionBy = _deviceId;
   db._actionId = _deviceId + '_' + now + '_' + Math.random().toString(36).slice(2,7);
   db._pendingUpload = true;
-  
   try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){ toast('⚠️ المساحة ممتلئة', true); }
-  
   const subStatus = checkSubscription();
-  if(subStatus === 'expired'){
-    db._pendingUpload = false;
-    setSyncStatus('warn','📱 محلي فقط');
-    return;
-  }
-  
+  if(subStatus === 'expired'){ db._pendingUpload = false; setSyncStatus('warn','📱 محلي فقط'); return; }
   if(cloudEnabled && navigator.onLine){
     if(_saveTimer) clearTimeout(_saveTimer);
     _saveTimer = setTimeout(_doUpload, 100);
@@ -3623,57 +3586,25 @@ function saveCategory(category){
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ _doUpload — حماية + رفع
+// ✅ _doUpload — يمسح الأقسام الفاضية من السحابة
 // ═══════════════════════════════════════════════════════════
 async function _doUpload(){
-  if(!currentUser){
-    if(db) db._pendingUpload = false;
-    return;
-  }
-  
+  if(!currentUser){ if(db) db._pendingUpload = false; return false; }
   const _accsCheck = getAccounts();
-  if(!_accsCheck.find(x => x.username === currentUser)){
-    console.warn('❌ currentUser غير موجود في الحسابات — إيقاف الرفع');
-    if(db) db._pendingUpload = false;
-    return;
-  }
+  if(!_accsCheck.find(x => x.username === currentUser)){ if(db) db._pendingUpload = false; return false; }
   
   if(!cloudEnabled || !cloudDataRef){
     let waited = 0;
-    while((!cloudEnabled || !cloudDataRef) && waited < 50){
-      await new Promise(r => setTimeout(r, 100));
-      tryInitFirebase();
-      waited++;
-    }
+    while((!cloudEnabled || !cloudDataRef) && waited < 50){ await new Promise(r => setTimeout(r, 100)); tryInitFirebase(); waited++; }
   }
-  
-  if(!cloudEnabled || !cloudDataRef){
-    if(db) db._pendingUpload = false;
-    setSyncStatus('warn','📱 محلي');
-    return;
-  }
-  
-  if(!navigator.onLine){
-    if(db) db._pendingUpload = false;
-    setSyncStatus('warn','📱 محلي');
-    return;
-  }
+  if(!cloudEnabled || !cloudDataRef){ if(db) db._pendingUpload = false; setSyncStatus('warn','📱 محلي'); return false; }
+  if(!navigator.onLine){ if(db) db._pendingUpload = false; setSyncStatus('warn','📱 محلي'); return false; }
   
   const subStatus = checkSubscription();
-  if(subStatus === 'expired'){
-    if(db) db._pendingUpload = false;
-    setSyncStatus('warn','⚠️ الاشتراك منتهي');
-    return;
-  }
+  if(subStatus === 'expired'){ if(db) db._pendingUpload = false; setSyncStatus('warn','⚠️ الاشتراك منتهي'); return false; }
   
-  if(!cloudMetaRef){
-    _initUserRefs(currentUser);
-  }
-  if(!cloudMetaRef){
-    if(db) db._pendingUpload = false;
-    setSyncStatus('err','❌ مراجع مفقودة');
-    return;
-  }
+  if(!cloudMetaRef) _initUserRefs(currentUser);
+  if(!cloudMetaRef){ if(db) db._pendingUpload = false; setSyncStatus('err','❌ مراجع مفقودة'); return false; }
   
   setSyncStatus('loading','⏳ جاري الحفظ...');
   
@@ -3682,78 +3613,69 @@ async function _doUpload(){
     
     if(!_migrated || !db._migratedToSplit){
       const _clean = JSON.parse(JSON.stringify(db));
-      delete _clean._deleted;
-      delete _clean._needsSync;
-      delete _clean._pendingUpload;
-      if(_clean._notifications && _clean._notifications.length > 20){
-        _clean._notifications = _clean._notifications.slice(0, 20);
-      }
-      await cloudDataRef.doc(currentUser).set({
-        data: _clean,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        _lastActionBy: _deviceId
-      });
+      delete _clean._deleted; delete _clean._needsSync; delete _clean._pendingUpload;
+      if(_clean._notifications && _clean._notifications.length > 20) _clean._notifications = _clean._notifications.slice(0, 20);
+      await cloudDataRef.doc(currentUser).set({ data: _clean, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), _lastActionBy: _deviceId });
       db._pendingUpload = false;
       setSyncStatus('ok','☁️ متزامن');
-      return;
+      return true;
     }
     
     let categoriesToUpload = [];
-    
-    if(_pendingCategories.size > 0){
-      categoriesToUpload = Array.from(_pendingCategories);
-    } else {
+    if(_pendingCategories.size > 0) categoriesToUpload = Array.from(_pendingCategories);
+    else {
       const lastSync = db._lastSync || 0;
       for(const cat of SPLIT_CATEGORIES){
         const items = db[cat] || [];
         const hasChanges = items.some(item => (item._editedAt || 0) > lastSync);
         const hasDeletes = (db._deleted && db._deleted[cat] && db._deleted[cat].length > 0);
-        if(hasChanges || hasDeletes){
-          categoriesToUpload.push(cat);
-        }
+        if(hasChanges || hasDeletes) categoriesToUpload.push(cat);
       }
     }
     
     if(categoriesToUpload.length === 0){
       db._pendingUpload = false;
       setSyncStatus('ok','☁️ متزامن');
-      return;
+      return true;
     }
-    
-    console.log('📤 رفع الأقسام:', categoriesToUpload.join(', '));
     
     for(const category of categoriesToUpload){
       const items = db[category] || [];
       const ref = _getCategoryRef(category);
       if(!ref) continue;
       
-      const deletedItems = (db._deleted && db._deleted[category]) || [];
-      for(const delId of deletedItems){
-        try{ await ref.doc(delId).delete(); }catch(e){}
+      // ✅ مسح كامل للأقسام الفاضية من السحابة (بعد الأرشفة)
+      if(items.length === 0 && ['sales','payments','expenses','buyers','cashAdditions','exchanges'].includes(category)){
+        try{
+          const snap = await ref.get();
+          if(snap.size > 0){
+            const docs = [];
+            snap.forEach(doc => docs.push(doc.ref));
+            for(let i = 0; i < docs.length; i += 400){
+              const batch = _firestoreDB.batch();
+              docs.slice(i, i + 400).forEach(r => batch.delete(r));
+              await batch.commit();
+            }
+            console.log('🗑️ مسح ' + category + ' (' + docs.length + ')');
+          }
+        }catch(e){ console.warn('مسح ' + category + ':', e); }
+        continue;
       }
+      
+      const deletedItems = (db._deleted && db._deleted[category]) || [];
+      for(const delId of deletedItems){ try{ await ref.doc(delId).delete(); }catch(e){} }
       
       const lastSync = db._lastSync || 0;
       const changedItems = items.filter(item => (item._editedAt || 0) > lastSync);
-      
       if(changedItems.length === 0 && deletedItems.length === 0) continue;
       
       let batchCount = 0;
       let batch = _firestoreDB.batch();
-      
       for(const item of changedItems){
         if(!item || !item.id) continue;
-        batch.set(ref.doc(item.id), {
-          ...item,
-          _lastActionBy: _deviceId,
-          _uploadedAt: Date.now()
-        });
+        batch.set(ref.doc(item.id), { ...item, _lastActionBy: _deviceId, _uploadedAt: Date.now() });
         batchCount++;
-        
-        if(batchCount >= 400){
-          await batch.commit();
-          batch = _firestoreDB.batch();
-          batchCount = 0;
-        }
+        if(batchCount >= 400){ await batch.commit(); batch = _firestoreDB.batch(); batchCount = 0; }
       }
       if(batchCount > 0) await batch.commit();
     }
@@ -3764,42 +3686,32 @@ async function _doUpload(){
     db._pendingUpload = false;
     setSyncStatus('ok','☁️ متزامن');
     _lastCloudServerTime = Date.now();
+    return true;
     
   }catch(e){
     console.error('_doUpload error:', e);
     if(db) db._pendingUpload = false;
     setSyncStatus('err','⚠️ فشل الرفع');
+    return false;
   }
 }
 
 window.addEventListener('beforeunload', function(){
-  if(_saveTimer && currentUser && cloudEnabled && navigator.onLine){
-    clearTimeout(_saveTimer);
-    try{
-      _uploadMetaConfig();
-    }catch(e){}
-  }
+  if(_saveTimer && currentUser && cloudEnabled && navigator.onLine){ clearTimeout(_saveTimer); try{ _uploadMetaConfig(); }catch(e){} }
 });
 
 // ═══════════════════════════════════════════════════════════
-// 🔄 مزامنة تلقائية
+// 🔄 autoSyncOnConnect
 // ═══════════════════════════════════════════════════════════
 async function autoSyncOnConnect(){
   if(!currentUser || !navigator.onLine) return;
-  
   if(!cloudEnabled || !cloudDataRef){
     let waited = 0;
-    while((!cloudEnabled || !cloudDataRef) && waited < 50){
-      await new Promise(r => setTimeout(r, 100));
-      tryInitFirebase();
-      waited++;
-    }
+    while((!cloudEnabled || !cloudDataRef) && waited < 50){ await new Promise(r => setTimeout(r, 100)); tryInitFirebase(); waited++; }
   }
   if(!cloudEnabled || !cloudDataRef) return;
-  
   const subStatus = checkSubscription();
   if(subStatus === 'expired') return;
-  
   try{
     setSyncStatus('loading','☁️ مزامنة تلقائية...');
     if(_migrated && db._migratedToSplit){
@@ -3818,43 +3730,26 @@ async function autoSyncOnConnect(){
       }
       setSyncStatus('ok','☁️ متزامن');
     }
-  }catch(e){
-    setSyncStatus('err','⚠️ فشل');
-  }
+  }catch(e){ setSyncStatus('err','⚠️ فشل'); }
 }
 
 async function forceSync(){
   if(!currentUser) return;
-  
   if(!cloudEnabled || !cloudDataRef){
     let waited = 0;
-    while((!cloudEnabled || !cloudDataRef) && waited < 50){
-      await new Promise(r => setTimeout(r, 100));
-      tryInitFirebase();
-      waited++;
-    }
+    while((!cloudEnabled || !cloudDataRef) && waited < 50){ await new Promise(r => setTimeout(r, 100)); tryInitFirebase(); waited++; }
   }
   if(!cloudEnabled || !cloudDataRef){ toast('📱 Firebase غير متصل', true); return; }
   if(!navigator.onLine){ toast('📱 ما يوجد إنترنت', true); return; }
-  
   const subStatus = checkSubscription();
-  if(subStatus === 'expired'){
-    toast('⚠️ اشترك أولاً للمزامنة', true);
-    gotoPage('subscription');
-    return;
-  }
-  
+  if(subStatus === 'expired'){ toast('⚠️ اشترك أولاً للمزامنة', true); gotoPage('subscription'); return; }
   toast('جاري المزامنة... ⏳');
   try{
-    if(_migrated && db._migratedToSplit){
-      await _reloadFromSplitDocs();
-    } else {
+    if(_migrated && db._migratedToSplit){ await _reloadFromSplitDocs(); }
+    else {
       const doc = await cloudDataRef.doc(currentUser).get();
       const cloudDb = (doc.exists&&doc.data()&&doc.data().data)?doc.data().data:null;
-      if(cloudDb){
-        db = mergeSmart(db, cloudDb);
-        _fixDBFields(db);
-      }
+      if(cloudDb){ db = mergeSmart(db, cloudDb); _fixDBFields(db); }
     }
     db._lastSync = Date.now();
     localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db));
@@ -3867,31 +3762,18 @@ async function forceSync(){
 async function sendMyData(){
   if(!currentUser) return;
   if(!cloudEnabled){ toast('❌ Firebase غير متصل', true); return; }
-  
   const subStatus = checkSubscription();
-  if(subStatus === 'expired'){
-    toast('⚠️ اشترك أولاً للمزامنة', true);
-    gotoPage('subscription');
-    return;
-  }
-  
+  if(subStatus === 'expired'){ toast('⚠️ اشترك أولاً للمزامنة', true); gotoPage('subscription'); return; }
   if(!confirm('📤 سيتم دمج بياناتك مع السحابة\n\n✅ ما راح تنمسح أي بيانات\n✅ بدون تكرار\n\nمتابعة؟')) return;
-  
   try{
     setSyncStatus('loading','🔀 جاري الدمج...');
-    
-    if(!_migrated || !db._migratedToSplit){
-      await _migrateToSplitDocs();
-    }
-    
+    if(!_migrated || !db._migratedToSplit){ await _migrateToSplitDocs(); }
     db._lastSaved = Date.now() + 1000;
     db._lastActionBy = _deviceId;
     db._lastSync = 0;
     await _uploadMetaConfig();
-    
     _pendingCategories = new Set(SPLIT_CATEGORIES);
     await _doUpload();
-    
     renderAll();renderArchive();renderSettings();
     setSyncStatus('ok','☁️ متزامن');
     toast('✅ تم الدمج بنجاح');
@@ -3905,26 +3787,14 @@ async function sendMyData(){
 async function receiveFromCloud(){
   if(!currentUser) return;
   if(!cloudEnabled){ toast('❌ Firebase غير متصل', true); return; }
-  
   const subStatus = checkSubscription();
-  if(subStatus === 'expired'){
-    toast('⚠️ اشترك أولاً للمزامنة', true);
-    gotoPage('subscription');
-    return;
-  }
-  
+  if(subStatus === 'expired'){ toast('⚠️ اشترك أولاً للمزامنة', true); gotoPage('subscription'); return; }
   if(!confirm('📥 سيتم دمج السحابة مع بياناتك\n\n✅ ما راح تنمسح أي بيانات\n✅ بدون تكرار\n\nمتابعة؟')) return;
-  
   try{
-    if(_migrated && db._migratedToSplit){
-      await _reloadFromSplitDocs();
-    } else {
+    if(_migrated && db._migratedToSplit){ await _reloadFromSplitDocs(); }
+    else {
       const doc = await cloudDataRef.doc(currentUser).get();
-      if(doc.exists && doc.data() && doc.data().data){
-        const cloudDb = doc.data().data;
-        db = mergeSmart(db, cloudDb);
-        _fixDBFields(db);
-      }
+      if(doc.exists && doc.data() && doc.data().data){ const cloudDb = doc.data().data; db = mergeSmart(db, cloudDb); _fixDBFields(db); }
     }
     db._lastSync = Date.now();
     localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db));
@@ -7211,37 +7081,18 @@ return {mode:'qty',qty:null,money:0,hasQtyDeposit:false,hasMoneyDeposit:false};
 let _finalCashbox=0;let _finalTotal=0;let _finalExpenses=0;
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [مشكلة 3] — تجميع الإيداعات الحرة بنفس _accumulateId
+// ✅ [تجميع الحرة]
 // ═══════════════════════════════════════════════════════════
 function _aggregateFreeDeposits(deposits){
   const result = [];
-  const freeGroups = new Map(); // accId → aggregated item
-  
+  const freeGroups = new Map();
   deposits.forEach(d => {
     if(d._accumulateId && (!d.typeName || d.typeName === '')){
-      // ← إيداع حر قابل للتجميع
       if(!freeGroups.has(d._accumulateId)){
         freeGroups.set(d._accumulateId, {
-          id: d.id,
-          _aggregatedIds: [d.id],
-          _accumulateId: d._accumulateId,
-          person: d.person,
-          carrier: d.carrier || '',
-          typeName: '',
-          qty: 0,
-          originalQty: 0,
-          unitPrice: 0,
-          totalPrice: 0,
-          amount: 0,
-          originalAmount: 0,
-          _usedQty: 0,
-          _usedMoney: 0,
-          legacy: d.legacy,
-          _showInReport: d._showInReport,
-          date: d.date,
-          note: d.note || '💵 مبلغ حر',
-          _editedAt: d._editedAt,
-          _dates: [d.date]
+          id: d.id, _aggregatedIds: [d.id], _accumulateId: d._accumulateId, person: d.person, carrier: d.carrier || '', typeName: '',
+          qty: 0, originalQty: 0, unitPrice: 0, totalPrice: 0, amount: 0, originalAmount: 0, _usedQty: 0, _usedMoney: 0,
+          legacy: d.legacy, _showInReport: d._showInReport, date: d.date, note: d.note || '💵 مبلغ حر', _editedAt: d._editedAt, _dates: [d.date]
         });
       }
       const agg = freeGroups.get(d._accumulateId);
@@ -7253,30 +7104,22 @@ function _aggregateFreeDeposits(deposits){
       agg.qty = (+agg.qty || 0) + (+d.qty || 0);
       agg._usedQty = (+agg._usedQty || 0) + (+d._usedQty || 0);
       agg._dates.push(d.date);
-      // استخدم أحدث تاريخ
       if(String(d.date) > String(agg.date)) agg.date = d.date;
       if(!agg._showInReport && d._showInReport) agg._showInReport = true;
       if((+d._editedAt || 0) > (+agg._editedAt || 0)) agg._editedAt = d._editedAt;
-    } else {
-      // ← إيداع نوع محدد — يبقى كما هو
-      result.push(d);
-    }
+    } else { result.push(d); }
   });
-  
-  // ✅ أضف الإيداعات الحرة المجمعة
   freeGroups.forEach(agg => {
-    // احسب المجموع المتبقي
     const remQty = Math.max(0, (+agg.originalQty || 0) - (+agg._usedQty || 0));
     const remAmt = Math.max(0, (+agg.originalAmount || 0) - (+agg._usedMoney || 0));
-    if(remQty <= 0 && remAmt <= 0) return; // ← تخطى المنتهية
+    if(remQty <= 0 && remAmt <= 0) return;
     result.push(agg);
   });
-  
   return result;
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [مشكلة 2] — renderReport — الإيداعات الحرة تُجمع
+// ✅ renderReport
 // ═══════════════════════════════════════════════════════════
 function renderReport(){
 var _archT=getArchiveTime();
@@ -7293,10 +7136,7 @@ const discountedTotal=Math.max(0,it.total-itemDisc);
 const discountedUnitPrice=it.qty>0?Math.round((discountedTotal/it.qty)*100)/100:0;
 let rB=null;
 if(s.method==='واصل'){const wKey=s.id + '|' + it.typeName;if(wasselBals[wKey]) rB=wasselBals[wKey];else rB=getSaleRemaining(s.buyer, it.typeName, s.date, s.id);}
-if(s.method==='واصل' && s.remByType && s.remByType[it.typeName]){
-const rb = s.remByType[it.typeName];
-rB = {mode: rb.mode, qty: rb.qty, money: rb.money, hasQtyDeposit: rb.hasQtyDeposit, hasMoneyDeposit: rb.hasMoneyDeposit};
-}
+if(s.method==='واصل' && s.remByType && s.remByType[it.typeName]){const rb = s.remByType[it.typeName];rB = {mode: rb.mode, qty: rb.qty, money: rb.money, hasQtyDeposit: rb.hasQtyDeposit, hasMoneyDeposit: rb.hasMoneyDeposit};}
 let paidAmount=discountedTotal;
 let remAfterPaid=0;
 if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;remAfterPaid=debtPart;paidAmount=Math.max(0, discountedTotal - debtPart);}
@@ -7306,16 +7146,9 @@ rows.push({date:s.date,type:it.typeName,qty:it.qty,unitPrice:discountedUnitPrice
 });
 });
 
-// ✅ التسديدات — استثناء _fromDeposit
-db.payments.filter(p => p._fromDeposit !== true).forEach(p=>{
-rows.push({date:p.date,type:p.typeName||'—',qty:p.qty||'',unitPrice:'',buyer:p.person,carrier:'—',amount:p.amount,displayAmount:p.amount,method:'تسديد',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});
-});
+db.payments.filter(p => p._fromDeposit !== true).forEach(p=>{rows.push({date:p.date,type:p.typeName||'—',qty:p.qty||'',unitPrice:'',buyer:p.person,carrier:'—',amount:p.amount,displayAmount:p.amount,method:'تسديد',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+db.debts.filter(d=>d.manual && !d.fromSale && !d.fromDeposit && !d.fromExchange).forEach(d=>{rows.push({date:d.date,type:d.typeName||'دين يدوي',qty:'',unitPrice:d.amount,buyer:d.person,carrier:'—',amount:0,displayAmount:0,method:'دين يدوي',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
 
-db.debts.filter(d=>d.manual && !d.fromSale && !d.fromDeposit && !d.fromExchange).forEach(d=>{
-rows.push({date:d.date,type:d.typeName||'دين يدوي',qty:'',unitPrice:d.amount,buyer:d.person,carrier:'—',amount:0,displayAmount:0,method:'دين يدوي',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});
-});
-
-// ✅ [مشكلة 3] الإيداعات — تجميع الحرة بـ _accumulateId
 const _reportableDeps = (db.deposits||[]).filter(d=>{
   if(!(+d.originalAmount>0)) return false;
   if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;
@@ -7335,62 +7168,34 @@ _aggregatedDeps.forEach(d=>{
   const debtDeducted = info ? +info._debtDeducted || 0 : 0;
   const freeRemaining = info ? +info._freeRemaining || 0 : 0;
   const hasDetails = (info !== null && (itemsList.length > 0 || debtBefore > 0 || freeRemaining > 0));
-  
   const isAggregated = d._aggregatedIds && d._aggregatedIds.length > 1;
   const datesStr = isAggregated ? d._dates.map(x=>fmtShort(x)).join(' + ') : null;
-  
   rows.push({
-    date:d.date,
-    type:d.typeName||'💵 مبلغ حر',
-    qty:d.originalQty||d.qty||'',
-    unitPrice:d.unitPrice||'',
-    buyer:d.person,
-    carrier:d.carrier||'—',
-    amount:amountFull,
-    displayAmount:amountFull,
-    method:'إيداع',
-    remQty:null,
-    remMoney:null,
-    hasQtyDeposit:false,
-    hasMoneyDeposit:false,
-    _itemsList: hasDetails ? itemsList : null,
-    _itemsValue: hasDetails ? itemsValue : null,
-    _debtBefore: (hasDetails && debtBefore > 0) ? debtBefore : null,
-    _debtDeducted: hasDetails ? debtDeducted : null,
-    _freeRemaining: hasDetails ? freeRemaining : null,
-    _hasDetails: hasDetails,
-    _isAggregated: isAggregated,
-    _aggregatedDates: datesStr,
-    _aggregatedCount: isAggregated ? d._aggregatedIds.length : 0
+    date:d.date,type:d.typeName||'💵 مبلغ حر',qty:d.originalQty||d.qty||'',unitPrice:d.unitPrice||'',buyer:d.person,carrier:d.carrier||'—',
+    amount:amountFull,displayAmount:amountFull,method:'إيداع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false,
+    _itemsList: hasDetails ? itemsList : null,_itemsValue: hasDetails ? itemsValue : null,_debtBefore: (hasDetails && debtBefore > 0) ? debtBefore : null,
+    _debtDeducted: hasDetails ? debtDeducted : null,_freeRemaining: hasDetails ? freeRemaining : null,_hasDetails: hasDetails,
+    _isAggregated: isAggregated,_aggregatedDates: datesStr,_aggregatedCount: isAggregated ? d._aggregatedIds.length : 0
   });
 });
-
 (db.cashAdditions||[]).filter(c=>!c.isCarry&&!c.fromExchange).forEach(c=>{rows.push({date:c.date,type:'—',qty:'',unitPrice:'',buyer:c.note||'إضافة صندوق',carrier:'—',amount:c.amount,displayAmount:c.amount,method:'إضافات',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
-
 (db.exchanges||[]).forEach(e=>{
 (e.returnItems||[]).forEach(ri=>{rows.push({date:e.date,type:ri.typeName,qty:ri.qty,unitPrice:ri.unitPrice||0,buyer:e.buyer,carrier:e.carrier||'—',amount:0,displayAmount:0,method:'استرجاع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
 (e.swapItems||[]).forEach(si=>{rows.push({date:e.date,type:si.typeName,qty:si.qty,unitPrice:si.unitPrice||0,buyer:e.buyer,carrier:e.carrier||'—',amount:0,displayAmount:0,method:'تبديل',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
 if(e.diff!==0){rows.push({date:e.date,type:'—',qty:'',unitPrice:'',buyer:e.buyer,carrier:'—',amount:0,displayAmount:0,method:'فرق',diffValue:e.diff,diffMethod:e.method,remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});}
 });
-
 rows.sort((a,b)=>a.date.localeCompare(b.date));
-
-const totalSales=rows.filter(r=>r.method!=='استرجاع'&&r.method!=='تبديل'&&r.method!=='فرق'&&r.method!=='دين يدوي').reduce((a,r)=>a+r.amount,0)
-+ (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-
+const totalSales=rows.filter(r=>r.method!=='استرجاع'&&r.method!=='تبديل'&&r.method!=='فرق'&&r.method!=='دين يدوي').reduce((a,r)=>a+r.amount,0) + (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
 const dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 let _carryAmount=0;let _carryDate='';
 if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carryAmount=(+db._permanentCarry || 0) + (+db._cashboxOffset || 0);_carryDate=db._lastArchiveAt || nowISO();}
-
 let h=`<div class="card" style="background:#fff8e6;border:2px solid #f39c12;padding:12px">`;
 h+=`<div style="text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #f39c12">`;
 h+=`<div style="font-size:15px;font-weight:bold;color:#8B4513;margin-bottom:6px">🛒 سجل البيع</div>`;
 h+=`<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px">`;
 h+=`<div><b>📅:</b> ${fmt(nowISO())}</div><div><b>📆:</b> ${dayNames[new Date().getDay()]}</div></div></div>`;
 h+=`<table style="font-size:11px"><tr><th>#</th><th>النوع</th><th>العدد</th><th>📦 باقي كيس</th><th>المشتري</th><th>الناقل 🚛</th><th>سعر المفرد</th><th>المبلغ</th><th>💰 المطلوب</th><th>الدفع</th><th class="time-cell">الوقت</th></tr>`;
-
 if(_carryAmount > 0){h+=`<tr style="background:#fff3e0;font-weight:bold;border-bottom:2px solid #f39c12"><td style="text-align:center;color:#f39c12;font-size:14px">🏦</td><td colspan="6" style="color:#8B4513;font-size:12px">💰 رصيد البايت (${fmtShort(_carryDate)})</td><td style="color:#c0392b;font-size:13px;font-weight:bold">${money(_carryAmount)}</td><td colspan="3"></td></tr>`;}
-
 if(rows.length){
 rows.forEach((r,rowIdx)=>{
 let badgeHtml;
@@ -7403,7 +7208,6 @@ else if(r.method==='تبديل'){badgeHtml=`<span class="badge b-تبديل">�
 else if(r.method==='فرق'){badgeHtml=`<span class="badge b-فرق">💱 فرق</span>`;}
 else if(r.method==='دين يدوي'){badgeHtml=`<span class="badge b-دين">📝 دين يدوي</span>`;}
 else{badgeHtml=`<span>${r.method}</span>`;}
-
 let _amtShow;
 if(r.method==='فرق'){const isNeg = r.diffValue < 0;_amtShow = (isNeg ? '-' : '+') + money(Math.abs(r.diffValue));}
 else if(r.method==='استرجاع'||r.method==='تبديل'){_amtShow='—';}
@@ -7411,38 +7215,25 @@ else if(r.method==='واصل'){_amtShow='<span style="color:#ccc">—</span>';}
 else if(r.method==='دين يدوي'){_amtShow='<span style="color:#c0392b;font-weight:bold">'+money(r.unitPrice)+'</span>';}
 else if(r.displayAmount!==undefined){_amtShow=money(r.displayAmount);}
 else{_amtShow=money(r.amount);}
-
 let _remQtyShow='—';
 if(r.remQty!==null && r.remQty!==undefined){if(r.remQty<=0){_remQtyShow='<span style="color:#8b0000;font-weight:bold">انتهى</span>';}else{_remQtyShow='<span style="color:#c0392b;font-weight:bold">'+money(r.remQty)+'</span>';}}
-
 let _matloobCell;
 if(r.method==='إيداع'){
   if(r._hasDetails){
     let details = `<div style="font-size:10px;line-height:1.7;text-align:right;background:#f0f7fc;padding:5px 8px;border-radius:6px;border-right:3px solid #3498db">`;
-    if(r._itemsList && r._itemsList.length){
-      r._itemsList.forEach(item => {
-        details += `<div>🌾 ${item.name}: ${money(item.qty)} × ${money(item.price)} = <b style="color:#2980b9">${money(item.total)}</b></div>`;
-      });
-    }
+    if(r._itemsList && r._itemsList.length){r._itemsList.forEach(item => {details += `<div>🌾 ${item.name}: ${money(item.qty)} × ${money(item.price)} = <b style="color:#2980b9">${money(item.total)}</b></div>`;});}
     if(r._debtBefore !== null && r._debtBefore > 0){details += `<div>💳 مطلوب: <b style="color:#c0392b">${money(r._debtBefore)}</b></div>`;}
     if(r._freeRemaining > 0){details += `<div>✅ باقي: <b style="color:#27ae60">${money(r._freeRemaining)} إيداع حر</b></div>`;}
     else if(r._debtBefore !== null && r._debtBefore > 0 && r._freeRemaining === 0){details += `<div>✅ باقي: <b style="color:#888">0</b></div>`;}
     details += `</div>`;
     _matloobCell = details;
-  } else {
-    _matloobCell = '<span style="color:#888;font-size:10px">—</span>';
-  }
+  } else {_matloobCell = '<span style="color:#888;font-size:10px">—</span>';}
 } else {
   let _remMoneyShow='—';
   if(r.remMoney!==null && r.remMoney!==undefined){if(r.remMoney<=0){_remMoneyShow=r.hasMoneyDeposit ? '<span style="color:#8b0000;font-weight:bold">انتهى</span>' : '—';}else{_remMoneyShow='<span style="color:#c0392b;font-weight:bold">'+money(r.remMoney)+'</span>';}}
   _matloobCell = _remMoneyShow;
 }
-
-// ✅ عرض تواريخ التجميع تحت نوع الإيداع
-const _typeDisplay = r._isAggregated && r._aggregatedDates
-  ? `${r.type}<div style="font-size:9px;color:#3498db;margin-top:2px">📅 ${r._aggregatedDates}</div>`
-  : r.type;
-
+const _typeDisplay = r._isAggregated && r._aggregatedDates ? `${r.type}<div style="font-size:9px;color:#3498db;margin-top:2px">📅 ${r._aggregatedDates}</div>` : r.type;
 h+=`<tr><td style="text-align:center;font-weight:bold;color:#888">${rowIdx+1}</td><td>${_typeDisplay}</td><td style="color:#2980b9;font-weight:bold">${r.qty?money(r.qty):'—'}</td><td>${r.method==='إيداع' ? '<span style="color:#ccc">—</span>' : _remQtyShow}</td><td>${r.buyer}</td><td style="font-size:10px">${r.carrier}</td><td style="color:#27ae60;font-weight:bold">${r.unitPrice?money(r.unitPrice):'—'}</td><td style="color:#8B4513;font-weight:bold">${_amtShow}</td><td>${_matloobCell}</td><td>${badgeHtml}</td><td class="time-cell">${fmtTime(r.date)}</td></tr>`;
 });
 h+=`<tr style="background:#faf0e6;font-weight:bold"><td colspan="7" style="text-align:center">المجموع</td><td style="color:#8B4513;font-size:14px">${money(totalSales + _carryAmount)}</td><td colspan="3"></td></tr>`;
@@ -7451,7 +7242,6 @@ h+=`<tr><td colspan="11" style="text-align:center;color:#888;padding:12px">لا 
 if(_carryAmount > 0){h+=`<tr style="background:#faf0e6;font-weight:bold"><td colspan="7" style="text-align:center">المجموع</td><td style="color:#8B4513;font-size:14px">${money(_carryAmount)}</td><td colspan="3"></td></tr>`;}
 }
 h+=`</table></div>`;
-
 const expRows=[...db.expenses].sort((a,b)=>a.date.localeCompare(b.date));
 if(expRows.length){
 const totalExp=expRows.reduce((a,e)=>a+e.amount,0);
@@ -7463,7 +7253,6 @@ h+=`<tr${isExchange?' style="background:#fff3e0"':''}><td>${e.desc}${isExchange?
 });
 h+=`<tr style="background:#ffe5e5;font-weight:bold"><td style="text-align:center">المجموع</td><td style="color:#c0392b">${money(totalExp)}</td><td></td></tr></table></div>`;
 }
-
 let _reportTotal=0;
 db.sales.forEach(s=>{
 const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
@@ -7481,27 +7270,21 @@ _reportTotal += paid;
 });
 _reportTotal += db.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0);
 _reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-// ✅ [مشكلة 3] — الإيداعات: تجميع الحرة (بدون تكرار)
 _reportTotal += _aggregatedDeps.reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
 _reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
-
 const _te=db.expenses.reduce((a,e)=>a+e.amount,0);
 let _carry=0;
 if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carry=+db._permanentCarry || 0;}
-
 _finalTotal=_reportTotal + _carry;
 _finalExpenses=_te;
 _finalCashbox=_finalTotal - _finalExpenses + (db._cashboxOffset || 0);
-
 document.getElementById('reportArea').innerHTML=h;
 }
 
 // ✅ عارض الصور
 function openImageViewer(src){
-var old=document.getElementById('imgViewer');
-if(old) old.remove();
-var v=document.createElement('div');
-v.id='imgViewer';
+var old=document.getElementById('imgViewer');if(old) old.remove();
+var v=document.createElement('div');v.id='imgViewer';
 v.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999999;display:flex;align-items:center;justify-content:center;padding:10px';
 v.innerHTML='<img src="'+src+'" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px">'+
 '<button onclick="document.getElementById(\'imgViewer\').remove()" style="position:absolute;top:15px;right:15px;background:#e74c3c;color:#fff;border:none;width:44px;height:44px;border-radius:50%;font-size:22px;cursor:pointer;font-weight:bold;box-shadow:0 3px 10px rgba(0,0,0,0.4)">✕</button>';
@@ -7522,7 +7305,7 @@ let g=`<div style="text-align:center;margin-bottom:15px;background:#fff;padding:
 imgs.forEach((im,i)=>{
   g+=`<div style="margin-bottom:20px;background:#fff;border-radius:10px;padding:10px;overflow:hidden">
     <img src="${im}" onclick="openImageViewer(this.src)" style="width:100%;max-width:100%;height:auto;display:block;border-radius:6px;object-fit:contain;cursor:zoom-in">
-    <div style="margin-top:8px;text-align:center;font-size:13px;color:#8B4513;font-weight:bold">📄 صفحة ${i+1} من ${imgs.length} — اضغط على الصورة للتكبير</div>
+    <div style="margin-top:8px;text-align:center;font-size:13px;color:#8B4513;font-weight:bold">📄 صفحة ${i+1} من ${imgs.length}</div>
   </div>`;
 });
 openOverlay('🌾 كشف المطابقة',g,'#D2691E');
@@ -7569,16 +7352,10 @@ function viewDepositBalances(){
 if(!db.deposits.length){toast('لا توجد إيداعات',true);return;}
 const _plSet=new Set([...db.deposits.filter(d=>!d._finished&&!d.isWithdrawal&&!d.isCarry&&!d.cashPayment).map(d=>d.person),...db.reservations.map(r=>r.person)]);
 const pl=[..._plSet];
-let c=`<div class="deposit-table-card">`;
-c+=`<div class="card-header">`;
-c+=`<div class="title">💰 أرصدة الإيداعات</div>`;
-c+=`<div class="date-row">`;
+let c=`<div class="deposit-table-card"><div class="card-header"><div class="title">💰 أرصدة الإيداعات</div><div class="date-row">`;
 const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
-c+=`<div><b>📅:</b> ${fmt(nowISO())}</div><div><b>📆:</b> ${days[new Date().getDay()]}</div>`;
-c+=`</div></div>`;
-c+=`<table class="deposit-table"><tr>`;
-c+=`<th>#</th><th>الاسم</th><th>🚛 الناقل</th><th>النوع</th><th>📦 أصلي</th><th>📦 مستخدم</th><th>📦 متبقي</th><th>💵 سعر المفرد</th><th>💰 الأصلي</th><th>💰 مستخدم</th><th>💰 متبقي</th><th>الحالة</th><th>🕐 التاريخ</th>`;
-c+=`</tr>`;
+c+=`<div><b>📅:</b> ${fmt(nowISO())}</div><div><b>📆:</b> ${days[new Date().getDay()]}</div></div></div>`;
+c+=`<table class="deposit-table"><tr><th>#</th><th>الاسم</th><th>🚛 الناقل</th><th>النوع</th><th>📦 أصلي</th><th>📦 مستخدم</th><th>📦 متبقي</th><th>💵 سعر المفرد</th><th>💰 الأصلي</th><th>💰 مستخدم</th><th>💰 متبقي</th><th>الحالة</th><th>🕐 التاريخ</th></tr>`;
 let counter = 0;
 pl.forEach(p=>{
 const liveDeps = db.deposits.filter(d=>_cleanPerson(d.person)===_cleanPerson(p) && !d.isWithdrawal && !d.isCarry && !d.cashPayment && !d._finished);
@@ -7596,27 +7373,14 @@ const depFinished = (remQty <= 0 && remAmt <= 0);
 const nameCell = idx === 0 ? `<td class="name">👤 ${p}</td>` : `<td class="name"></td>`;
 const legacyBadge = dep.legacy ? ' <span class="badge-legacy">📜 قديم</span>' : '';
 c+=`<tr class="deposit-row${depFinished?' finished':''}${dep.legacy?' legacy-row':''}">`;
-c+=`<td class="num">${counter}</td>`;
-c+=nameCell;
-c+=`<td class="carrier">${dep.carrier || '—'}</td>`;
-c+=`<td class="type">${dType}${legacyBadge}</td>`;
-c+=`<td class="orig">${origQty>0?money(origQty):'—'}</td>`;
-c+=`<td class="used">${usedQty>0?money(usedQty):'—'}</td>`;
-c+=`<td class="rem">${origQty>0?(remQty<=0?'<span style="background:#8b0000;color:#fff;padding:1px 5px;border-radius:8px;font-size:8px">انتهى</span>':money(remQty)):'—'}</td>`;
-c+=`<td class="price">${dep.unitPrice?money(dep.unitPrice):'—'}</td>`;
-c+=`<td class="money-o">${origAmt>0?money(origAmt):'—'}</td>`;
-c+=`<td class="money-u">${usedAmt>0?money(usedAmt):'—'}</td>`;
-c+=`<td class="money-r">${origAmt>0?(remAmt<=0?'<span style="background:#8b0000;color:#fff;padding:1px 5px;border-radius:8px;font-size:8px">انتهى</span>':money(remAmt)):'—'}</td>`;
-c+=`<td>${depFinished?'<span style="background:#8b0000;color:#fff;padding:1px 6px;border-radius:8px;font-size:8px;font-weight:bold">منتهي</span>':'<span style="background:#27ae60;color:#fff;padding:1px 6px;border-radius:8px;font-size:8px;font-weight:bold">مفعّل</span>'}</td>`;
-c+=`<td class="time">${fmtShort(dep.date)}</td>`;
-c+=`</tr>`;
+c+=`<td class="num">${counter}</td>${nameCell}<td class="carrier">${dep.carrier || '—'}</td><td class="type">${dType}${legacyBadge}</td>`;
+c+=`<td class="orig">${origQty>0?money(origQty):'—'}</td><td class="used">${usedQty>0?money(usedQty):'—'}</td><td class="rem">${origQty>0?(remQty<=0?'<span style="background:#8b0000;color:#fff;padding:1px 5px;border-radius:8px;font-size:8px">انتهى</span>':money(remQty)):'—'}</td>`;
+c+=`<td class="price">${dep.unitPrice?money(dep.unitPrice):'—'}</td><td class="money-o">${origAmt>0?money(origAmt):'—'}</td><td class="money-u">${usedAmt>0?money(usedAmt):'—'}</td><td class="money-r">${origAmt>0?(remAmt<=0?'<span style="background:#8b0000;color:#fff;padding:1px 5px;border-radius:8px;font-size:8px">انتهى</span>':money(remAmt)):'—'}</td>`;
+c+=`<td>${depFinished?'<span style="background:#8b0000;color:#fff;padding:1px 6px;border-radius:8px;font-size:8px;font-weight:bold">منتهي</span>':'<span style="background:#27ae60;color:#fff;padding:1px 6px;border-radius:8px;font-size:8px;font-weight:bold">مفعّل</span>'}</td><td class="time">${fmtShort(dep.date)}</td></tr>`;
 });
 });
-c+=`</table>`;
-c+=`</div>`;
-_currentViewHTML=c;
-currentReportImages=[];
-_finalCashbox=0;_finalTotal=0;_finalExpenses=0;
+c+=`</table></div>`;
+_currentViewHTML=c;currentReportImages=[];_finalCashbox=0;_finalTotal=0;_finalExpenses=0;
 openOverlay('💰 أرصدة الإيداعات',c,'#f39c12');
 }
 
@@ -7673,246 +7437,202 @@ function _formatDateArabic(dateKey){
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [مشكلة 4] doArchive — يرفع الأرشيف للسحابة مباشرة
+// ✅ doArchive (مصحح - يمسح من السحابة)
 // ═══════════════════════════════════════════════════════════
-function doArchive(){
-const hd=db.sales.length||db.payments.length||db.expenses.length||db.buyers.length||(db.cashAdditions||[]).length||(db.exchanges||[]).length||db.debts.some(d=>d.manual);
-if(!hd)return toast('لا توجد بيانات',true);
-if(!confirm('سيتم أرشفة البيانات — كل يوم راح يصير أرشيف مستقل.\n\nمتابعة؟'))return;
-if(!confirm('⚠️ تأكيد نهائي؟'))return;
+async function doArchive(){
+  const hd = db.sales.length || db.payments.length || db.expenses.length || db.buyers.length || (db.cashAdditions||[]).length || (db.exchanges||[]).length || db.debts.some(d=>d.manual);
+  if(!hd) return toast('لا توجد بيانات', true);
+  if(!confirm('سيتم أرشفة البيانات.\n\n⚠️ سيتم مسح: المبيعات، التسديدات، الصرفيات، المشترين، إضافات الصندوق، الاسترجاع/التبديل (من الجهاز والسحابة).\n\n✅ سيبقى: الطحين، البايت، الإيداعات، المطلوبين، الأرشيف.\n\nمتابعة؟')) return;
+  if(!confirm('⚠️ تأكيد نهائي؟')) return;
 
-const _savedReportHTML = document.getElementById('reportArea')?.innerHTML || '';
-const _savedFinalTotal = _finalTotal;
-const _savedFinalExpenses = _finalExpenses;
-const _savedFinalCashbox = _finalCashbox;
+  if(_saveTimer) clearTimeout(_saveTimer);
+  _isReceivingUpdate = true;
 
-db.payments.forEach(pay=>{let rem=pay.amount;const pd=db.debts.filter(d=>d.person===pay.person).sort((a,b)=>a.date.localeCompare(b.date));for(const d of pd){if(rem<=0)break;const deduct=Math.min(rem,d.amount);d.amount-=deduct;rem-=deduct;d._editedAt=Date.now();}});
-db.debts=db.debts.filter(d=>d.amount>0.01);
+  const _savedReportHTML = document.getElementById('reportArea')?.innerHTML || '';
+  const _savedFinalTotal = _finalTotal;
+  const _savedFinalExpenses = _finalExpenses;
+  const _savedFinalCashbox = _finalCashbox;
 
-let currentCashbox=_lastCashboxValue || 0;
-const _archiveTime=nowISO();
-
-const allOperations = [];
-db.sales.forEach(x=>allOperations.push({type:'sale',dateKey:_getDateKey(x.date),data:x}));
-db.payments.forEach(x=>allOperations.push({type:'payment',dateKey:_getDateKey(x.date),data:x}));
-db.expenses.forEach(x=>allOperations.push({type:'expense',dateKey:_getDateKey(x.date),data:x}));
-(db.cashAdditions||[]).forEach(x=>allOperations.push({type:'cashAddition',dateKey:_getDateKey(x.date),data:x}));
-(db.exchanges||[]).forEach(x=>allOperations.push({type:'exchange',dateKey:_getDateKey(x.date),data:x}));
-(db.deposits||[]).forEach(x=>allOperations.push({type:'deposit',dateKey:_getDateKey(x.date),data:x}));
-(db.buyers||[]).forEach(x=>allOperations.push({type:'buyer',dateKey:_getDateKey(x.firstDate||x.lastDate),data:x}));
-
-const byDate = {};
-allOperations.forEach(op=>{
-  const key = op.dateKey;
-  if(!byDate[key]) byDate[key] = {sales:[],payments:[],expenses:[],cashAdditions:[],exchanges:[],deposits:[],buyers:[],dateKey:key};
-  if(op.type==='sale') byDate[key].sales.push(op.data);
-  else if(op.type==='payment') byDate[key].payments.push(op.data);
-  else if(op.type==='expense') byDate[key].expenses.push(op.data);
-  else if(op.type==='cashAddition') byDate[key].cashAdditions.push(op.data);
-  else if(op.type==='exchange') byDate[key].exchanges.push(op.data);
-  else if(op.type==='deposit') byDate[key].deposits.push(op.data);
-  else if(op.type==='buyer') byDate[key].buyers.push(op.data);
-});
-
-const manualDebts = db.debts.filter(d=>d.manual);
-manualDebts.forEach(d=>{
-  const key = _getDateKey(d.date);
-  if(!byDate[key]) byDate[key] = {sales:[],payments:[],expenses:[],cashAdditions:[],exchanges:[],deposits:[],buyers:[],dateKey:key};
-  if(!byDate[key].debts) byDate[key].debts = [];
-  byDate[key].debts.push(d);
-});
-
-const keptDeposits=[];
-db.deposits.forEach(d=>{
-if(d.isWithdrawal){markDeleted('deposits', d.id);return;}
-const origQty = +d.originalQty !== undefined ? +d.originalQty : (+d.qty || 0);
-const origAmt = +d.originalAmount !== undefined ? +d.originalAmount : (+d.amount || 0);
-const usedQty = +d._usedQty || 0;
-const usedMoney = +d._usedMoney || 0;
-const remQty = Math.max(0, origQty - usedQty);
-const remAmt = Math.max(0, origAmt - usedMoney);
-if(remQty <= 0 && remAmt <= 0){markDeleted('deposits', d.id);return;}
-d.originalQty = remQty;d.qty = remQty;d.originalAmount = remAmt;d.amount = remAmt;
-d._usedQty = 0;d._usedMoney = 0;d._finished = false;d._editedAt = Date.now();
-d._archived = true;
-d._archivedAt = _archiveTime;
-keptDeposits.push(d);
-});
-
-db.reservations.forEach(r=>{
-const rem = Math.max(0, (r.totalQty||0) - (r.usedQty||0));
-if(rem <= 0){markDeleted('reservations', r.id);}
-else {r.totalQty = rem;r.usedQty = 0;r._editedAt = Date.now();}
-});
-db.reservations = db.reservations.filter(r => (r.totalQty || 0) > 0);
-
-const datesSorted = Object.keys(byDate).sort();
-const archivesCreated = [];
-
-datesSorted.forEach(dateKey=>{
-  const dayData = byDate[dateKey];
-  const hasRealOps = dayData.sales.length||dayData.payments.length||dayData.expenses.length||dayData.cashAdditions.length||dayData.exchanges.length||(dayData.debts&&dayData.debts.length);
-  if(!hasRealOps) return;
-  
-  let dayTotal = 0;
-  dayData.sales.forEach(s=>{
-    const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
-    const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0);
-    const disc=s.discount||0;
-    items.forEach(it=>{
-      const ratio=grossTotal>0?(it.total/grossTotal):0;
-      const discountedTotal=Math.max(0,it.total-disc*ratio);
-      let paid=discountedTotal;
-      if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);}
-      else if(s.method==='واصل'){paid=0;}
-      else if(s.method==='هدية'){paid=0;}
-      dayTotal += paid;
-    });
-  });
-  dayTotal += dayData.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0);
-  dayTotal += dayData.exchanges.filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
-  // ✅ الإيداعات — يدعم _showInReport
-  dayTotal += dayData.deposits.filter(d=>{
-    if(!(+d.amount>0)) return false;
-    if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;
-    if(d.legacy && d._showInReport !== true) return false;
-    if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;
-    return true;
-  }).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
-  dayTotal += dayData.cashAdditions.filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
-  const dayExpenses = dayData.expenses.reduce((a,e)=>a+e.amount,0);
-  
-  const archiveDoc = {
-    id: uid(),
-    archivedAt: _archiveTime,
-    archivedBy: currentUser,
-    dateKey: dateKey,
-    dateArabic: _formatDateArabic(dateKey),
-    dayName: _getDayName(dateKey),
-    periodStart: dateKey + 'T00:00:00.000Z',
-    periodEnd: dateKey + 'T23:59:59.999Z',
-    savedReportHTML: _savedReportHTML,
-    savedFinalTotal: _savedFinalTotal,
-    savedFinalExpenses: _savedFinalExpenses,
-    savedFinalCashbox: _savedFinalCashbox,
-    savedPermanentCarry: db._permanentCarry || 0,
-    sales: dayData.sales,
-    payments: dayData.payments,
-    expenses: dayData.expenses,
-    buyers: dayData.buyers,
-    cashAdditions: dayData.cashAdditions,
-    exchanges: dayData.exchanges,
-    debts: dayData.debts || [],
-    deposits: dayData.deposits,
-    reservations: [],
-    cashboxAtArchive: dayTotal - dayExpenses,
-    allDeposits: JSON.parse(JSON.stringify(db.deposits || [])),
-    allDebts: JSON.parse(JSON.stringify(db.debts || [])),
-    allFlourTypes: JSON.parse(JSON.stringify(db.flourTypes || [])),
-    _editedAt: Date.now()
-  };
-  db.archive.unshift(archiveDoc);
-  archivesCreated.push(dateKey);
-});
-
-db.sales.forEach(x=>markDeleted('sales',x.id));
-db.payments.forEach(x=>markDeleted('payments',x.id));
-db.expenses.forEach(x=>markDeleted('expenses',x.id));
-db.cashAdditions.forEach(x=>markDeleted('cashAdditions',x.id));
-db.exchanges.forEach(x=>markDeleted('exchanges',x.id));
-db.buyers.forEach(x=>markDeleted('buyers',x.id));
-
-db._lastArchiveAt=_archiveTime;
-db._permanentCarry=currentCashbox;
-db._cashboxOffset=0;
-db.flourTypes.forEach(t=>{
-  const currentQty = +t.qty || 0;
-  const currentUnitPrice = +t.unitPrice || 0;
-  
-  t.additions = [{
-    qty: currentQty,
-    date: _archiveTime,
-    note: '📦 بعد الأرشفة'
-  }];
-  
-  t.qty = currentQty;
-  t.totalSold = 0;
-  
-  t._manualOverride = Date.now();
-  t._manualOriginal = currentQty;
-  t._manualQty = currentQty;
-  
-  if(!db._manualOverrides) db._manualOverrides = {};
-  const cleanName = _cleanType(t.name);
-  db._manualOverrides[cleanName] = {
-    original: currentQty,
-    timestamp: Date.now()
-  };
-  
-  t._visibleFrom = _archiveTime;
-  t._editedAt = Date.now();
-});
-db.sales=[];db.payments=[];db.expenses=[];db.buyers=[];db.cashAdditions=[];db.exchanges=[];
-db.deposits=keptDeposits;
-db.debts = db.debts.filter(d => +d.amount > 0.01);
-
-_skipNextMerge=true;
-db._lastActionBy = _deviceId;
-db._actionId = _deviceId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
-
-// ✅ [مشكلة 4] — إضافة archive + كل الأقسام المتغيرة للـ pendingCategories
-if(!_pendingCategories) _pendingCategories = new Set();
-_pendingCategories.add('archive');
-_pendingCategories.add('deposits');
-_pendingCategories.add('flourTypes');
-_pendingCategories.add('debts');
-_pendingCategories.add('reservations');
-_pendingCategories.add('sales');
-_pendingCategories.add('payments');
-_pendingCategories.add('expenses');
-_pendingCategories.add('buyers');
-_pendingCategories.add('cashAdditions');
-_pendingCategories.add('exchanges');
-
-save();
-
-// ✅ [مشكلة 4] — رفع فوري صريح بعد save
-setTimeout(async () => {
-  try {
-    await _doUpload();
-    console.log('✅ تم رفع الأرشيف للسحابة');
-  } catch(e) {
-    console.warn('فشل رفع الأرشيف:', e);
-  }
-}, 500);
-
-renderAll();
-renderArchive();
-renderReport();
-toast('✅ تمت الأرشفة — '+archivesCreated.length+' يوم — الصندوق: '+money(currentCashbox)+' د.ع');
-
-setTimeout(async ()=>{
-  try{
-    toast('📄 جاري إنشاء PDF للأرشيف...');
-    const imgs = await generatePages(_savedReportHTML);
-    if(imgs && imgs.length){
-      const {jsPDF} = window.jspdf;
-      const pdf = new jsPDF('p','mm','a4');
-      for(let i=0;i<imgs.length;i++){
-        if(i>0) pdf.addPage();
-        pdf.addImage(imgs[i],'PNG',0,0,210,297,undefined,'FAST');
-      }
-      const n = new Date();
-      const dd = n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
-      const tt = String(n.getHours()).padStart(2,'0')+'-'+String(n.getMinutes()).padStart(2,'0');
-      pdf.save(`ارشيف_${dd}_${tt}.pdf`);
-      toast('✅ تم حفظ PDF — تحقق من التنزيلات');
+  db.payments.forEach(pay=>{
+    let rem = pay.amount;
+    const pd = db.debts.filter(d => d.person === pay.person).sort((a,b)=>a.date.localeCompare(b.date));
+    for(const d of pd){
+      if(rem <= 0) break;
+      const deduct = Math.min(rem, d.amount);
+      d.amount -= deduct;
+      rem -= deduct;
+      d._editedAt = Date.now();
     }
-  }catch(e){
-    console.warn('Auto PDF error:', e);
-    toast('⚠️ فشل حفظ PDF', true);
-  }
-}, 1500);
+  });
+  db.debts = db.debts.filter(d => d.amount > 0.01);
+
+  let currentCashbox = _lastCashboxValue || 0;
+  const _archiveTime = nowISO();
+
+  const allOperations = [];
+  db.sales.forEach(x=>allOperations.push({type:'sale',dateKey:_getDateKey(x.date),data:x}));
+  db.payments.forEach(x=>allOperations.push({type:'payment',dateKey:_getDateKey(x.date),data:x}));
+  db.expenses.forEach(x=>allOperations.push({type:'expense',dateKey:_getDateKey(x.date),data:x}));
+  (db.cashAdditions||[]).forEach(x=>allOperations.push({type:'cashAddition',dateKey:_getDateKey(x.date),data:x}));
+  (db.exchanges||[]).forEach(x=>allOperations.push({type:'exchange',dateKey:_getDateKey(x.date),data:x}));
+  (db.deposits||[]).forEach(x=>allOperations.push({type:'deposit',dateKey:_getDateKey(x.date),data:x}));
+  (db.buyers||[]).forEach(x=>allOperations.push({type:'buyer',dateKey:_getDateKey(x.firstDate||x.lastDate),data:x}));
+
+  const byDate = {};
+  allOperations.forEach(op=>{
+    const key = op.dateKey;
+    if(!byDate[key]) byDate[key] = {sales:[],payments:[],expenses:[],cashAdditions:[],exchanges:[],deposits:[],buyers:[],dateKey:key};
+    if(op.type==='sale') byDate[key].sales.push(op.data);
+    else if(op.type==='payment') byDate[key].payments.push(op.data);
+    else if(op.type==='expense') byDate[key].expenses.push(op.data);
+    else if(op.type==='cashAddition') byDate[key].cashAdditions.push(op.data);
+    else if(op.type==='exchange') byDate[key].exchanges.push(op.data);
+    else if(op.type==='deposit') byDate[key].deposits.push(op.data);
+    else if(op.type==='buyer') byDate[key].buyers.push(op.data);
+  });
+
+  const manualDebts = db.debts.filter(d=>d.manual);
+  manualDebts.forEach(d=>{
+    const key = _getDateKey(d.date);
+    if(!byDate[key]) byDate[key] = {sales:[],payments:[],expenses:[],cashAdditions:[],exchanges:[],deposits:[],buyers:[],dateKey:key};
+    if(!byDate[key].debts) byDate[key].debts = [];
+    byDate[key].debts.push(d);
+  });
+
+  const keptDeposits=[];
+  db.deposits.forEach(d=>{
+    if(d.isWithdrawal){ markDeleted('deposits', d.id); return; }
+    const origQty = +d.originalQty !== undefined ? +d.originalQty : (+d.qty || 0);
+    const origAmt = +d.originalAmount !== undefined ? +d.originalAmount : (+d.amount || 0);
+    const usedQty = +d._usedQty || 0;
+    const usedMoney = +d._usedMoney || 0;
+    const remQty = Math.max(0, origQty - usedQty);
+    const remAmt = Math.max(0, origAmt - usedMoney);
+    if(remQty <= 0 && remAmt <= 0){ markDeleted('deposits', d.id); return; }
+    d.originalQty = remQty; d.qty = remQty; d.originalAmount = remAmt; d.amount = remAmt;
+    d._usedQty = 0; d._usedMoney = 0; d._finished = false; d._editedAt = Date.now();
+    d._archived = true; d._archivedAt = _archiveTime;
+    keptDeposits.push(d);
+  });
+
+  db.reservations.forEach(r=>{
+    const rem = Math.max(0, (r.totalQty||0) - (r.usedQty||0));
+    if(rem <= 0){ markDeleted('reservations', r.id); }
+    else { r.totalQty = rem; r.usedQty = 0; r._editedAt = Date.now(); }
+  });
+  db.reservations = db.reservations.filter(r => (r.totalQty || 0) > 0);
+
+  const datesSorted = Object.keys(byDate).sort();
+  const archivesCreated = [];
+
+  datesSorted.forEach(dateKey=>{
+    const dayData = byDate[dateKey];
+    const hasRealOps = dayData.sales.length||dayData.payments.length||dayData.expenses.length||dayData.cashAdditions.length||dayData.exchanges.length||(dayData.debts&&dayData.debts.length);
+    if(!hasRealOps) return;
+    let dayTotal = 0;
+    dayData.sales.forEach(s=>{
+      const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
+      const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0);
+      const disc=s.discount||0;
+      items.forEach(it=>{
+        const ratio=grossTotal>0?(it.total/grossTotal):0;
+        const discountedTotal=Math.max(0,it.total-disc*ratio);
+        let paid=discountedTotal;
+        if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);}
+        else if(s.method==='واصل'){paid=0;}
+        else if(s.method==='هدية'){paid=0;}
+        dayTotal += paid;
+      });
+    });
+    dayTotal += dayData.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0);
+    dayTotal += dayData.exchanges.filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
+    dayTotal += dayData.deposits.filter(d=>{if(!(+d.amount>0)) return false;if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.legacy && d._showInReport !== true) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
+    dayTotal += dayData.cashAdditions.filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
+    const dayExpenses = dayData.expenses.reduce((a,e)=>a+e.amount,0);
+    const archiveDoc = {
+      id: uid(), archivedAt: _archiveTime, archivedBy: currentUser, dateKey: dateKey,
+      dateArabic: _formatDateArabic(dateKey), dayName: _getDayName(dateKey),
+      periodStart: dateKey + 'T00:00:00.000Z', periodEnd: dateKey + 'T23:59:59.999Z',
+      savedReportHTML: _savedReportHTML, savedFinalTotal: _savedFinalTotal, savedFinalExpenses: _savedFinalExpenses, savedFinalCashbox: _savedFinalCashbox,
+      savedPermanentCarry: db._permanentCarry || 0,
+      sales: dayData.sales, payments: dayData.payments, expenses: dayData.expenses, buyers: dayData.buyers,
+      cashAdditions: dayData.cashAdditions, exchanges: dayData.exchanges, debts: dayData.debts || [], deposits: dayData.deposits, reservations: [],
+      cashboxAtArchive: dayTotal - dayExpenses,
+      allDeposits: JSON.parse(JSON.stringify(keptDeposits || [])),
+      allDebts: JSON.parse(JSON.stringify(db.debts || [])),
+      allFlourTypes: JSON.parse(JSON.stringify(db.flourTypes || [])),
+      _editedAt: Date.now()
+    };
+    db.archive.unshift(archiveDoc);
+    archivesCreated.push(dateKey);
+  });
+
+  db.sales.forEach(x=>markDeleted('sales',x.id));
+  db.payments.forEach(x=>markDeleted('payments',x.id));
+  db.expenses.forEach(x=>markDeleted('expenses',x.id));
+  db.cashAdditions.forEach(x=>markDeleted('cashAdditions',x.id));
+  db.exchanges.forEach(x=>markDeleted('exchanges',x.id));
+  db.buyers.forEach(x=>markDeleted('buyers',x.id));
+
+  db._lastArchiveAt = _archiveTime;
+  db._permanentCarry = currentCashbox;
+  db._cashboxOffset = 0;
+  db.flourTypes.forEach(t=>{
+    const currentQty = +t.qty || 0;
+    const currentUnitPrice = +t.unitPrice || 0;
+    t.additions = [{ qty: currentQty, date: _archiveTime, note: '📦 بعد الأرشفة' }];
+    t.qty = currentQty; t.totalSold = 0;
+    t._manualOverride = Date.now(); t._manualOriginal = currentQty; t._manualQty = currentQty; t._manualSold = 0;
+    if(!db._manualOverrides) db._manualOverrides = {};
+    db._manualOverrides[_cleanType(t.name)] = { original: currentQty, sold: 0, remaining: currentQty, timestamp: Date.now() };
+    t._visibleFrom = _archiveTime; t._editedAt = Date.now();
+  });
+  db.sales=[]; db.payments=[]; db.expenses=[]; db.buyers=[]; db.cashAdditions=[]; db.exchanges=[];
+  db.deposits=keptDeposits;
+  db.debts = db.debts.filter(d => +d.amount > 0.01);
+
+  _skipNextMerge = true;
+  db._lastActionBy = _deviceId;
+  db._actionId = _deviceId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+  db._lastSaved = Date.now();
+  db._pendingUpload = true;
+
+  try { localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); } catch(e) {}
+
+  if(!_pendingCategories) _pendingCategories = new Set();
+  _pendingCategories.add('archive'); _pendingCategories.add('deposits'); _pendingCategories.add('flourTypes');
+  _pendingCategories.add('debts'); _pendingCategories.add('reservations'); _pendingCategories.add('sales');
+  _pendingCategories.add('payments'); _pendingCategories.add('expenses'); _pendingCategories.add('buyers');
+  _pendingCategories.add('cashAdditions'); _pendingCategories.add('exchanges');
+
+  setSyncStatus('loading','⏳ جاري رفع الأرشيف...');
+  const uploadOk = await _doUpload();
+  await new Promise(r => setTimeout(r, 2000));
+  _isReceivingUpdate = false;
+
+  renderAll(); renderArchive(); renderReport();
+  if(uploadOk){ toast('✅ تمت الأرشفة وتم المسح من السحابة — '+archivesCreated.length+' يوم — الصندوق: '+money(currentCashbox)+' د.ع'); }
+  else { toast('⚠️ تمت الأرشفة محلياً — قد تحتاج مزامنة يدوية', true); }
+
+  setTimeout(async ()=>{
+    try{
+      toast('📄 جاري إنشاء PDF للأرشيف...');
+      const imgs = await generatePages(_savedReportHTML);
+      if(imgs && imgs.length){
+        const {jsPDF} = window.jspdf;
+        const pdf = new jsPDF('p','mm','a4');
+        for(let i=0;i<imgs.length;i++){
+          if(i>0) pdf.addPage();
+          pdf.addImage(imgs[i],'PNG',0,0,210,297,undefined,'FAST');
+        }
+        const n = new Date();
+        const dd = n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
+        const tt = String(n.getHours()).padStart(2,'0')+'-'+String(n.getMinutes()).padStart(2,'0');
+        pdf.save(`ارشيف_${dd}_${tt}.pdf`);
+        toast('✅ تم حفظ PDF');
+      }
+    }catch(e){ console.warn('PDF error:', e); }
+  }, 2000);
 }
 </script><script>
 function renderArchive(){
@@ -8726,84 +8446,39 @@ function delCustomerPrices(cid){if(!confirm('حذف كل أسعار هذا ال�
 </script><script>
 // ===== حالة ربط الإيميل =====
 function updateLinkEmailStatus(){
-const el=document.getElementById('linkEmailStatus');
-const inp=document.getElementById('linkEmail');
-const passInp=document.getElementById('linkEmailPass');
-const btn=document.querySelector('#page-settings button.blue[onclick="linkEmailToAccount()"]');
+const el=document.getElementById('linkEmailStatus');const inp=document.getElementById('linkEmail');const passInp=document.getElementById('linkEmailPass');const btn=document.querySelector('#page-settings button.blue[onclick="linkEmailToAccount()"]');
 if(!el||!inp) return;
 if(!currentAccount){el.textContent='';return;}
 if(currentAccount.email){
 el.innerHTML='✅ <b style="color:#27ae60">البريد مربوط:</b> <span style="direction:ltr;display:inline-block">'+currentAccount.email+'</span>';
-inp.value=currentAccount.email;inp.disabled=true;
-if(passInp) passInp.disabled=true;
-if(btn) btn.disabled=true;
+inp.value=currentAccount.email;inp.disabled=true;if(passInp) passInp.disabled=true;if(btn) btn.disabled=true;
 }else{
 el.innerHTML='⚠️ <b style="color:#f39c12">البريد غير مربوط بعد</b>';
-inp.value='';inp.disabled=false;
-if(passInp) passInp.disabled=false;
-if(btn) btn.disabled=false;
+inp.value='';inp.disabled=false;if(passInp) passInp.disabled=false;if(btn) btn.disabled=false;
 }
 }
 
 async function linkEmailToAccount(){
-const email=document.getElementById('linkEmail').value.trim();
-const pass=document.getElementById('linkEmailPass').value;
-if(!email)return toast('اكتب البريد الإلكتروني',true);
-if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return toast('البريد غير صحيح',true);
-if(!pass)return toast('اكتب كلمة المرور للتأكيد',true);
-if(!currentAccount)return toast('الحساب غير موجود',true);
-if(currentAccount.email)return toast('البريد مربوط مسبقاً',true);
-if(pass.length<6)return toast('كلمة المرور 6 أحرف على الأقل',true);
-
-if(currentAccount.password!=='firebase'){
-  if(currentAccount.password!==hash(pass))return toast('كلمة المرور غلط',true);
-}else{
-  if(window._auth && currentAccount.email){
-    try{ await window._auth.signInWithEmailAndPassword(currentAccount.email, pass); }
-    catch(e){ return toast('كلمة المرور غلط',true); }
-  }
-}
-const accs=getAccounts();
-if(accs.find(a=>a.email===email))return toast('البريد مستخدم مسبقاً',true);
-if(window._auth){
-  try{
-    const cred=await window._auth.createUserWithEmailAndPassword(email,pass);
-    if(cred.user){
-      try{ await cred.user.updateProfile({displayName: currentAccount.fullName || currentUser}); }catch(e){}
-      try{ await cred.user.sendEmailVerification(); }catch(e){console.warn(e);}
-    }
-  }catch(err){
-    if(err.code==='auth/email-already-in-use')return toast('البريد مستخدم مسبقاً في Firebase',true);
-    if(err.code==='auth/weak-password')return toast('كلمة المرور ضعيفة',true);
-    if(err.code==='auth/invalid-email')return toast('البريد غير صحيح',true);
-  }
-}
-const idx=accs.findIndex(a=>a.username===currentUser);
-if(idx===-1)return toast('الحساب غير موجود',true);
-accs[idx].email=email;
-saveAccounts(accs);
-currentAccount=accs[idx];
-toast('✅ تم ربط البريد بنجاح');
-document.getElementById('linkEmailPass').value='';
-updateLinkEmailStatus();
+const email=document.getElementById('linkEmail').value.trim();const pass=document.getElementById('linkEmailPass').value;
+if(!email)return toast('اكتب البريد الإلكتروني',true);if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return toast('البريد غير صحيح',true);if(!pass)return toast('اكتب كلمة المرور للتأكيد',true);if(!currentAccount)return toast('الحساب غير موجود',true);if(currentAccount.email)return toast('البريد مربوط مسبقاً',true);if(pass.length<6)return toast('كلمة المرور 6 أحرف على الأقل',true);
+if(currentAccount.password!=='firebase'){ if(currentAccount.password!==hash(pass))return toast('كلمة المرور غلط',true); }
+else{ if(window._auth && currentAccount.email){ try{ await window._auth.signInWithEmailAndPassword(currentAccount.email, pass); }catch(e){ return toast('كلمة المرور غلط',true); } } }
+const accs=getAccounts();if(accs.find(a=>a.email===email))return toast('البريد مستخدم مسبقاً',true);
+if(window._auth){ try{ const cred=await window._auth.createUserWithEmailAndPassword(email,pass); if(cred.user){ try{ await cred.user.updateProfile({displayName: currentAccount.fullName || currentUser}); }catch(e){} try{ await cred.user.sendEmailVerification(); }catch(e){} } }catch(err){ if(err.code==='auth/email-already-in-use')return toast('البريد مستخدم مسبقاً في Firebase',true); if(err.code==='auth/weak-password')return toast('كلمة المرور ضعيفة',true); if(err.code==='auth/invalid-email')return toast('البريد غير صحيح',true); } }
+const idx=accs.findIndex(a=>a.username===currentUser);if(idx===-1)return toast('الحساب غير موجود',true);
+accs[idx].email=email;saveAccounts(accs);currentAccount=accs[idx];
+toast('✅ تم ربط البريد بنجاح');document.getElementById('linkEmailPass').value='';updateLinkEmailStatus();
 }
 
 function updateMyName(){
-const n=document.getElementById('myName').value.trim();
-if(!n)return toast('اكتب الاسم',true);
-const parts=n.split(/\s+/).filter(x=>x.length>0);
-if(parts.length<2)return toast('الاسم لازم ثنائي على الأقل',true);
-if(parts.length>3)return toast('الاسم ما يزيد عن ثلاثي',true);
-const accs=getAccounts();
-const acc=accs.find(a=>a.username===currentUser);
-if(!acc)return toast('الحساب غير موجود',true);
-acc.fullName=n;saveAccounts(accs);currentAccount=acc;
-showApp();toast('✅ تم حفظ الاسم');
+const n=document.getElementById('myName').value.trim();if(!n)return toast('اكتب الاسم',true);
+const parts=n.split(/\s+/).filter(x=>x.length>0);if(parts.length<2)return toast('الاسم لازم ثنائي على الأقل',true);if(parts.length>3)return toast('الاسم ما يزيد عن ثلاثي',true);
+const accs=getAccounts();const acc=accs.find(a=>a.username===currentUser);if(!acc)return toast('الحساب غير موجود',true);
+acc.fullName=n;saveAccounts(accs);currentAccount=acc;showApp();toast('✅ تم حفظ الاسم');
 }
 
 function renderSettings(){
-  renderAccountsList();
-  renderAdminPanel();
+  renderAccountsList();renderAdminPanel();
   if(typeof renderSubscriptionInfo === 'function') renderSubscriptionInfo();
   if(typeof loadMyCity === 'function') loadMyCity();
   if(isAdmin()){
@@ -8812,16 +8487,8 @@ function renderSettings(){
     if(typeof loadPaymentSettings === 'function'){
       loadPaymentSettings().then(settings => {
         if(settings){
-          const qiNum = document.getElementById('adminQiCardNum');
-          const qiName = document.getElementById('adminQiCardName');
-          const wa = document.getElementById('adminWhatsapp');
-          const price = document.getElementById('adminPrice');
-          const trial = document.getElementById('adminTrialDays');
-          if(qiNum) qiNum.value = settings.qiCardNumber || '';
-          if(qiName) qiName.value = settings.qiCardName || '';
-          if(wa) wa.value = settings.whatsapp || '';
-          if(price) price.value = settings.price || DEFAULT_PRICE;
-          if(trial) trial.value = settings.trialDays || DEFAULT_TRIAL_DAYS;
+          const qiNum = document.getElementById('adminQiCardNum');const qiName = document.getElementById('adminQiCardName');const wa = document.getElementById('adminWhatsapp');const price = document.getElementById('adminPrice');const trial = document.getElementById('adminTrialDays');
+          if(qiNum) qiNum.value = settings.qiCardNumber || '';if(qiName) qiName.value = settings.qiCardName || '';if(wa) wa.value = settings.whatsapp || '';if(price) price.value = settings.price || DEFAULT_PRICE;if(trial) trial.value = settings.trialDays || DEFAULT_TRIAL_DAYS;
         }
       });
     }
@@ -8833,334 +8500,123 @@ function renderAdminPanel(){if(!isAdmin())return;const el=document.getElementByI
 function resetPassword(u){if(!isAdmin())return toast('غير مصرح',true);const np=prompt('كلمة مرور جديدة:');if(!np||np.length<6)return;const a=getAccounts();const x=a.find(y=>y.username===u);if(x){x.password=hash(np);saveAccounts(a);toast('✅');}}
 function changePassword(){const op=document.getElementById('oldPass').value;const np=document.getElementById('newPass').value;const np2=document.getElementById('newPass2').value;const a=getAccounts();const ac=a.find(x=>x.username===currentUser);if(!ac)return;if(ac.password!=='firebase'){if(ac.password!==hash(op))return toast('كلمة المرور الحالية غلط',true);}if(!np||np.length<6)return toast('6 أحرف على الأقل',true);if(np!==np2)return toast('غير متطابقتين',true);ac.password=hash(np);saveAccounts(a);currentAccount=ac;document.getElementById('oldPass').value='';document.getElementById('newPass').value='';document.getElementById('newPass2').value='';toast('✅');}
 function addNewAccount(){
-  const u=normalizePhone(document.getElementById('newAccUser').value.trim());
-  const p=document.getElementById('newAccPass').value;
-  const p2=document.getElementById('newAccPass2').value;
-  const ad=isAdmin()&&document.getElementById('newAccAdmin').checked;
-  if(!u)return toast('اكتب الرقم',true);
-  if(!/^07[0-9]{9}$/.test(u))return toast('رقم غير صحيح',true);
-  if(!p||p.length<6)return toast('6 أحرف على الأقل',true);
-  if(p!==p2)return toast('غير متطابقتين',true);
-  const a=getAccounts();
-  if(a.find(x=>x.username===u))return toast('موجود',true);
+  const u=normalizePhone(document.getElementById('newAccUser').value.trim());const p=document.getElementById('newAccPass').value;const p2=document.getElementById('newAccPass2').value;const ad=isAdmin()&&document.getElementById('newAccAdmin').checked;
+  if(!u)return toast('اكتب الرقم',true);if(!/^07[0-9]{9}$/.test(u))return toast('رقم غير صحيح',true);if(!p||p.length<6)return toast('6 أحرف على الأقل',true);if(p!==p2)return toast('غير متطابقتين',true);
+  const a=getAccounts();if(a.find(x=>x.username===u))return toast('موجود',true);
   const now = new Date();
-  a.push({
-    username:u,
-    password:hash(p),
-    role:ad?'admin':'user',
-    fullName:'مستخدم',
-    createdAt:now.toISOString(),
-    subscription: {
-      trialEndsAt: new Date(now.getTime() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString(),
-      paidUntil: null,
-      isFreeForever: false,
-      payments: []
-    }
-  });
+  a.push({ username:u, password:hash(p), role:ad?'admin':'user', fullName:'مستخدم', createdAt:now.toISOString(), subscription: { trialEndsAt: new Date(now.getTime() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString(), paidUntil: null, isFreeForever: false, payments: [] } });
   saveAccounts(a);
-  document.getElementById('newAccUser').value='';
-  document.getElementById('newAccPass').value='';
-  document.getElementById('newAccPass2').value='';
-  document.getElementById('newAccAdmin').checked=false;
-  renderAccountsList();
-  renderAdminPanel();
-  toast('✅');
+  document.getElementById('newAccUser').value='';document.getElementById('newAccPass').value='';document.getElementById('newAccPass2').value='';document.getElementById('newAccAdmin').checked=false;
+  renderAccountsList();renderAdminPanel();toast('✅');
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ switchAccount — تفريغ كامل
-// ═══════════════════════════════════════════════════════════
 async function switchAccount(u){
   if(!confirm('التبديل إلى '+u+'؟'))return;
-  
   stopRealtimeListener();
-  
-  currentUser = null;
-  currentAccount = null;
-  db = null;
-  _saleItems = [];
-  _depositItems = [];
-  _exReturnItems = [];
-  _exSwapItems = [];
-  _currentViewHTML = '';
-  _lastCashboxValue = 0;
-  _lastCloudState = null;
-  _lastCloudServerTime = 0;
-  _migrated = false;
-  _pendingCategories = new Set();
-  
-  document.getElementById('appWrap').classList.remove('show');
-  document.getElementById('authScreen').classList.add('hidden');
-  
-  localStorage.setItem(CUR_KEY, u);
-  currentUser = u;
-  const a = getAccounts();
-  currentAccount = a.find(x => x.username === u);
-  
+  currentUser = null; currentAccount = null; db = null;
+  _saleItems = []; _depositItems = []; _exReturnItems = []; _exSwapItems = []; _currentViewHTML = '';
+  _lastCashboxValue = 0; _lastCloudState = null; _lastCloudServerTime = 0; _migrated = false; _pendingCategories = new Set();
+  document.getElementById('appWrap').classList.remove('show'); document.getElementById('authScreen').classList.add('hidden');
+  localStorage.setItem(CUR_KEY, u); currentUser = u;
+  const a = getAccounts(); currentAccount = a.find(x => x.username === u);
   await loadUserData();
-  
   showApp();
   toast('تم التبديل ✅');
 }
 
 function delAccountByName(u){if(!isAdmin()&&u!==currentUser)return toast('غير مصرح',true);if(u===currentUser)return deleteAccount();if(!confirm('حذف '+u+'؟'))return;const a=getAccounts().filter(x=>x.username!==u);saveAccounts(a);localStorage.removeItem(DATA_PREFIX+u);if(cloudDataRef){try{cloudDataRef.doc(u).delete().catch(e=>console.warn(e));}catch(e){}}renderAccountsList();renderAdminPanel();toast('تم');}
 
-// ═══════════════════════════════════════════════════════════
-// ✅ حذف الحساب
-// ═══════════════════════════════════════════════════════════
 async function deleteAccount(){
   const a = getAccounts();
   if(!confirm('حذف حسابك؟')) return;
   if(!confirm('تأكيد نهائي؟ — لا يمكن التراجع')) return;
-
-  const deletedUser = currentUser;
-  const isUserAdmin = currentAccount && currentAccount.role === 'admin';
-
+  const deletedUser = currentUser; const isUserAdmin = currentAccount && currentAccount.role === 'admin';
   try{
     const remainingAccs = a.filter(x => x.username !== deletedUser);
-    if(remainingAccs.length > 0 && isUserAdmin && !remainingAccs.find(x => x.role === 'admin')){
-      remainingAccs[0].role = 'admin';
-    }
+    if(remainingAccs.length > 0 && isUserAdmin && !remainingAccs.find(x => x.role === 'admin')){ remainingAccs[0].role = 'admin'; }
     localStorage.setItem(ACC_KEY, JSON.stringify(remainingAccs));
-
-    if(cloudEnabled && cloudAccountsRef){
-      try{
-        await cloudAccountsRef.doc('shared').set({
-          list: remainingAccs,
-          updatedAt: Date.now()
-        });
-      }catch(e){ console.warn('حذف من السحابة:', e); }
-    }
-
+    if(cloudEnabled && cloudAccountsRef){ try{ await cloudAccountsRef.doc('shared').set({ list: remainingAccs, updatedAt: Date.now() }); }catch(e){} }
     if(cloudEnabled && _firestoreDB){
       try{
         const userRef = _firestoreDB.collection('userdata').doc(deletedUser);
         const categories = ['sales','debts','deposits','payments','expenses','exchanges','cashAdditions','reservations','buyers','customerPrices','flourTypes','archive','meta'];
-        
-        for(const cat of categories){
-          try{
-            const snap = await userRef.collection(cat).get();
-            if(snap.size > 0){
-              const batch = _firestoreDB.batch();
-              snap.forEach(doc => batch.delete(doc.ref));
-              await batch.commit();
-            }
-          }catch(e){ console.warn(`حذف ${cat}:`, e); }
-        }
-        
-        try{ await userRef.delete(); }catch(e){}
-        try{ await cloudDataRef.doc(deletedUser).delete(); }catch(e){}
-      }catch(e){ console.warn('حذف بيانات المستخدم:', e); }
+        for(const cat of categories){ try{ const snap = await userRef.collection(cat).get(); if(snap.size > 0){ const batch = _firestoreDB.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit(); } }catch(e){} }
+        try{ await userRef.delete(); }catch(e){} try{ await cloudDataRef.doc(deletedUser).delete(); }catch(e){}
+      }catch(e){}
     }
-
-    try{
-      if(window._auth && window._auth.currentUser){
-        await window._auth.currentUser.delete();
-      }
-    }catch(e){ console.warn('حذف Auth:', e); }
-
-    localStorage.removeItem(DATA_PREFIX + deletedUser);
-    localStorage.removeItem(CUR_KEY);
-
+    try{ if(window._auth && window._auth.currentUser){ await window._auth.currentUser.delete(); } }catch(e){}
+    localStorage.removeItem(DATA_PREFIX + deletedUser); localStorage.removeItem(CUR_KEY);
     stopRealtimeListener();
-
-    currentUser = null;
-    currentAccount = null;
-    db = null;
-
-    document.getElementById('appWrap').classList.remove('show');
-    document.body.classList.remove('is-admin');
-    document.getElementById('authScreen').classList.remove('hidden');
-    showLogin();
-
+    currentUser = null; currentAccount = null; db = null;
+    document.getElementById('appWrap').classList.remove('show'); document.body.classList.remove('is-admin'); document.getElementById('authScreen').classList.remove('hidden'); showLogin();
     toast('✅ تم حذف الحساب نهائياً');
-
-  }catch(e){
-    console.error('deleteAccount error:', e);
-    toast('⚠️ فشل الحذف — حاول مرة ثانية', true);
-  }
+  }catch(e){ console.error(e); toast('⚠️ فشل الحذف', true); }
 }
 
 function exportData(){const d={user:currentUser,role:currentAccount?currentAccount.role:'user',data:db,exportedAt:nowISO()};const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`flour_backup_${currentUser}_${Date.now()}.json`;a.click();URL.revokeObjectURL(u);toast('تم التصدير ✅');}
 function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=(ev)=>{try{const p=JSON.parse(ev.target.result);const d=p.data||p;if(!confirm('استيراد؟'))return;db=Object.assign(emptyDB(),d);_fixDBFields(db);save();renderAll();renderArchive();renderSettings();toast('تم ✅');}catch(err){toast('ملف غير صالح',true);}};r.readAsText(f);e.target.value='';}
 
-// ═══════════════════════════════════════════════════════════
-// ✅ clearAll — يحذف من السحابة + المحلي
-// ═══════════════════════════════════════════════════════════
 async function clearAll(){
   if(!confirm('⚠️ حذف كل البيانات؟\n\nسيتم حذف كل البيانات من:\n✅ جهازك\n✅ السحابة (Firestore)\n\n⚠️ لا يمكن التراجع!'))return;
   if(!confirm('تأكيد نهائي؟ — كل شي راح ينمسح نهائياً'))return;
-  
-  const _overlay = document.createElement('div');
-  _overlay.id = 'clearAllOverlay';
+  const _overlay = document.createElement('div'); _overlay.id = 'clearAllOverlay';
   _overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:999999;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;direction:rtl;padding:20px';
   _overlay.innerHTML = '<div style="font-size:60px;margin-bottom:15px">🗑️</div><div style="font-size:18px;font-weight:bold;margin-bottom:10px">جاري حذف كل البيانات...</div><div id="clearAllStatus" style="font-size:13px;opacity:0.9;background:rgba(255,255,255,0.15);padding:10px 20px;border-radius:10px">جاري التحضير...</div><div style="font-size:11px;opacity:0.7;margin-top:10px">لا تغلق التطبيق</div>';
   document.body.appendChild(_overlay);
-  
-  const _updateStatus = (msg) => {
-    const el = document.getElementById('clearAllStatus');
-    if(el) el.textContent = msg;
-  };
-  
+  const _updateStatus = (msg) => { const el = document.getElementById('clearAllStatus'); if(el) el.textContent = msg; };
   try{
     if(cloudEnabled && _firestoreDB && currentUser){
       _updateStatus('☁️ جاري حذف البيانات من السحابة...');
-      
       const userRef = _firestoreDB.collection('userdata').doc(currentUser);
       const categories = ['sales','debts','deposits','payments','expenses','exchanges','cashAdditions','reservations','buyers','customerPrices','flourTypes','archive'];
-      
       for(const cat of categories){
         try{
           _updateStatus('🗑️ حذف ' + cat + ' من السحابة...');
           const snap = await userRef.collection(cat).get();
-          if(snap.size > 0){
-            const docs = [];
-            snap.forEach(doc => docs.push(doc.ref));
-            for(let i = 0; i < docs.length; i += 400){
-              const batch = _firestoreDB.batch();
-              docs.slice(i, i + 400).forEach(ref => batch.delete(ref));
-              await batch.commit();
-            }
-          }
-        }catch(e){ console.warn('حذف ' + cat + ':', e); }
+          if(snap.size > 0){ const docs = []; snap.forEach(doc => docs.push(doc.ref)); for(let i = 0; i < docs.length; i += 400){ const batch = _firestoreDB.batch(); docs.slice(i, i + 400).forEach(ref => batch.delete(ref)); await batch.commit(); } }
+        }catch(e){}
       }
-      
       _updateStatus('🗑️ حذف meta من السحابة...');
-      try{
-        if(cloudMetaRef) await cloudMetaRef.delete();
-      }catch(e){ console.warn('حذف meta:', e); }
-      
+      try{ if(cloudMetaRef) await cloudMetaRef.delete(); }catch(e){}
       _updateStatus('🗑️ حذف المستند الرئيسي من السحابة...');
-      try{
-        if(cloudDataRef) await cloudDataRef.doc(currentUser).delete();
-      }catch(e){ console.warn('حذف main:', e); }
+      try{ if(cloudDataRef) await cloudDataRef.doc(currentUser).delete(); }catch(e){}
     }
-    
     _updateStatus('📱 تفريغ البيانات المحلية...');
-    db = emptyDB();
-    db._migratedToSplit = true;
-    db._lastSaved = Date.now();
-    db._lastActionBy = _deviceId;
-    db._lastArchiveAt = Date.now();
-    db._clearedAt = Date.now();
-    db._clearedBy = _deviceId;
-    
-    try{
-      localStorage.setItem(DATA_PREFIX + currentUser, JSON.stringify(db));
-    }catch(e){}
-    
+    db = emptyDB(); db._migratedToSplit = true; db._lastSaved = Date.now(); db._lastActionBy = _deviceId; db._lastArchiveAt = Date.now(); db._clearedAt = Date.now(); db._clearedBy = _deviceId;
+    try{ localStorage.setItem(DATA_PREFIX + currentUser, JSON.stringify(db)); }catch(e){}
     if(cloudEnabled && cloudMetaRef){
       _updateStatus('📝 حفظ علامة المسح في السحابة...');
-      try{
-        await cloudMetaRef.set({
-          _migratedToSplit: true,
-          _lastArchiveAt: Date.now(),
-          _clearedAt: Date.now(),
-          _clearedBy: _deviceId,
-          _permanentCarry: 0,
-          _cashboxOffset: 0,
-          _manualOverrides: {},
-          _notifications: [],
-          _lastSaved: Date.now(),
-          _lastActionBy: _deviceId
-        });
-      }catch(e){ console.warn('حفظ meta جديد:', e); }
+      try{ await cloudMetaRef.set({ _migratedToSplit: true, _lastArchiveAt: Date.now(), _clearedAt: Date.now(), _clearedBy: _deviceId, _permanentCarry: 0, _cashboxOffset: 0, _manualOverrides: {}, _notifications: [], _lastSaved: Date.now(), _lastActionBy: _deviceId }); }catch(e){}
     }
-    
     stopRealtimeListener();
-    
     _updateStatus('✅ جاري تحديث الواجهة...');
-    renderAll();
-    renderArchive();
-    renderReport();
-    renderSettings();
-    
-    setTimeout(() => {
-      startRealtimeListener();
-    }, 1500);
-    
-    _overlay.remove();
-    toast('✅ تم حذف كل البيانات من الجهاز والسحابة');
-    
-  }catch(e){
-    console.error('clearAll error:', e);
-    const ov = document.getElementById('clearAllOverlay');
-    if(ov) ov.remove();
-    toast('⚠️ فشل الحذف — تحقق من الإنترنت', true);
-  }
+    renderAll(); renderArchive(); renderReport(); renderSettings();
+    setTimeout(() => { startRealtimeListener(); }, 1500);
+    _overlay.remove(); toast('✅ تم حذف كل البيانات من الجهاز والسحابة');
+  }catch(e){ console.error(e); const ov = document.getElementById('clearAllOverlay'); if(ov) ov.remove(); toast('⚠️ فشل الحذف', true); }
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ clearCloudOnly — يحذف من السحابة فقط
-// ═══════════════════════════════════════════════════════════
 async function clearCloudOnly(){
   if(!confirm('⚠️ حذف البيانات من السحابة فقط؟\n\n✅ البيانات المحلية ستبقى كما هي\n☁️ سيتم حذف كل البيانات من Firestore\n\n⚠️ الأجهزة الثانية راح ترجع فاضية!'))return;
   if(!confirm('تأكيد نهائي؟ — السحابة راح تنمسح'))return;
-  
-  if(!cloudEnabled || !_firestoreDB){
-    return toast('❌ لا يوجد اتصال بالسحابة', true);
-  }
-  
-  const _overlay = document.createElement('div');
-  _overlay.id = 'clearCloudOverlay';
+  if(!cloudEnabled || !_firestoreDB){ return toast('❌ لا يوجد اتصال بالسحابة', true); }
+  const _overlay = document.createElement('div'); _overlay.id = 'clearCloudOverlay';
   _overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:999999;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;direction:rtl;padding:20px';
   _overlay.innerHTML = '<div style="font-size:60px;margin-bottom:15px">☁️</div><div style="font-size:18px;font-weight:bold;margin-bottom:10px">جاري حذف البيانات من السحابة...</div><div id="clearCloudStatus" style="font-size:13px;opacity:0.9;background:rgba(255,255,255,0.15);padding:10px 20px;border-radius:10px">جاري التحضير...</div>';
   document.body.appendChild(_overlay);
-  
-  const _updateStatus = (msg) => {
-    const el = document.getElementById('clearCloudStatus');
-    if(el) el.textContent = msg;
-  };
-  
+  const _updateStatus = (msg) => { const el = document.getElementById('clearCloudStatus'); if(el) el.textContent = msg; };
   try{
     const userRef = _firestoreDB.collection('userdata').doc(currentUser);
     const categories = ['sales','debts','deposits','payments','expenses','exchanges','cashAdditions','reservations','buyers','customerPrices','flourTypes','archive'];
-    
-    for(const cat of categories){
-      try{
-        _updateStatus('🗑️ حذف ' + cat + '...');
-        const snap = await userRef.collection(cat).get();
-        if(snap.size > 0){
-          const docs = [];
-          snap.forEach(doc => docs.push(doc.ref));
-          for(let i = 0; i < docs.length; i += 400){
-            const batch = _firestoreDB.batch();
-            docs.slice(i, i + 400).forEach(ref => batch.delete(ref));
-            await batch.commit();
-          }
-        }
-      }catch(e){ console.warn('حذف ' + cat + ':', e); }
-    }
-    
-    _updateStatus('🗑️ حذف meta...');
-    try{
-      if(cloudMetaRef) await cloudMetaRef.delete();
-    }catch(e){}
-    
-    _updateStatus('🗑️ حذف المستند الرئيسي...');
-    try{
-      if(cloudDataRef) await cloudDataRef.doc(currentUser).delete();
-    }catch(e){}
-    
-    _overlay.remove();
-    toast('✅ تم حذف البيانات من السحابة — المحلي سليم');
-    
-  }catch(e){
-    console.error('clearCloudOnly error:', e);
-    const ov = document.getElementById('clearCloudOverlay');
-    if(ov) ov.remove();
-    toast('⚠️ فشل الحذف', true);
-  }
+    for(const cat of categories){ try{ _updateStatus('🗑️ حذف ' + cat + '...'); const snap = await userRef.collection(cat).get(); if(snap.size > 0){ const docs = []; snap.forEach(doc => docs.push(doc.ref)); for(let i = 0; i < docs.length; i += 400){ const batch = _firestoreDB.batch(); docs.slice(i, i + 400).forEach(ref => batch.delete(ref)); await batch.commit(); } } }catch(e){} }
+    _updateStatus('🗑️ حذف meta...'); try{ if(cloudMetaRef) await cloudMetaRef.delete(); }catch(e){}
+    _updateStatus('🗑️ حذف المستند الرئيسي...'); try{ if(cloudDataRef) await cloudDataRef.doc(currentUser).delete(); }catch(e){}
+    _overlay.remove(); toast('✅ تم حذف البيانات من السحابة — المحلي سليم');
+  }catch(e){ console.error(e); const ov = document.getElementById('clearCloudOverlay'); if(ov) ov.remove(); toast('⚠️ فشل الحذف', true); }
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ [إصلاح] recalculateAll — يحترم التعديل اليدوي
-// ═══════════════════════════════════════════════════════════
 async function recalculateAll(){
   if(!confirm('🔄 سيتم تحديث الأرقام من البيانات المحلية.\n\n⚠️ التعديلات اليدوية راح تبقى محفوظة\n\nمتابعة؟')) return;
-  
-  // ✅ ما نجيب من السحابة أول شي — نعتمد على البيانات المحلية
-  // هذا يمنع مسح التعديلات اليدوية
   if(typeof cloudEnabled !== 'undefined' && cloudEnabled && navigator.onLine && !db._pendingUpload && cloudMetaRef){
     try{
       setSyncStatus('loading','📥 جاري التحقق من السحابة...');
@@ -9168,22 +8624,11 @@ async function recalculateAll(){
       if(metaDoc.exists && metaDoc.data()){
         const remoteManualOverrides = metaDoc.data()._manualOverrides || {};
         if(!db._manualOverrides) db._manualOverrides = {};
-        Object.keys(remoteManualOverrides).forEach(k => {
-          const localT = (db._manualOverrides[k] && db._manualOverrides[k].timestamp) || 0;
-          const remoteT = (remoteManualOverrides[k] && remoteManualOverrides[k].timestamp) || 0;
-          if(remoteT > localT){
-            db._manualOverrides[k] = remoteManualOverrides[k];
-          }
-        });
-        console.log('✅ تم دمج التعديلات اليدوية من السحابة');
+        Object.keys(remoteManualOverrides).forEach(k => { const localT = (db._manualOverrides[k] && db._manualOverrides[k].timestamp) || 0; const remoteT = (remoteManualOverrides[k] && remoteManualOverrides[k].timestamp) || 0; if(remoteT > localT){ db._manualOverrides[k] = remoteManualOverrides[k]; } });
       }
-    }catch(e){
-      console.warn('fetch before recalc failed:', e);
-    }
+    }catch(e){}
   }
-  
-  const _overlay=document.createElement('div');
-  _overlay.id='recalcLoading';
+  const _overlay=document.createElement('div'); _overlay.id='recalcLoading';
   _overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;font-family:inherit';
   _overlay.innerHTML='<div style="font-size:50px;margin-bottom:15px">⏳</div><div style="font-size:18px;font-weight:bold">جاري تحديث الأرقام...</div><div style="font-size:12px;margin-top:8px;opacity:0.8">لا تغلق التطبيق</div>';
   document.body.appendChild(_overlay);
@@ -9192,166 +8637,40 @@ async function recalculateAll(){
   try{
   const _dedupCount = deduplicateFlourTypes();
   let fixedQty=0,fixedSold=0,restoredDep=0,respectedManual=0;
-  db.deposits.forEach(d=>{
-  if(d.originalAmount!==undefined&&d.amount!==d.originalAmount){
-    if(!d._usedMoney || d._usedMoney === 0){
-      d.amount=d.originalAmount;
-    }
-    restoredDep++;
-  }
-  if(d.originalQty!==undefined&&d.qty!==d.originalQty){
-    if(!d._usedQty || d._usedQty === 0){
-      d.qty=d.originalQty;
-    }
-  }
-  if(d._usedQty === undefined) d._usedQty = 0;
-  if(d._usedMoney === undefined) d._usedMoney = 0;
-  });
-  
+  db.deposits.forEach(d=>{ if(d.originalAmount!==undefined&&d.amount!==d.originalAmount){ if(!d._usedMoney || d._usedMoney === 0){ d.amount=d.originalAmount; } restoredDep++; } if(d.originalQty!==undefined&&d.qty!==d.originalQty){ if(!d._usedQty || d._usedQty === 0){ d.qty=d.originalQty; } } if(d._usedQty === undefined) d._usedQty = 0; if(d._usedMoney === undefined) d._usedMoney = 0; });
   if(!db._manualOverrides) db._manualOverrides={};
-  
   db.flourTypes.forEach(t=>{
-  if(!t._visibleFrom){
-  const firstDate = (t.additions && t.additions[0] && t.additions[0].date) || t.updatedAt || nowISO();
-  t._visibleFrom = firstDate;
-  }
-  
-  const oldQty=t.qty;
-  const oldSold=t.totalSold||0;
-  
-  const _cleanName = _cleanType(t.name);
-  const _mo = db._manualOverrides[_cleanName];
-  let hasManual = false;
-  let manualOriginal = 0;
-  let manualSold = null;
-  let manualQty = null;
-  
-  // ✅ 1. إذا في تعديل يدوي في _manualOverrides → استخدمه
-  if(_mo && _mo.original !== undefined && _mo.original !== null){
-    manualOriginal = +_mo.original || 0;
-    manualSold = (_mo.sold !== undefined && _mo.sold !== null) ? +_mo.sold : null;
-    manualQty = (_mo.remaining !== undefined && _mo.remaining !== null) ? +_mo.remaining : null;
-    hasManual = true;
-    respectedManual++;
-  } 
-  // ✅ 2. إذا في تعديل يدوي محفوظ في t → استخدمه وارفعه للـ _manualOverrides
-  else if(t._manualOverride && t._manualOriginal !== undefined && t._manualOriginal !== null){
-    manualOriginal = +t._manualOriginal || 0;
-    manualSold = (t._manualSold !== undefined && t._manualSold !== null) ? +t._manualSold : null;
-    manualQty = (t._manualQty !== undefined && t._manualQty !== null) ? +t._manualQty : null;
-    db._manualOverrides[_cleanName] = {
-      original: manualOriginal,
-      sold: manualSold,
-      remaining: manualQty,
-      timestamp: t._manualOverride
-    };
-    hasManual = true;
-    respectedManual++;
-  }
-  
-  if(hasManual){
-    // ✅ تعديل يدوي → نحترمه (ما نغير شي)
-    t._manualOverride = t._manualOverride || (_mo && _mo.timestamp) || Date.now();
-    t._manualOriginal = manualOriginal;
-    if(manualSold !== null) t._manualSold = manualSold;
-    if(manualQty !== null) t._manualQty = manualQty;
+    if(!t._visibleFrom){ const firstDate = (t.additions && t.additions[0] && t.additions[0].date) || t.updatedAt || nowISO(); t._visibleFrom = firstDate; }
+    const oldQty=t.qty; const oldSold=t.totalSold||0;
+    const _cleanName = _cleanType(t.name);
+    const _mo = db._manualOverrides[_cleanName];
+    let hasManual = false; let manualOriginal = 0; let manualSold = null; let manualQty = null;
     
-    if(manualSold !== null){
-      t.totalSold = manualSold;
-    }
-    if(manualQty !== null){
-      t.qty = manualQty;
-    } else {
-      t.qty = Math.max(0, manualOriginal - t.totalSold);
-    }
-  } else {
-    // ✅ لا يوجد تعديل يدوي → احسب عادي
-    let newSold=0;
-    db.sales.forEach(s=>{
-      if(s.items){s.items.forEach(it=>{if(it.typeName===t.name)newSold+=it.qty;});}
-      else if(s.typeName===t.name)newSold+=(s.qty||0);
-    });
-    (db.exchanges||[]).forEach(e=>{
-      (e.swapItems||[]).forEach(si=>{if(si.typeName===t.name)newSold+=si.qty;});
-      (e.returnItems||[]).forEach(ri=>{if(ri.typeName===t.name)newSold-=ri.qty;});
-    });
-    newSold=Math.max(0,newSold);
-    t.totalSold = newSold;
+    if(_mo && _mo.original !== undefined && _mo.original !== null){ manualOriginal = +_mo.original || 0; manualSold = (_mo.sold !== undefined && _mo.sold !== null) ? +_mo.sold : null; manualQty = (_mo.remaining !== undefined && _mo.remaining !== null) ? +_mo.remaining : null; hasManual = true; respectedManual++; }
+    else if(t._manualOverride && t._manualOriginal !== undefined && t._manualOriginal !== null){ manualOriginal = +t._manualOriginal || 0; manualSold = (t._manualSold !== undefined && t._manualSold !== null) ? +t._manualSold : null; manualQty = (t._manualQty !== undefined && t._manualQty !== null) ? +t._manualQty : null; db._manualOverrides[_cleanName] = { original: manualOriginal, sold: manualSold, remaining: manualQty, timestamp: t._manualOverride }; hasManual = true; respectedManual++; }
     
-    const originalQty = (t.additions||[]).reduce((a,x)=>a+(x.qty||0),0);
-    t.qty = Math.max(0, originalQty - newSold);
-  }
-  
-  t._editedAt=Date.now();
-  if(oldQty!==t.qty)fixedQty++;
-  if(oldSold!==t.totalSold)fixedSold++;
+    if(hasManual){ t._manualOverride = t._manualOverride || (_mo && _mo.timestamp) || Date.now(); t._manualOriginal = manualOriginal; if(manualSold !== null) t._manualSold = manualSold; if(manualQty !== null) t._manualQty = manualQty; if(manualSold !== null) t.totalSold = manualSold; if(manualQty !== null){ t.qty = manualQty; } else { t.qty = Math.max(0, manualOriginal - t.totalSold); } }
+    else { let newSold=0; db.sales.forEach(s=>{ if(s.items){s.items.forEach(it=>{if(it.typeName===t.name)newSold+=it.qty;});} else if(s.typeName===t.name)newSold+=(s.qty||0); }); (db.exchanges||[]).forEach(e=>{ (e.swapItems||[]).forEach(si=>{if(si.typeName===t.name)newSold+=si.qty;}); (e.returnItems||[]).forEach(ri=>{if(ri.typeName===t.name)newSold-=ri.qty;}); }); newSold=Math.max(0,newSold); t.totalSold = newSold; const originalQty = (t.additions||[]).reduce((a,x)=>a+(x.qty||0),0); t.qty = Math.max(0, originalQty - newSold); }
+    t._editedAt=Date.now(); if(oldQty!==t.qty)fixedQty++; if(oldSold!==t.totalSold)fixedSold++;
   });
-  
   db.buyers.forEach(b=>{const tr=db.sales.filter(s=>s.buyer===b.name);b.totalQty=tr.reduce((a,s)=>a+(s.qty||0),0);b.totalAmount=tr.reduce((a,s)=>a+(s.total||0),0);});
   db.reservations.forEach(r=>{r.usedQty=Math.max(0,Math.min(r.usedQty||0,r.totalQty));});
-  
   _pendingCategories = new Set(['flourTypes', 'buyers', 'deposits', 'reservations', 'sales', 'exchanges', 'debts', 'archive']);
-  
-  const now=Date.now();
-  db._lastSaved=now;
-  db._lastActionBy=_deviceId;
-  db._actionId=_deviceId+'_'+now+'_'+Math.random().toString(36).slice(2,7);
-  db._pendingUpload=true;
+  const now=Date.now(); db._lastSaved=now; db._lastActionBy=_deviceId; db._actionId=_deviceId+'_'+now+'_'+Math.random().toString(36).slice(2,7); db._pendingUpload=true;
   try{localStorage.setItem(DATA_PREFIX+currentUser,JSON.stringify(db));}catch(e){}
-  
-  if(typeof _doUpload==='function'){
-    setSyncStatus('loading','⏳ جاري الرفع...');
-    setTimeout(_doUpload, 100);
-  }
-  
-  renderHome();
-  renderFlour();
+  if(typeof _doUpload==='function'){ setSyncStatus('loading','⏳ جاري الرفع...'); setTimeout(_doUpload, 100); }
+  renderHome(); renderFlour();
   const activePage=document.querySelector('.page.active');
-  if(activePage){
-    const id=activePage.id;
-    if(id==='page-home'){}
-    else if(id==='page-flour')renderFlour();
-    else if(id==='page-sell'){renderSell();renderSaleItems();}
-    else if(id==='page-buyers')renderBuyers();
-    else if(id==='page-debt')renderDebt();
-    else if(id==='page-deposit'){renderDeposit();renderDepositTypes();}
-    else if(id==='page-pay')renderPay();
-    else if(id==='page-expense')renderExpense();
-    else if(id==='page-report')renderReport();
-    else if(id==='page-archive')renderArchive();
-    else if(id==='page-exchange'){renderExchanges();renderExItems();}
-    else if(id==='page-prices')renderCustomerPrices();
-  }
-  
-  let msg='✅ تم تحديث الأرقام';
-  const details=[];
-  if(restoredDep)details.push('إرجاع '+restoredDep);
-  if(fixedQty)details.push('تصحيح كمية '+fixedQty);
-  if(fixedSold)details.push('ضبط مباع '+fixedSold);
-  if(respectedManual)details.push('احترام '+respectedManual+' تعديل يدوي');
-  if(_dedupCount)details.push('دمج '+_dedupCount);
-  if(details.length)msg+=' ('+details.join(' + ')+')';
-  toast(msg);
-  
-  }catch(e){
-    console.error('recalc err:', e);
-    toast('❌ فشل التحديث', true);
-  }finally{
-    const el=document.getElementById('recalcLoading');
-    if(el) el.remove();
-  }
+  if(activePage){ const id=activePage.id; if(id==='page-home'){} else if(id==='page-flour')renderFlour(); else if(id==='page-sell'){renderSell();renderSaleItems();} else if(id==='page-buyers')renderBuyers(); else if(id==='page-debt')renderDebt(); else if(id==='page-deposit'){renderDeposit();renderDepositTypes();} else if(id==='page-pay')renderPay(); else if(id==='page-expense')renderExpense(); else if(id==='page-report')renderReport(); else if(id==='page-archive')renderArchive(); else if(id==='page-exchange'){renderExchanges();renderExItems();} else if(id==='page-prices')renderCustomerPrices(); }
+  let msg='✅ تم تحديث الأرقام'; const details=[]; if(restoredDep)details.push('إرجاع '+restoredDep); if(fixedQty)details.push('تصحيح كمية '+fixedQty); if(fixedSold)details.push('ضبط مباع '+fixedSold); if(respectedManual)details.push('احترام '+respectedManual+' تعديل يدوي'); if(_dedupCount)details.push('دمج '+_dedupCount); if(details.length)msg+=' ('+details.join(' + ')+')'; toast(msg);
+  }catch(e){ console.error('recalc err:', e); toast('❌ فشل التحديث', true); }finally{ const el=document.getElementById('recalcLoading'); if(el) el.remove(); }
   }, 100);
 }
 
-function renderAll(){
-renderFlour();renderSell();renderBuyers();renderDebt();
-renderDeposit();renderPay();renderExpense();renderHome();
-renderCustomerPrices();renderExchanges();renderExItems();renderDepositTypes();
-}
+function renderAll(){ renderFlour();renderSell();renderBuyers();renderDebt(); renderDeposit();renderPay();renderExpense();renderHome(); renderCustomerPrices();renderExchanges();renderExItems();renderDepositTypes(); }
 
 function openOverlay(t,c,col){
-const o=document.getElementById('reportOverlay');if(o)o.remove();
-const ob=document.getElementById('dotsBackdrop');if(ob)ob.remove();
+const o=document.getElementById('reportOverlay');if(o)o.remove();const ob=document.getElementById('dotsBackdrop');if(ob)ob.remove();
 const b=document.createElement('div');b.id='dotsBackdrop';b.className='dots-backdrop';b.onclick=closeDotsMenu;document.body.appendChild(b);
 const ov=document.createElement('div');ov.id='reportOverlay';
 ov.style.cssText='position:fixed;inset:0;background:#f0f2f5;z-index:99998;overflow:auto;padding:0;direction:rtl;';
@@ -9359,73 +8678,27 @@ ov.innerHTML=`<div class="overlay-header" style="position:sticky;top:0;backgroun
 document.body.appendChild(ov);
 }
 
-function printOverlay(){
-  const overlay=document.getElementById('reportOverlay');
-  if(!overlay){ toast('❌ لا يوجد محتوى', true); return; }
-  document.body.classList.add('printing-overlay');
-  setTimeout(function(){
-    try { window.print(); } catch(e) { toast('❌ تعذر', true); }
-    setTimeout(function(){ document.body.classList.remove('printing-overlay'); }, 800);
-  }, 300);
-}
+function printOverlay(){ const overlay=document.getElementById('reportOverlay'); if(!overlay){ toast('❌ لا يوجد محتوى', true); return; } document.body.classList.add('printing-overlay'); setTimeout(function(){ try { window.print(); } catch(e) { toast('❌ تعذر', true); } setTimeout(function(){ document.body.classList.remove('printing-overlay'); }, 800); }, 300); }
 
 async function generatePages(sh){
-let c;
-if(sh!==undefined&&sh!==null)c=sh;
-else{const e=document.getElementById('reportArea');c=e?e.innerHTML:'';}
+let c; if(sh!==undefined&&sh!==null)c=sh; else{const e=document.getElementById('reportArea');c=e?e.innerHTML:'';}
 if(!c||c.includes('لا توجد بيانات')||c.trim()==='')return[];
-const w=document.createElement('div');
-w.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff;padding:20px;box-sizing:border-box;direction:rtl;';
-w.innerHTML=c;document.body.appendChild(w);
+const w=document.createElement('div'); w.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff;padding:20px;box-sizing:border-box;direction:rtl;'; w.innerHTML=c;document.body.appendChild(w);
 await new Promise(r=>setTimeout(r,500));
 const MAX_ROWS=window._printRowLimit || 25;
 const _allTables=Array.from(w.querySelectorAll('table'));
-_allTables.forEach(tbl=>{
-const _rows=Array.from(tbl.querySelectorAll('tr'));
-if(_rows.length<=1)return;
-const _dataRows=_rows.slice(1);
-if(_dataRows.length<=MAX_ROWS)return;
-const _parentCard=tbl.closest('.card, .arch-card');
-if(!_parentCard)return;
-const _headerRow=_rows[0].cloneNode(true);
-const _lastRow=_dataRows[_dataRows.length-1];
-const _isTotal=_lastRow.textContent.includes('المجموع')||_lastRow.textContent.includes('الإجمالي');
-const _totalRow=_isTotal?_dataRows.pop():null;
-const _chunks=[];
-for(let i=0;i<_dataRows.length;i+=MAX_ROWS){_chunks.push(_dataRows.slice(i,i+MAX_ROWS));}
-const _frag=document.createDocumentFragment();
-_chunks.forEach((_chunk,_idx)=>{
-const _newCard=_parentCard.cloneNode(true);
-if(_idx<_chunks.length-1){const _t=_newCard.querySelector('table');if(_t){let _s=_t.nextElementSibling;while(_s){const _n=_s.nextElementSibling;_s.remove();_s=_n;}}}
-const _newTable=_newCard.querySelector('table');
-Array.from(_newTable.querySelectorAll('tr')).forEach(r=>r.remove());
-_newTable.appendChild(_headerRow.cloneNode(true));
-_chunk.forEach(r=>_newTable.appendChild(r.cloneNode(true)));
-if(_totalRow&&_idx===_chunks.length-1){_newTable.appendChild(_totalRow.cloneNode(true));}
-_frag.appendChild(_newCard);
-});
-_parentCard.parentNode.replaceChild(_frag,_parentCard);
-});
+_allTables.forEach(tbl=>{ const _rows=Array.from(tbl.querySelectorAll('tr')); if(_rows.length<=1)return; const _dataRows=_rows.slice(1); if(_dataRows.length<=MAX_ROWS)return; const _parentCard=tbl.closest('.card, .arch-card'); if(!_parentCard)return; const _headerRow=_rows[0].cloneNode(true); const _lastRow=_dataRows[_dataRows.length-1]; const _isTotal=_lastRow.textContent.includes('المجموع')||_lastRow.textContent.includes('الإجمالي'); const _totalRow=_isTotal?_dataRows.pop():null; const _chunks=[]; for(let i=0;i<_dataRows.length;i+=MAX_ROWS){_chunks.push(_dataRows.slice(i,i+MAX_ROWS));} const _frag=document.createDocumentFragment(); _chunks.forEach((_chunk,_idx)=>{ const _newCard=_parentCard.cloneNode(true); if(_idx<_chunks.length-1){const _t=_newCard.querySelector('table');if(_t){let _s=_t.nextElementSibling;while(_s){const _n=_s.nextElementSibling;_s.remove();_s=_n;}}} const _newTable=_newCard.querySelector('table'); Array.from(_newTable.querySelectorAll('tr')).forEach(r=>r.remove()); _newTable.appendChild(_headerRow.cloneNode(true)); _chunk.forEach(r=>_newTable.appendChild(r.cloneNode(true))); if(_totalRow&&_idx===_chunks.length-1){_newTable.appendChild(_totalRow.cloneNode(true));} _frag.appendChild(_newCard); }); _parentCard.parentNode.replaceChild(_frag,_parentCard); });
 const mh=1050;const ch=Array.from(w.children);const pg=[];let cc=[];let chh=0;
 for(const ch1 of ch){const h=ch1.offsetHeight;if(chh+h>mh&&cc.length>0){pg.push(cc);cc=[];chh=0;}cc.push(ch1.cloneNode(true));chh+=h;}
 if(cc.length>0)pg.push(cc);
 document.body.removeChild(w);
 const imgs=[];const rn=document.createElement('div');rn.style.cssText='position:fixed;left:-9999px;top:0;';document.body.appendChild(rn);
 for(let i=0;i<pg.length;i++){
-const p=document.createElement('div');
-p.style.cssText='width:794px;min-height:1123px;background:#fff;padding:25px 20px 55px 20px;box-sizing:border-box;position:relative;direction:rtl;display:flex;flex-direction:column;';
+const p=document.createElement('div'); p.style.cssText='width:794px;min-height:1123px;background:#fff;padding:25px 20px 55px 20px;box-sizing:border-box;position:relative;direction:rtl;display:flex;flex-direction:column;';
 pg[i].forEach(x=>p.appendChild(x));
 if(window._autoFontSize){p.querySelectorAll('table').forEach(tbl=>{const rc=tbl.querySelectorAll('tr').length;let fs,pad;if(rc<=8){fs=20;pad=18;}else if(rc<=12){fs=18;pad=15;}else if(rc<=16){fs=16;pad=12;}else if(rc<=20){fs=14;pad=9;}else if(rc<=25){fs=13;pad=7;}else{fs=11;pad=5;}tbl.style.fontSize=fs+'px';tbl.querySelectorAll('th,td').forEach(c=>{c.style.fontSize=fs+'px';c.style.padding=pad+'px 8px';});});}
-if(i===pg.length-1&&(_finalTotal||_finalExpenses)){
-const cb=document.createElement('div');
-cb.style.cssText='margin-top:auto;background:linear-gradient(135deg,#D2691E,#8B4513);color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.15);direction:rtl';
-cb.innerHTML=`<table style="width:100%;border-collapse:collapse"><tr style="border-bottom:1px solid rgba(255,255,255,0.25)"><td style="padding:4px 8px;font-size:14px;font-weight:bold;color:#fff">💰 المبلغ الكامل</td><td style="padding:4px 8px;text-align:left;font-size:17px;font-weight:bold;color:#fff">${money(_finalTotal)} د.ع</td></tr><tr style="border-bottom:1px solid rgba(255,255,255,0.25)"><td style="padding:4px 8px;font-size:14px;font-weight:bold;color:#ffcccc">💸 الصرفيات</td><td style="padding:4px 8px;text-align:left;font-size:17px;font-weight:bold;color:#ffcccc">− ${money(_finalExpenses)} د.ع</td></tr><tr><td style="padding:5px 8px;font-size:15px;font-weight:bold;color:#FFD700">✅ المبلغ النهائي</td><td style="padding:5px 8px;text-align:left;font-size:20px;font-weight:bold;color:#FFD700">${money(_finalCashbox)} د.ع</td></tr></table>`;
-p.appendChild(cb);
-}
-const pn=document.createElement('div');
-pn.style.cssText='position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:13px;color:#666;font-weight:bold;';
-pn.textContent=`📄 صفحة ${i+1} من ${pg.length}`;
-p.appendChild(pn);
+if(i===pg.length-1&&(_finalTotal||_finalExpenses)){ const cb=document.createElement('div'); cb.style.cssText='margin-top:auto;background:linear-gradient(135deg,#D2691E,#8B4513);color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.15);direction:rtl'; cb.innerHTML=`<table style="width:100%;border-collapse:collapse"><tr style="border-bottom:1px solid rgba(255,255,255,0.25)"><td style="padding:4px 8px;font-size:14px;font-weight:bold;color:#fff">💰 المبلغ الكامل</td><td style="padding:4px 8px;text-align:left;font-size:17px;font-weight:bold;color:#fff">${money(_finalTotal)} د.ع</td></tr><tr style="border-bottom:1px solid rgba(255,255,255,0.25)"><td style="padding:4px 8px;font-size:14px;font-weight:bold;color:#ffcccc">💸 الصرفيات</td><td style="padding:4px 8px;text-align:left;font-size:17px;font-weight:bold;color:#ffcccc">− ${money(_finalExpenses)} د.ع</td></tr><tr><td style="padding:5px 8px;font-size:15px;font-weight:bold;color:#FFD700">✅ المبلغ النهائي</td><td style="padding:5px 8px;text-align:left;font-size:20px;font-weight:bold;color:#FFD700">${money(_finalCashbox)} د.ع</td></tr></table>`; p.appendChild(cb); }
+const pn=document.createElement('div'); pn.style.cssText='position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:13px;color:#666;font-weight:bold;'; pn.textContent=`📄 صفحة ${i+1} من ${pg.length}`; p.appendChild(pn);
 rn.appendChild(p);
 await new Promise(r=>setTimeout(r,150));
 try{const cv=await html2canvas(p,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});imgs.push(cv.toDataURL('image/png'));}catch(e){console.error(e);}
@@ -9447,94 +8720,42 @@ function fallbackCopy(t){const ta=document.createElement('textarea');ta.value=t;
 function htmlToText(h){const t=document.createElement('div');t.innerHTML=h;return t.innerText||t.textContent||'';}
 
 function gotoPage(name){
-var np=document.getElementById('notifPanel');
-if(np){np.classList.remove('show');np.style.display='none';}
-var no=document.getElementById('notifOverlay');
-if(no){no.classList.remove('show');no.style.display='none';}
-var dd=document.getElementById('dotsDropdown');
-if(dd) dd.classList.remove('show');
-var dbk=document.getElementById('dotsBackdrop');
-if(dbk) dbk.classList.remove('show');
-var ro=document.getElementById('reportOverlay');
-if(ro) ro.remove();
+var np=document.getElementById('notifPanel'); if(np){np.classList.remove('show');np.style.display='none';}
+var no=document.getElementById('notifOverlay'); if(no){no.classList.remove('show');no.style.display='none';}
+var dd=document.getElementById('dotsDropdown'); if(dd) dd.classList.remove('show');
+var dbk=document.getElementById('dotsBackdrop'); if(dbk) dbk.classList.remove('show');
+var ro=document.getElementById('reportOverlay'); if(ro) ro.remove();
 setTimeout(function(){ if(np) np.style.display=''; }, 100);
 document.body.style.overflow='';
-document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
-document.querySelectorAll('.bottom-nav button').forEach(x=>x.classList.remove('active'));
-const pg=document.getElementById('page-'+name);
-if(pg) pg.classList.add('active');
-const tabBtn=document.querySelector('.tab[data-page="'+name+'"]');
-if(tabBtn) tabBtn.classList.add('active');
-const botBtn=document.querySelector('.bottom-nav button[data-page="'+name+'"]');
-if(botBtn) botBtn.classList.add('active');
-if(name==='report')renderReport();
-if(name==='archive')renderArchive();
-if(name==='settings'){renderSettings();setTimeout(updateLinkEmailStatus,50);}
-if(name==='prices')renderCustomerPrices();
-if(name==='sell')renderSaleItems();
-if(name==='exchange')renderExItems();
-if(name==='deposit')renderDepositTypes();
-if(name==='flour')renderFlour();
-if(name==='buyers')renderBuyers();
-if(name==='more'){
-  if(typeof loadMyCity === 'function') loadMyCity();
-  if(typeof loadOffers === 'function') loadOffers();
-  if(typeof loadMyOffers === 'function') loadMyOffers();
-  if(typeof updateOfferLimit === 'function') updateOfferLimit();
-}
-if(name==='subscription'){
-  if(typeof renderSubscriptionPage === 'function') renderSubscriptionPage();
-}
+document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); document.querySelectorAll('.page').forEach(x=>x.classList.remove('active')); document.querySelectorAll('.bottom-nav button').forEach(x=>x.classList.remove('active'));
+const pg=document.getElementById('page-'+name); if(pg) pg.classList.add('active');
+const tabBtn=document.querySelector('.tab[data-page="'+name+'"]'); if(tabBtn) tabBtn.classList.add('active');
+const botBtn=document.querySelector('.bottom-nav button[data-page="'+name+'"]'); if(botBtn) botBtn.classList.add('active');
+if(name==='report')renderReport(); if(name==='archive')renderArchive(); if(name==='settings'){renderSettings();setTimeout(updateLinkEmailStatus,50);} if(name==='prices')renderCustomerPrices(); if(name==='sell')renderSaleItems(); if(name==='exchange')renderExItems(); if(name==='deposit')renderDepositTypes(); if(name==='flour')renderFlour(); if(name==='buyers')renderBuyers();
+if(name==='more'){ if(typeof loadMyCity === 'function') loadMyCity(); if(typeof loadOffers === 'function') loadOffers(); if(typeof loadMyOffers === 'function') loadMyOffers(); if(typeof updateOfferLimit === 'function') updateOfferLimit(); }
+if(name==='subscription'){ if(typeof renderSubscriptionPage === 'function') renderSubscriptionPage(); }
 window.scrollTo({top:0,behavior:'smooth'});
 }
 
 document.querySelectorAll('.tab').forEach(t=>{t.onclick=()=>{gotoPage(t.dataset.page);};});
 
-window.addEventListener('online', function(){
-console.log('🌐 رجع النت');
-setSyncStatus('loading','☁️ رجع النت...');
-setTimeout(autoSyncOnConnect, 1500);
-if(currentUser && cloudEnabled){setTimeout(()=>{if(!Object.keys(_listeners).length)startRealtimeListener();},2000);}
-});
-
-window.addEventListener('offline', function(){
-console.log('📴 النت قطع');
-setSyncStatus('err','📱 محلي');
-});
+window.addEventListener('online', function(){ console.log('🌐 رجع النت'); setSyncStatus('loading','☁️ رجع النت...'); setTimeout(autoSyncOnConnect, 1500); if(currentUser && cloudEnabled){setTimeout(()=>{if(!Object.keys(_listeners).length)startRealtimeListener();},2000);} });
+window.addEventListener('offline', function(){ console.log('📴 النت قطع'); setSyncStatus('err','📱 محلي'); });
 
 setInterval(async function(){
   if(!navigator.onLine || !currentUser || !cloudEnabled) return;
   if(_isReceivingUpdate) return;
   if(db && db._pendingUpload === true) return;
-  
   try{
     if(_migrated && db._migratedToSplit){
       if(cloudMetaRef){
         const metaDoc = await cloudMetaRef.get();
         if(metaDoc.exists){
           const meta = metaDoc.data();
-          if(meta._clearedAt && meta._clearedAt > (db._clearedAt || 0) && meta._clearedBy !== _deviceId){
-            db = emptyDB();
-            db._migratedToSplit = true;
-            db._clearedAt = meta._clearedAt;
-            try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
-            renderAll();renderArchive();
-            showSyncNotification('🗑️ تم مسح البيانات من جهاز آخر','err');
-            return;
-          }
+          if(meta._clearedAt && meta._clearedAt > (db._clearedAt || 0) && meta._clearedBy !== _deviceId){ db = emptyDB(); db._migratedToSplit = true; db._clearedAt = meta._clearedAt; try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){} renderAll();renderArchive(); showSyncNotification('🗑️ تم مسح البيانات من جهاز آخر','err'); return; }
           if(meta._lastActionBy !== _deviceId){
-            const metaTime = +meta._lastSaved || 0;
-            const localTime = +db._lastSaved || 0;
-            if(metaTime > localTime){
-              _isReceivingUpdate = true;
-              await _reloadFromSplitDocs();
-              renderAll();renderArchive();renderSettings();
-              _updateNotifBadge();
-              showSyncNotification('📥 تحديث من جهاز آخر','ok');
-              setSyncStatus('ok','☁️ متزامن');
-              _isReceivingUpdate = false;
-            }
+            const metaTime = +meta._lastSaved || 0; const localTime = +db._lastSaved || 0;
+            if(metaTime > localTime){ _isReceivingUpdate = true; await _reloadFromSplitDocs(); renderAll();renderArchive();renderSettings(); _updateNotifBadge(); showSyncNotification('📥 تحديث من جهاز آخر','ok'); setSyncStatus('ok','☁️ متزامن'); _isReceivingUpdate = false; }
           }
         }
       }
@@ -9542,23 +8763,12 @@ setInterval(async function(){
       if(cloudDataRef){
         const doc = await cloudDataRef.doc(currentUser).get();
         if(doc.exists && doc.data() && doc.data().data){
-          const cloudDb = doc.data().data;
-          const serverTime = doc.data().updatedAt && doc.data().updatedAt.toMillis ? doc.data().updatedAt.toMillis() : 0;
-          if(doc.data()._lastActionBy === _deviceId){
-            if(serverTime)_lastCloudServerTime=serverTime;
-            return;
-          }
+          const cloudDb = doc.data().data; const serverTime = doc.data().updatedAt && doc.data().updatedAt.toMillis ? doc.data().updatedAt.toMillis() : 0;
+          if(doc.data()._lastActionBy === _deviceId){ if(serverTime)_lastCloudServerTime=serverTime; return; }
           if(serverTime && serverTime <= _lastCloudServerTime) return;
-          _lastCloudServerTime=serverTime;
-          _lastCloudState=cloudDb;
-          _isReceivingUpdate=true;
+          _lastCloudServerTime=serverTime; _lastCloudState=cloudDb; _isReceivingUpdate=true;
           const applied = _applyCloudDB(cloudDb);
-          if(applied){
-            renderAll(); renderArchive(); renderSettings();
-            _updateNotifBadge();
-            showSyncNotification('📥 تحديث جديد من جهاز آخر', 'ok');
-            setSyncStatus('ok', '☁️ متزامن');
-          }
+          if(applied){ renderAll(); renderArchive(); renderSettings(); _updateNotifBadge(); showSyncNotification('📥 تحديث جديد من جهاز آخر', 'ok'); setSyncStatus('ok', '☁️ متزامن'); }
           _isReceivingUpdate=false;
         }
       }
@@ -9566,26 +8776,15 @@ setInterval(async function(){
   }catch(e){ console.warn('periodic:', e); }
 }, 5000);
 
-document.addEventListener('input', function(e){
-  if(e.target && e.target.id === 'exDiffTotal'){
-    e.target._userEdited = (String(e.target.value).trim() !== '');
-  }
-});
+document.addEventListener('input', function(e){ if(e.target && e.target.id === 'exDiffTotal'){ e.target._userEdited = (String(e.target.value).trim() !== ''); } });
 
+// ═══════════════════════════════════════════════════════════
+// ✅ [إصلاح] init — يفتح بسرعة من localStorage
+// ═══════════════════════════════════════════════════════════
 (async function init(){
-  db = null;
-  currentUser = null;
-  currentAccount = null;
-  _saleItems = [];
-  _depositItems = [];
-  _exReturnItems = [];
-  _exSwapItems = [];
-  _currentViewHTML = '';
-  _lastCashboxValue = 0;
-  _lastCloudState = null;
-  _lastCloudServerTime = 0;
-  _migrated = false;
-  _pendingCategories = new Set();
+  db = null; currentUser = null; currentAccount = null;
+  _saleItems = []; _depositItems = []; _exReturnItems = []; _exSwapItems = [];
+  _currentViewHTML = ''; _lastCashboxValue = 0; _lastCloudState = null; _lastCloudServerTime = 0; _migrated = false; _pendingCategories = new Set();
   
   const s = localStorage.getItem(CUR_KEY);
   const localAccounts = getAccounts();
@@ -9594,44 +8793,30 @@ document.addEventListener('input', function(e){
     currentUser = s;
     currentAccount = localAccounts.find(x => x.username === s);
     
-    try{
-      await loadUserData();
-    }catch(e){
-      console.warn('init loadUserData failed:', e);
-      db = emptyDB();
+    // ✅ 1. جيب من المحلي فوراً
+    let localDb = null;
+    try{ const localData = localStorage.getItem(DATA_PREFIX + currentUser); if(localData){ localDb = Object.assign(emptyDB(), JSON.parse(localData)); } }catch(e){}
+    
+    if(localDb){
+      db = localDb;
+      _fixDBFields(db);
+      showApp(); // ✅ يفتح فوراً
     }
     
-    showApp();
+    // ✅ 2. جيب من السحابة بالخلفية
+    try{
+      await loadUserData();
+      if(!localDb) showApp(); // إذا ما كان في محلي، نفتح بعد السحب
+      
+      renderAll(); renderArchive(); renderSettings(); renderSaleItems(); renderExItems(); renderDepositTypes(); _updateNotifBadge();
+      
+      if(navigator.onLine && cloudEnabled){ startRealtimeListener(); }
+      
+      normalizeDeposits();
+      const _dedupAuto = deduplicateFlourTypes();
+      if(_dedupAuto > 0){ try{ localStorage.setItem(DATA_PREFIX + currentUser, JSON.stringify(db)); }catch(e){} }
+    }catch(e){ console.warn('background sync err:', e); }
     
-    setTimeout(async function(){
-      try{
-        const cloudAccounts = await loadAccountsCloud();
-        const freshAcc = cloudAccounts.find(x => x.username === currentUser);
-        if(freshAcc) currentAccount = freshAcc;
-        
-        await loadUserData();
-        renderAll();
-        renderArchive();
-        renderSettings();
-        renderSaleItems();
-        renderExItems();
-        renderDepositTypes();
-        _updateNotifBadge();
-        
-        if(navigator.onLine && cloudEnabled){
-          startRealtimeListener();
-          showSyncNotification('📥 تم تحديث البيانات','ok');
-        }
-        
-        normalizeDeposits();
-        const _dedupAuto = deduplicateFlourTypes();
-        if(_dedupAuto > 0){
-          try{ localStorage.setItem(DATA_PREFIX + currentUser, JSON.stringify(db)); }catch(e){}
-        }
-      }catch(e){
-        console.warn('background sync err:', e);
-      }
-    }, 500);
     return;
   }
   
@@ -9641,13 +8826,7 @@ document.addEventListener('input', function(e){
   if(s && a.find(x => x.username === s)){
     currentUser = s;
     currentAccount = a.find(x => x.username === s);
-    
-    try{
-      await loadUserData();
-    }catch(e){
-      db = emptyDB();
-    }
-    
+    try{ await loadUserData(); }catch(e){ db = emptyDB(); }
     normalizeDeposits();
     showApp();
   } else {
