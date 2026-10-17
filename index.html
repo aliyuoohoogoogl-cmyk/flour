@@ -1255,10 +1255,8 @@ async function checkForUpdates(){
     if(!r.ok) return;
     const data = await r.json();
     if(!data) return;
-    
     const cloudVersion = String(data.version || '');
     if(!cloudVersion || cloudVersion === APP_VERSION) return;
-    
     const myP = APP_VERSION.split('.').map(n=>parseInt(n)||0);
     const clP = cloudVersion.split('.').map(n=>parseInt(n)||0);
     let newer = false;
@@ -1268,40 +1266,28 @@ async function checkForUpdates(){
       if(c<m){break;}
     }
     if(!newer) return;
-    
-    // ✅ إذا في إشعار معروض حالياً — لا نعرض واحد ثاني
     if(document.getElementById('updateNotificationBox')) return;
-    
     const postponeKey = 'flour_update_postpone_' + cloudVersion;
     const postponedCount = parseInt(localStorage.getItem(postponeKey) || '0');
     const isForced = postponedCount >= MAX_UPDATE_POSTPONES;
-    
     showUpdateNotification(cloudVersion, data.notes || '', data.url, isForced, postponedCount);
-    
   }catch(e){console.warn('checkForUpdates:', e);}
 }
 
 function showUpdateNotification(version, notes, url, isForced, postponedCount){
   if(isForced){
     _updateBlocked = true;
-    // ✅ منع المستخدم من التفاعل مع التطبيق
     document.body.style.pointerEvents = 'none';
   }
-  
-  // ✅ إزالة أي إشعار قديم
   const oldBox = document.getElementById('updateNotificationBox');
   if(oldBox) oldBox.remove();
-  
   const remainingBeforeForce = MAX_UPDATE_POSTPONES - (postponedCount || 0);
-  
   const box = document.createElement('div');
   box.id = 'updateNotificationBox';
   box.dataset.forced = isForced ? 'true' : 'false';
   box.dataset.version = version;
   box.style.pointerEvents = 'auto';
-  
   if(isForced){
-    // ✅ إجباري — ملء الشاشة
     box.style.cssText += 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;direction:rtl';
     box.innerHTML = `
       <div style="background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;padding:24px 22px;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.5);max-width:420px;width:100%;text-align:center">
@@ -1313,7 +1299,6 @@ function showUpdateNotification(version, notes, url, isForced, postponedCount){
         <button onclick="window.location.href='${url}'" style="width:100%;background:#fff;color:#c0392b;border:none;padding:14px;border-radius:10px;font-weight:bold;font-size:15px;cursor:pointer">⬇️ تحديث الآن</button>
       </div>`;
   } else {
-    // ✅ اختياري — إشعار جانبي
     box.style.cssText += 'position:fixed;bottom:20px;right:20px;left:20px;max-width:400px;margin:0 auto;background:linear-gradient(135deg,#3498db,#2980b9);color:#fff;padding:16px 18px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);z-index:99997;direction:rtl';
     box.innerHTML = `
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
@@ -1330,7 +1315,6 @@ function showUpdateNotification(version, notes, url, isForced, postponedCount){
         <button onclick="postponeUpdate('${version}')" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-size:13px;cursor:pointer">⏰ بعدين (${remainingBeforeForce})</button>
       </div>`;
   }
-  
   document.body.appendChild(box);
 }
 
@@ -1338,11 +1322,8 @@ function postponeUpdate(version){
   const key = 'flour_update_postpone_' + version;
   const count = parseInt(localStorage.getItem(key) || '0') + 1;
   localStorage.setItem(key, String(count));
-  
   const box = document.getElementById('updateNotificationBox');
   if(box) box.remove();
-  
-  // ✅ إذا وصل للحد الأقصى (3 مرات) → نفتح الإشعار الإجباري فوراً
   if(count >= MAX_UPDATE_POSTPONES){
     fetch(APP_UPDATE_URL + '?t=' + Date.now())
       .then(r => r.json())
@@ -1355,7 +1336,6 @@ function postponeUpdate(version){
   }
 }
 
-// ✅ فحص فوري عند التحميل
 (async function initialUpdateCheck(){
   try{
     const r = await fetch(APP_UPDATE_URL + '?t=' + Date.now());
@@ -1364,7 +1344,6 @@ function postponeUpdate(version){
     if(!data) return;
     const cloudVersion = String(data.version || '');
     if(!cloudVersion || cloudVersion === APP_VERSION) return;
-    
     const myP = APP_VERSION.split('.').map(n=>parseInt(n)||0);
     const clP = cloudVersion.split('.').map(n=>parseInt(n)||0);
     let newer = false;
@@ -1374,19 +1353,15 @@ function postponeUpdate(version){
       if(c<m){break;}
     }
     if(!newer) return;
-    
     const postponeKey = 'flour_update_postpone_' + cloudVersion;
     const postponedCount = parseInt(localStorage.getItem(postponeKey) || '0');
     const isForced = postponedCount >= MAX_UPDATE_POSTPONES;
-    
     showUpdateNotification(cloudVersion, data.notes || '', data.url, isForced, postponedCount);
   }catch(e){}
 })();
 
-// ✅ فحص أولي بعد 5 ثواني
 setTimeout(checkForUpdates, 5000);
 
-// ✅ فحص دوري كل 60 ثانية (بس ما يعيد إلا لو تغيرت النسخة)
 let _lastCheckedVersion = null;
 setInterval(async function(){
   if(_updateBlocked) return;
@@ -1491,7 +1466,6 @@ if(typeof firebase!=='undefined'&&firebase.initializeApp&&!cloudEnabled){
 firebase.initializeApp(firebaseConfig);
 const cloudDB=firebase.firestore();
 _firestoreDB=cloudDB;
-
 cloudAccountsRef=cloudDB.collection('accounts');
 cloudDataRef=cloudDB.collection('userdata');
 cloudOffersRef=cloudDB.collection('offers');
@@ -1549,12 +1523,15 @@ function hash(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i
 function getAccounts(){try{return JSON.parse(localStorage.getItem(ACC_KEY))||[];}catch(e){return[];}}
 function saveAccounts(a){localStorage.setItem(ACC_KEY,JSON.stringify(a));saveAccountsCloud(a);}
 
+// ✅ [تعديل نهائي] emptyDB — إضافة الحقول الجديدة
 function emptyDB(){return{
   flourTypes:[],sales:[],debts:[],deposits:[],payments:[],expenses:[],
   archive:[],buyers:[],reservations:[],cashAdditions:[],customerPrices:[],
   exchanges:[],_notifications:[],_manualOverrides:{},_lastSaved:0,
   _needsSync:false,_pendingUpload:false,_permanentCarry:0,_cashboxOffset:0,
-  _deleted:{},myOffers:[],_migratedToSplit:false,_lastSync:0
+  _deleted:{},myOffers:[],_migratedToSplit:false,_lastSync:0,
+  _lastArchiveAt:null,_archiveCutoff:null,_archiveToken:null,_archiveLock:false,
+  _lastUploadedArchiveToken:null,_clearedAt:0,_clearedBy:null
 };}
 
 function showError(m){const e=document.getElementById('authError');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),4000);}
@@ -1593,6 +1570,7 @@ db._lastActionBy=_deviceId;
 db._actionId=_deviceId+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
 }
 
+// ✅ [تعديل نهائي] _fixDBFields — إضافة الحقول الجديدة
 function _fixDBFields(d){
 if(!d) return;
 if(!d.cashAdditions) d.cashAdditions=[];
@@ -1605,6 +1583,12 @@ if(!d.myOffers) d.myOffers=[];
 if(d._permanentCarry === undefined) d._permanentCarry=0;
 if(d._cashboxOffset === undefined) d._cashboxOffset=0;
 if(d._lastArchiveAt === undefined) d._lastArchiveAt=null;
+if(d._archiveCutoff === undefined) d._archiveCutoff = d._lastArchiveAt || null;
+if(d._archiveToken === undefined) d._archiveToken = null;
+if(d._archiveLock === undefined) d._archiveLock = false;
+if(d._lastUploadedArchiveToken === undefined) d._lastUploadedArchiveToken = null;
+if(d._clearedAt === undefined) d._clearedAt=0;
+if(d._clearedBy === undefined) d._clearedBy=null;
 if(d._pendingUpload === undefined) d._pendingUpload=false;
 if(d._lastSync === undefined) d._lastSync=0;
 (d.sales||[]).forEach(s=>{if(!s.items&&s.typeName){s.items=[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice||0,total:s.total||0}];}});
@@ -1635,6 +1619,7 @@ async function _uploadSplitItem(category, item){
   }catch(e){ console.warn('upload split item failed:', e); return false; }
 }
 
+// ✅ [تعديل نهائي] _uploadMetaConfig — حفظ _archiveCutoff + _archiveToken
 async function _uploadMetaConfig(){
   if(!cloudEnabled || !cloudMetaRef) return false;
   try{
@@ -1642,6 +1627,8 @@ async function _uploadMetaConfig(){
       _permanentCarry: db._permanentCarry || 0,
       _cashboxOffset: db._cashboxOffset || 0,
       _lastArchiveAt: db._lastArchiveAt || null,
+      _archiveCutoff: db._archiveCutoff || db._lastArchiveAt || null,
+      _archiveToken: db._archiveToken || null,
       _manualOverrides: db._manualOverrides || {},
       _notifications: (db._notifications || []).slice(0, 20),
       _lastSaved: db._lastSaved,
@@ -1649,6 +1636,8 @@ async function _uploadMetaConfig(){
       _actionId: db._actionId,
       _migratedToSplit: true,
       _migratedAt: db._migratedAt || null,
+      _clearedAt: db._clearedAt || 0,
+      _clearedBy: db._clearedBy || null,
       _uploadedAt: Date.now()
     };
     await cloudMetaRef.set(meta);
@@ -1677,7 +1666,6 @@ async function _migrateToSplitDocs(){
       db._migratedToSplit = true;
       return true;
     }
-    
     const oldDoc = await cloudDataRef.doc(currentUser).get();
     if(!oldDoc.exists || !oldDoc.data() || !oldDoc.data().data){
       await cloudMetaRef.set({
@@ -1693,16 +1681,13 @@ async function _migrateToSplitDocs(){
       _migrated = true;
       return true;
     }
-    
     const oldData = oldDoc.data().data;
     console.log('📦 جاري ترحيل البيانات...');
-    
     let totalItems = 0;
     for(const category of SPLIT_CATEGORIES){
       const items = Array.isArray(oldData[category]) ? oldData[category] : [];
       const ref = _getCategoryRef(category);
       if(!ref) continue;
-      
       let batchCount = 0;
       let batch = _firestoreDB.batch();
       for(const item of items){
@@ -1717,11 +1702,12 @@ async function _migrateToSplitDocs(){
       }
       if(batchCount > 0) await batch.commit();
     }
-    
     await cloudMetaRef.set({
       _permanentCarry: oldData._permanentCarry || 0,
       _cashboxOffset: oldData._cashboxOffset || 0,
       _lastArchiveAt: oldData._lastArchiveAt || null,
+      _archiveCutoff: oldData._lastArchiveAt || null,
+      _archiveToken: null,
       _manualOverrides: oldData._manualOverrides || {},
       _notifications: (oldData._notifications || []).slice(0, 20),
       _lastSaved: oldData._lastSaved || Date.now(),
@@ -1729,7 +1715,6 @@ async function _migrateToSplitDocs(){
       _migratedToSplit: true,
       _migratedAt: Date.now()
     });
-    
     db._migratedToSplit = true;
     db._migratedAt = Date.now();
     _migrated = true;
@@ -1744,16 +1729,13 @@ async function _migrateToSplitDocs(){
 function checkSubscription(){
   if(!currentAccount) return 'expired';
   if(currentAccount.role === 'admin') return 'admin';
-  
   if(!currentAccount.subscription){
     const accs = getAccounts();
     const fresh = accs.find(a => a.username === currentUser);
     if(fresh) currentAccount = fresh;
   }
-  
   const sub = currentAccount.subscription || {};
   if(sub.isFreeForever) return 'free';
-  
   const now = Date.now();
   if(sub.paidUntil && new Date(sub.paidUntil).getTime() > now) return 'paid';
   if(sub.trialEndsAt && new Date(sub.trialEndsAt).getTime() > now) return 'trial';
@@ -1763,9 +1745,7 @@ function checkSubscription(){
 function renderSubscriptionInfo(){
   const el = document.getElementById('subscriptionInfo');
   if(!el) return;
-  
   if(!currentAccount){ el.innerHTML = '<div style="text-align:center;color:#888">—</div>'; return; }
-  
   if(!currentAccount.subscription){
     const accs = getAccounts();
     const idx = accs.findIndex(a => a.username === currentUser);
@@ -1785,69 +1765,40 @@ function renderSubscriptionInfo(){
       currentAccount = accs[idx];
     }
   }
-  
   const status = checkSubscription();
   const sub = currentAccount?.subscription || {};
   const now = Date.now();
-  
   let h = '';
-  
   if(status === 'admin'){
-    h = `<div style="text-align:center;padding:10px">
-      <div style="font-size:32px;margin-bottom:6px">👑</div>
-      <div style="font-size:14px;font-weight:bold;color:#8B4513">حساب المدير</div>
-      <div style="font-size:12px;color:#27ae60;margin-top:4px">✅ مجاني للأبد</div>
-    </div>`;
+    h = `<div style="text-align:center;padding:10px"><div style="font-size:32px;margin-bottom:6px">👑</div><div style="font-size:14px;font-weight:bold;color:#8B4513">حساب المدير</div><div style="font-size:12px;color:#27ae60;margin-top:4px">✅ مجاني للأبد</div></div>`;
   }
   else if(status === 'free'){
-    h = `<div style="text-align:center;padding:10px">
-      <div style="font-size:32px;margin-bottom:6px">🎁</div>
-      <div style="font-size:14px;font-weight:bold;color:#27ae60">مجاني للأبد</div>
-    </div>`;
+    h = `<div style="text-align:center;padding:10px"><div style="font-size:32px;margin-bottom:6px">🎁</div><div style="font-size:14px;font-weight:bold;color:#27ae60">مجاني للأبد</div></div>`;
   }
   else if(status === 'paid'){
     const days = Math.ceil((new Date(sub.paidUntil).getTime() - now) / (1000*60*60*24));
-    h = `<div style="text-align:center;padding:10px">
-      <div style="font-size:32px;margin-bottom:6px">✅</div>
-      <div style="font-size:14px;font-weight:bold;color:#27ae60">اشتراك نشط</div>
-      <div style="font-size:12px;color:#666;margin-top:4px">متبقي: <b style="color:#8B4513">${days} يوم</b></div>
-      <div style="font-size:11px;color:#888;margin-top:4px">ينتهي: ${fmt(sub.paidUntil)}</div>
-    </div>`;
+    h = `<div style="text-align:center;padding:10px"><div style="font-size:32px;margin-bottom:6px">✅</div><div style="font-size:14px;font-weight:bold;color:#27ae60">اشتراك نشط</div><div style="font-size:12px;color:#666;margin-top:4px">متبقي: <b style="color:#8B4513">${days} يوم</b></div><div style="font-size:11px;color:#888;margin-top:4px">ينتهي: ${fmt(sub.paidUntil)}</div></div>`;
   }
   else if(status === 'trial'){
     const days = Math.ceil((new Date(sub.trialEndsAt).getTime() - now) / (1000*60*60*24));
-    h = `<div style="text-align:center;padding:10px">
-      <div style="font-size:32px;margin-bottom:6px">🎁</div>
-      <div style="font-size:14px;font-weight:bold;color:#f39c12">فترة تجريبية</div>
-      <div style="font-size:12px;color:#666;margin-top:4px">متبقي: <b style="color:#c0392b">${days} يوم</b></div>
-      <div style="font-size:11px;color:#888;margin-top:4px">ينتهي: ${fmt(sub.trialEndsAt)}</div>
-    </div>`;
+    h = `<div style="text-align:center;padding:10px"><div style="font-size:32px;margin-bottom:6px">🎁</div><div style="font-size:14px;font-weight:bold;color:#f39c12">فترة تجريبية</div><div style="font-size:12px;color:#666;margin-top:4px">متبقي: <b style="color:#c0392b">${days} يوم</b></div><div style="font-size:11px;color:#888;margin-top:4px">ينتهي: ${fmt(sub.trialEndsAt)}</div></div>`;
   }
   else {
-    h = `<div style="text-align:center;padding:10px">
-      <div style="font-size:32px;margin-bottom:6px">⚠️</div>
-      <div style="font-size:14px;font-weight:bold;color:#c0392b">انتهى الاشتراك</div>
-      <div style="font-size:12px;color:#666;margin-top:4px">اشترك الآن للمزامنة</div>
-    </div>`;
+    h = `<div style="text-align:center;padding:10px"><div style="font-size:32px;margin-bottom:6px">⚠️</div><div style="font-size:14px;font-weight:bold;color:#c0392b">انتهى الاشتراك</div><div style="font-size:12px;color:#666;margin-top:4px">اشترك الآن للمزامنة</div></div>`;
   }
-  
   el.innerHTML = h;
 }
 
 function renderSubscriptionBar(){
   const bar = document.getElementById('subscriptionBar');
   if(!bar) return;
-  
   const status = checkSubscription();
-  
   if(status === 'admin' || status === 'free' || status === 'paid'){
     bar.style.display = 'none';
     return;
   }
-  
   const sub = currentAccount?.subscription || {};
   const now = Date.now();
-  
   if(status === 'trial'){
     const days = Math.ceil((new Date(sub.trialEndsAt).getTime() - now) / (1000*60*60*24));
     if(days <= 3){
@@ -1878,13 +1829,11 @@ async function loadPaymentSettings(){
 async function saveAdminPaymentSettings(){
   if(!isAdmin()) return toast('غير مصرح', true);
   if(!cloudEnabled || !cloudPaymentSettingsRef) return toast('❌ لا يوجد اتصال', true);
-  
   const qiCardNumber = document.getElementById('adminQiCardNum')?.value.trim() || '';
   const qiCardName = document.getElementById('adminQiCardName')?.value.trim() || '';
   const whatsapp = document.getElementById('adminWhatsapp')?.value.trim() || '';
   const price = +document.getElementById('adminPrice')?.value || DEFAULT_PRICE;
   const trialDays = +document.getElementById('adminTrialDays')?.value || DEFAULT_TRIAL_DAYS;
-  
   try{
     await cloudPaymentSettingsRef.set({
       qiCardNumber, qiCardName, whatsapp, price, trialDays,
@@ -1897,97 +1846,47 @@ async function saveAdminPaymentSettings(){
 async function renderSubscriptionPage(){
   const el = document.getElementById('subscriptionPageContent');
   if(!el) return;
-  
   el.innerHTML = '<div style="text-align:center;padding:20px">⏳ جاري التحميل...</div>';
-  
   const settings = await loadPaymentSettings();
   const status = checkSubscription();
   const sub = currentAccount?.subscription || {};
   const now = Date.now();
-  
   let h = '';
-  
   if(status === 'admin' || status === 'free' || status === 'paid'){
     let emoji = status === 'admin' ? '👑' : (status === 'free' ? '🎁' : '✅');
     let title = status === 'admin' ? 'حساب المدير' : (status === 'free' ? 'مجاني للأبد' : 'اشتراك نشط');
     let info = '';
-    
     if(status === 'paid'){
       const days = Math.ceil((new Date(sub.paidUntil).getTime() - now) / (1000*60*60*24));
-      info = `<div style="font-size:13px;color:#666;margin-top:6px">متبقي: <b style="color:#8B4513">${days} يوم</b></div>
-             <div style="font-size:11px;color:#888;margin-top:2px">ينتهي: ${fmt(sub.paidUntil)}</div>`;
+      info = `<div style="font-size:13px;color:#666;margin-top:6px">متبقي: <b style="color:#8B4513">${days} يوم</b></div><div style="font-size:11px;color:#888;margin-top:2px">ينتهي: ${fmt(sub.paidUntil)}</div>`;
     }
-    
-    h = `<div style="text-align:center;padding:20px">
-      <div style="font-size:60px;margin-bottom:10px">${emoji}</div>
-      <div style="font-size:18px;font-weight:bold;color:#27ae60;margin-bottom:8px">${title}</div>
-      ${info}
-      <div style="font-size:13px;color:#888;margin-top:14px">ما تحتاج اشتراك حالي</div>
-    </div>`;
+    h = `<div style="text-align:center;padding:20px"><div style="font-size:60px;margin-bottom:10px">${emoji}</div><div style="font-size:18px;font-weight:bold;color:#27ae60;margin-bottom:8px">${title}</div>${info}<div style="font-size:13px;color:#888;margin-top:14px">ما تحتاج اشتراك حالي</div></div>`;
     el.innerHTML = h;
     return;
   }
-  
   let statusText = '';
   if(status === 'trial'){
     const days = Math.ceil((new Date(sub.trialEndsAt).getTime() - now) / (1000*60*60*24));
-    statusText = `<div style="background:#fff3e0;border:2px solid #f39c12;border-radius:10px;padding:12px;margin-bottom:12px;text-align:center">
-      <div style="font-size:14px;font-weight:bold;color:#e67e22">🎁 فترة تجريبية</div>
-      <div style="font-size:12px;color:#666;margin-top:4px">متبقي: <b style="color:#c0392b">${days} يوم</b></div>
-    </div>`;
+    statusText = `<div style="background:#fff3e0;border:2px solid #f39c12;border-radius:10px;padding:12px;margin-bottom:12px;text-align:center"><div style="font-size:14px;font-weight:bold;color:#e67e22">🎁 فترة تجريبية</div><div style="font-size:12px;color:#666;margin-top:4px">متبقي: <b style="color:#c0392b">${days} يوم</b></div></div>`;
   } else {
-    statusText = `<div style="background:#ffe5e5;border:2px solid #c0392b;border-radius:10px;padding:12px;margin-bottom:12px;text-align:center">
-      <div style="font-size:14px;font-weight:bold;color:#c0392b">⚠️ انتهى الاشتراك</div>
-      <div style="font-size:12px;color:#666;margin-top:4px">المزامنة معطلة — اشترك للمتابعة</div>
-    </div>`;
+    statusText = `<div style="background:#ffe5e5;border:2px solid #c0392b;border-radius:10px;padding:12px;margin-bottom:12px;text-align:center"><div style="font-size:14px;font-weight:bold;color:#c0392b">⚠️ انتهى الاشتراك</div><div style="font-size:12px;color:#666;margin-top:4px">المزامنة معطلة — اشترك للمتابعة</div></div>`;
   }
-  
   h = statusText;
-  
-  h += `<div style="text-align:center;padding:10px 0">
-    <div style="font-size:15px;font-weight:bold;color:#8B4513;margin-bottom:10px">💰 اشترك الآن</div>
-    <div style="font-size:24px;font-weight:bold;color:#c0392b">${money(settings.price)} د.ع</div>
-    <div style="font-size:12px;color:#666;margin-top:4px">20$ / شهرياً</div>
-  </div>`;
-  
-  h += `<div style="background:#f0f7fc;border:2px solid #3498db;border-radius:10px;padding:12px;margin-bottom:10px">
-    <div style="font-size:13px;font-weight:bold;color:#2980b9;margin-bottom:8px">💳 طريقة الدفع</div>
-    <div style="font-size:12px;color:#666;line-height:2;text-align:center">
-      <div>📱 <b>Qi Card:</b></div>
-      <div style="direction:ltr;font-size:14px;font-weight:bold;color:#8B4513;margin:6px 0">${settings.qiCardNumber || '— يُحدد قريباً —'}</div>
-      <div style="font-size:11px;color:#888">${settings.qiCardName || ''}</div>
-      ${settings.qiCardNumber ? `<button onclick="copyText('${settings.qiCardNumber}')" class="small blue" style="margin-top:6px">📋 نسخ الرقم</button>` : ''}
-    </div>
-  </div>`;
-  
-  h += `<div style="background:#f0f9f2;border:2px solid #27ae60;border-radius:10px;padding:12px;margin-bottom:10px">
-    <div style="font-size:13px;font-weight:bold;color:#1e8449;margin-bottom:8px">📞 بعد التحويل، أرسل:</div>
-    <div style="font-size:12px;color:#666;line-height:1.8">
-      • صورة الحوالة<br>
-      • رقم حسابك (${currentUser})<br>
-      • اسمك الكامل
-    </div>
-    ${settings.whatsapp ? `<a href="https://wa.me/${settings.whatsapp.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('مرحباً، أنا ' + (currentAccount?.fullName || currentUser) + '\nحسابي: ' + currentUser + '\nأريد تفعيل الاشتراك')}" target="_blank" style="display:block;margin-top:10px;text-align:center;background:#27ae60;color:#fff;padding:12px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:13px">📱 فتح WhatsApp</a>` : '<div style="text-align:center;color:#888;font-size:12px;padding:8px">— يُحدد رقم WhatsApp قريباً —</div>'}
-  </div>`;
-  
-  h += `<div style="background:#fff8e6;border:2px dashed #f39c12;border-radius:10px;padding:12px;text-align:center;font-size:12px;color:#8B4513;line-height:1.6">
-    ⏱️ بعد التحقق من الحوالة،<br>يتم تفعيل حسابك خلال ساعات
-  </div>`;
-  
+  h += `<div style="text-align:center;padding:10px 0"><div style="font-size:15px;font-weight:bold;color:#8B4513;margin-bottom:10px">💰 اشترك الآن</div><div style="font-size:24px;font-weight:bold;color:#c0392b">${money(settings.price)} د.ع</div><div style="font-size:12px;color:#666;margin-top:4px">20$ / شهرياً</div></div>`;
+  h += `<div style="background:#f0f7fc;border:2px solid #3498db;border-radius:10px;padding:12px;margin-bottom:10px"><div style="font-size:13px;font-weight:bold;color:#2980b9;margin-bottom:8px">💳 طريقة الدفع</div><div style="font-size:12px;color:#666;line-height:2;text-align:center"><div>📱 <b>Qi Card:</b></div><div style="direction:ltr;font-size:14px;font-weight:bold;color:#8B4513;margin:6px 0">${settings.qiCardNumber || '— يُحدد قريباً —'}</div><div style="font-size:11px;color:#888">${settings.qiCardName || ''}</div>${settings.qiCardNumber ? `<button onclick="copyText('${settings.qiCardNumber}')" class="small blue" style="margin-top:6px">📋 نسخ الرقم</button>` : ''}</div></div>`;
+  h += `<div style="background:#f0f9f2;border:2px solid #27ae60;border-radius:10px;padding:12px;margin-bottom:10px"><div style="font-size:13px;font-weight:bold;color:#1e8449;margin-bottom:8px">📞 بعد التحويل، أرسل:</div><div style="font-size:12px;color:#666;line-height:1.8">• صورة الحوالة<br>• رقم حسابك (${currentUser})<br>• اسمك الكامل</div>${settings.whatsapp ? `<a href="https://wa.me/${settings.whatsapp.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('مرحباً، أنا ' + (currentAccount?.fullName || currentUser) + '\nحسابي: ' + currentUser + '\nأريد تفعيل الاشتراك')}" target="_blank" style="display:block;margin-top:10px;text-align:center;background:#27ae60;color:#fff;padding:12px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:13px">📱 فتح WhatsApp</a>` : '<div style="text-align:center;color:#888;font-size:12px;padding:8px">— يُحدد رقم WhatsApp قريباً —</div>'}</div>`;
+  h += `<div style="background:#fff8e6;border:2px dashed #f39c12;border-radius:10px;padding:12px;text-align:center;font-size:12px;color:#8B4513;line-height:1.6">⏱️ بعد التحقق من الحوالة،<br>يتم تفعيل حسابك خلال ساعات</div>`;
   el.innerHTML = h;
 }
 
 function saveMyCity(){
   const city = document.getElementById('settingsCity')?.value;
   if(!city) return toast('اختر محافظتك', true);
-  
   if(!currentAccount) return;
   const accs = getAccounts();
   const idx = accs.findIndex(a => a.username === currentUser);
   if(idx === -1) return toast('الحساب غير موجود', true);
-  
   accs[idx].city = city;
-  
   if(!accs[idx].subscription){
     const createdAt = accs[idx].createdAt ? new Date(accs[idx].createdAt) : new Date();
     accs[idx].subscription = {
@@ -1998,16 +1897,11 @@ function saveMyCity(){
       payments: []
     };
   }
-  
   saveAccounts(accs);
   currentAccount = JSON.parse(JSON.stringify(accs[idx]));
-  console.log('✅ تم حفظ المحافظة:', city, '— currentAccount.city:', currentAccount.city);
-  
   const display = document.getElementById('myCityDisplay');
   if(display) display.textContent = city;
-  
   toast('✅ تم حفظ محافظتك: ' + city);
-  
   if(typeof renderSubscriptionInfo === 'function') renderSubscriptionInfo();
   if(typeof _listenToOffers === 'function') _listenToOffers();
   if(typeof loadOffers === 'function') loadOffers();
@@ -2018,30 +1912,22 @@ function loadMyCity(){
   const accs = getAccounts();
   const fresh = accs.find(a => a.username === currentUser);
   if(fresh) currentAccount = fresh;
-  
   const city = currentAccount?.city || '';
   const settingsCity = document.getElementById('settingsCity');
   if(settingsCity) settingsCity.value = city;
-  
   const display = document.getElementById('myCityDisplay');
   if(display) display.textContent = city || '— لم تحدد بعد —';
-  
   return city;
 }
 
 function renderCitiesCheckboxes(){
   const wrap = document.getElementById('citiesWrap');
   if(!wrap) return;
-  
   const myCity = currentAccount?.city || '';
-  
   let h = '';
   IRAQ_CITIES.forEach(city => {
     const checked = city === myCity ? ' checked' : '';
-    h += `<label style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:#fff;border:1px solid #ddd;border-radius:6px;font-size:12px;cursor:pointer">
-      <input type="checkbox" class="city-checkbox" value="${city}"${checked} onchange="updateSelectedCitiesCount()" style="width:auto;min-width:auto">
-      ${city}
-    </label>`;
+    h += `<label style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:#fff;border:1px solid #ddd;border-radius:6px;font-size:12px;cursor:pointer"><input type="checkbox" class="city-checkbox" value="${city}"${checked} onchange="updateSelectedCitiesCount()" style="width:auto;min-width:auto">${city}</label>`;
   });
   wrap.innerHTML = h;
   updateSelectedCitiesCount();
@@ -2067,13 +1953,8 @@ function showSendOfferForm(){
   const accs = getAccounts();
   const fresh = accs.find(a => a.username === currentUser);
   if(fresh) currentAccount = fresh;
-  
   const myCity = currentAccount?.city || '';
-  
-  if(!myCity){
-    return toast('⚠️ حدد محافظتك أولاً من الإعدادات', true);
-  }
-  
+  if(!myCity){ return toast('⚠️ حدد محافظتك أولاً من الإعدادات', true); }
   renderCitiesCheckboxes();
   document.getElementById('sendOfferForm').style.display = 'block';
   updateOfferLimit();
@@ -2090,12 +1971,10 @@ function cancelSendOffer(){
 function updateOfferLimit(){
   const info = document.getElementById('offerLimitInfo');
   if(!info) return;
-  
   const today = new Date().toDateString();
   const myOffers = db?.myOffers || [];
   const offersToday = myOffers.filter(o => new Date(o.date).toDateString() === today);
   const remaining = Math.max(0, MAX_OFFERS_PER_DAY - offersToday.length);
-  
   if(remaining === 0){
     info.innerHTML = '⚠️ <b style="color:#c0392b">وصلت للحد الأقصى اليوم (10 عروض)</b>';
   } else {
@@ -2108,21 +1987,18 @@ async function sendOffer(){
   const text = document.getElementById('offerText')?.value.trim();
   const phone = document.getElementById('offerPhone')?.value.trim();
   const cities = Array.from(document.querySelectorAll('.city-checkbox:checked')).map(cb => cb.value);
-  
   if(!title) return toast('اكتب العنوان', true);
   if(title.length > 60) return toast('العنوان طويل جداً', true);
   if(!text) return toast('اكتب التفاصيل', true);
   if(!phone) return toast('اكتب رقم الاتصال', true);
   if(!/^07[0-9]{9}$/.test(phone)) return toast('رقم غير صحيح (11 رقم يبدأ بـ 07)', true);
   if(!cities.length) return toast('اختر محافظة على الأقل', true);
-  
   const today = new Date().toDateString();
   const myOffers = db?.myOffers || [];
   const offersToday = myOffers.filter(o => new Date(o.date).toDateString() === today);
   if(offersToday.length >= MAX_OFFERS_PER_DAY){
     return toast(`⚠️ وصلت للحد الأقصى (${MAX_OFFERS_PER_DAY} عروض/يوم)`, true);
   }
-  
   const offer = {
     id: uid(),
     from: currentUser,
@@ -2135,23 +2011,15 @@ async function sendOffer(){
     date: nowISO(),
     _editedAt: Date.now()
   };
-  
   try{
-    if(!cloudEnabled || !cloudOffersRef){
-      return toast('❌ لا يوجد اتصال بالإنترنت', true);
-    }
-    
+    if(!cloudEnabled || !cloudOffersRef){ return toast('❌ لا يوجد اتصال بالإنترنت', true); }
     await cloudOffersRef.doc(offer.id).set(offer);
-    
     if(!db.myOffers) db.myOffers = [];
     db.myOffers.push(offer);
     save();
-    
     cancelSendOffer();
     updateOfferLimit();
-    
     toast(`✅ تم إرسال العرض لـ ${cities.length} محافظة`);
-    
     if(typeof loadMyOffers === 'function') loadMyOffers();
     loadOffers();
   }catch(e){
@@ -2163,34 +2031,24 @@ async function sendOffer(){
 async function loadOffers(){
   const list = document.getElementById('offersList');
   if(!list) return;
-  
   const accs = getAccounts();
   const fresh = accs.find(a => a.username === currentUser);
   if(fresh) currentAccount = fresh;
-  
   const myCity = currentAccount?.city || '';
   if(!myCity){
     list.innerHTML = '<div style="text-align:center;padding:20px;color:#888;font-size:13px">📍 حدد محافظتك من الإعدادات لرؤية العروض</div>';
     return;
   }
-  
   list.innerHTML = '<div style="text-align:center;padding:20px;color:#888">⏳ جاري التحميل...</div>';
-  
   if(!cloudEnabled || !cloudOffersRef){
     list.innerHTML = '<div style="text-align:center;padding:20px;color:#c0392b">❌ لا يوجد اتصال بالإنترنت</div>';
     return;
   }
-  
   try{
-    const snapshot = await cloudOffersRef
-      .orderBy('date', 'desc')
-      .limit(100)
-      .get();
-    
+    const snapshot = await cloudOffersRef.orderBy('date', 'desc').limit(100).get();
     const offers = [];
     const now = Date.now();
     const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
-    
     snapshot.forEach(doc => {
       const offer = doc.data();
       if(!offer) return;
@@ -2199,34 +2057,16 @@ async function loadOffers(){
       if(!offer.cities.includes(myCity)) return;
       offers.push(offer);
     });
-    
     const others = offers.filter(o => o.from !== currentUser);
-    
     if(!others.length){
       list.innerHTML = '<div style="text-align:center;padding:20px;color:#888;font-size:13px">📭 لا توجد عروض حالياً في محافظتك</div>';
       return;
     }
-    
     let h = '';
     others.forEach(offer => {
       const timeAgo = getTimeAgo(offer.date);
-      h += `<div style="background:#fff;border:2px solid #f39c12;border-radius:10px;padding:12px;margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
-          <div style="font-size:14px;font-weight:bold;color:#8B4513">${offer.title}</div>
-          <div style="font-size:10px;color:#888;white-space:nowrap">${timeAgo}</div>
-        </div>
-        <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:8px">${offer.text}</div>
-        <div style="font-size:11px;color:#666;margin-bottom:8px">
-          👤 ${offer.fromName} ${offer.fromCity ? ' — 📍 ' + offer.fromCity : ''}
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <a href="tel:${offer.phone}" style="flex:1;text-align:center;background:#27ae60;color:#fff;padding:8px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px">📞 اتصل</a>
-          <a href="https://wa.me/964${offer.phone.substring(1)}?text=${encodeURIComponent('مرحباً، شفت عرضك: ' + offer.title)}" target="_blank" style="flex:1;text-align:center;background:#25D366;color:#fff;padding:8px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px">💬 واتساب</a>
-          <button onclick="copyText('${offer.phone}')" style="flex:0 0 auto;background:#f39c12;color:#fff;padding:8px 12px;border-radius:6px;font-weight:bold;font-size:12px;border:none">📋</button>
-        </div>
-      </div>`;
+      h += `<div style="background:#fff;border:2px solid #f39c12;border-radius:10px;padding:12px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px"><div style="font-size:14px;font-weight:bold;color:#8B4513">${offer.title}</div><div style="font-size:10px;color:#888;white-space:nowrap">${timeAgo}</div></div><div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:8px">${offer.text}</div><div style="font-size:11px;color:#666;margin-bottom:8px">👤 ${offer.fromName} ${offer.fromCity ? ' — 📍 ' + offer.fromCity : ''}</div><div style="display:flex;gap:6px;flex-wrap:wrap"><a href="tel:${offer.phone}" style="flex:1;text-align:center;background:#27ae60;color:#fff;padding:8px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px">📞 اتصل</a><a href="https://wa.me/964${offer.phone.substring(1)}?text=${encodeURIComponent('مرحباً، شفت عرضك: ' + offer.title)}" target="_blank" style="flex:1;text-align:center;background:#25D366;color:#fff;padding:8px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px">💬 واتساب</a><button onclick="copyText('${offer.phone}')" style="flex:0 0 auto;background:#f39c12;color:#fff;padding:8px 12px;border-radius:6px;font-weight:bold;font-size:12px;border:none">📋</button></div></div>`;
     });
-    
     list.innerHTML = h;
   }catch(e){
     console.warn('loadOffers:', e);
@@ -2237,57 +2077,33 @@ async function loadOffers(){
 async function loadMyOffers(){
   const list = document.getElementById('myOffersList');
   if(!list) return;
-  
   const myOffers = db?.myOffers || [];
-  
   if(!myOffers.length){
     list.innerHTML = '<div style="text-align:center;padding:20px;color:#888;font-size:13px">📭 ما عندك عروض منشورة</div>';
     return;
   }
-  
   const sorted = [...myOffers].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  
   let h = '';
   sorted.forEach(offer => {
     const timeAgo = getTimeAgo(offer.date);
     const citiesCount = (offer.cities || []).length;
     const citiesList = (offer.cities || []).slice(0, 3).join(' ، ');
     const moreCities = citiesCount > 3 ? ` +${citiesCount - 3}` : '';
-    
-    h += `<div style="background:#f0f7fc;border:2px solid #3498db;border-radius:10px;padding:12px;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
-        <div style="font-size:14px;font-weight:bold;color:#2980b9">${offer.title}</div>
-        <div style="font-size:10px;color:#888;white-space:nowrap">${timeAgo}</div>
-      </div>
-      <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:8px">${offer.text}</div>
-      <div style="font-size:11px;color:#666;margin-bottom:4px">
-        📍 <b>${citiesCount}</b> محافظة: ${citiesList}${moreCities}
-      </div>
-      <div style="font-size:11px;color:#666;margin-bottom:8px">
-        📱 ${offer.phone}
-      </div>
-      <div style="display:flex;gap:6px">
-        <button onclick="deleteMyOffer('${offer.id}')" class="small danger" style="flex:1;padding:8px;font-size:12px">🗑️ حذف</button>
-      </div>
-    </div>`;
+    h += `<div style="background:#f0f7fc;border:2px solid #3498db;border-radius:10px;padding:12px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px"><div style="font-size:14px;font-weight:bold;color:#2980b9">${offer.title}</div><div style="font-size:10px;color:#888;white-space:nowrap">${timeAgo}</div></div><div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:8px">${offer.text}</div><div style="font-size:11px;color:#666;margin-bottom:4px">📍 <b>${citiesCount}</b> محافظة: ${citiesList}${moreCities}</div><div style="font-size:11px;color:#666;margin-bottom:8px">📱 ${offer.phone}</div><div style="display:flex;gap:6px"><button onclick="deleteMyOffer('${offer.id}')" class="small danger" style="flex:1;padding:8px;font-size:12px">🗑️ حذف</button></div></div>`;
   });
-  
   list.innerHTML = h;
 }
 
 async function deleteMyOffer(offerId){
   if(!confirm('حذف هذا العرض نهائياً؟')) return;
-  
   try{
     if(cloudEnabled && cloudOffersRef){
       await cloudOffersRef.doc(offerId).delete();
     }
-    
     if(db && db.myOffers){
       db.myOffers = db.myOffers.filter(o => o.id !== offerId);
       save();
     }
-    
     toast('✅ تم حذف العرض');
     loadMyOffers();
   }catch(e){
@@ -2300,7 +2116,6 @@ function getTimeAgo(dateStr){
   const now = Date.now();
   const then = new Date(dateStr).getTime();
   const diff = now - then;
-  
   if(diff < 60000) return 'الآن';
   if(diff < 3600000) return `منذ ${Math.floor(diff / 60000)} دقيقة`;
   if(diff < 86400000) return `منذ ${Math.floor(diff / 3600000)} ساعة`;
@@ -2311,11 +2126,9 @@ function getTimeAgo(dateStr){
 function loadAdminUserStats(){
   const el = document.getElementById('adminUserStats');
   if(!el) return;
-  
   const accs = getAccounts();
   let active = 0, trial = 0, expired = 0, adminCount = 0, freeCount = 0;
   const now = Date.now();
-  
   accs.forEach(a => {
     if(a.role === 'admin'){ adminCount++; return; }
     const sub = a.subscription || {};
@@ -2324,47 +2137,28 @@ function loadAdminUserStats(){
     if(sub.trialEndsAt && new Date(sub.trialEndsAt).getTime() > now){ trial++; return; }
     expired++;
   });
-  
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div style="background:#e8f2fd;border:2px solid #3498db;border-radius:10px;padding:10px;text-align:center">
-        <div style="font-size:22px;font-weight:bold;color:#2980b9">${accs.length}</div>
-        <div style="font-size:11px;color:#666;font-weight:bold">👥 إجمالي</div>
-      </div>
-      <div style="background:#e8f9ee;border:2px solid #27ae60;border-radius:10px;padding:10px;text-align:center">
-        <div style="font-size:22px;font-weight:bold;color:#1e8449">${active}</div>
-        <div style="font-size:11px;color:#666;font-weight:bold">✅ مشتركين</div>
-      </div>
-      <div style="background:#fdf5e0;border:2px solid #f39c12;border-radius:10px;padding:10px;text-align:center">
-        <div style="font-size:22px;font-weight:bold;color:#B8860B">${trial}</div>
-        <div style="font-size:11px;color:#666;font-weight:bold">🎁 تجربة</div>
-      </div>
-      <div style="background:#fdeaea;border:2px solid #c0392b;border-radius:10px;padding:10px;text-align:center">
-        <div style="font-size:22px;font-weight:bold;color:#7b241c">${expired}</div>
-        <div style="font-size:11px;color:#666;font-weight:bold">⚠️ منتهية</div>
-      </div>
+      <div style="background:#e8f2fd;border:2px solid #3498db;border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:bold;color:#2980b9">${accs.length}</div><div style="font-size:11px;color:#666;font-weight:bold">👥 إجمالي</div></div>
+      <div style="background:#e8f9ee;border:2px solid #27ae60;border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:bold;color:#1e8449">${active}</div><div style="font-size:11px;color:#666;font-weight:bold">✅ مشتركين</div></div>
+      <div style="background:#fdf5e0;border:2px solid #f39c12;border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:bold;color:#B8860B">${trial}</div><div style="font-size:11px;color:#666;font-weight:bold">🎁 تجربة</div></div>
+      <div style="background:#fdeaea;border:2px solid #c0392b;border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:bold;color:#7b241c">${expired}</div><div style="font-size:11px;color:#666;font-weight:bold">⚠️ منتهية</div></div>
     </div>
-    <div style="font-size:11px;color:#666;margin-top:8px;text-align:center">
-      👑 مديرين: ${adminCount} — 🎁 مجاني للأبد: ${freeCount}
-    </div>
+    <div style="font-size:11px;color:#666;margin-top:8px;text-align:center">👑 مديرين: ${adminCount} — 🎁 مجاني للأبد: ${freeCount}</div>
   `;
 }
 
 function loadAdminUsersList(){
   const el = document.getElementById('adminUsersList');
   if(!el) return;
-  
   const accs = getAccounts();
   const now = Date.now();
   let h = '';
-  
   accs.forEach(a => {
     if(a.role === 'admin') return;
-    
     const sub = a.subscription || {};
     let statusBadge = '';
     let actions = '';
-    
     if(sub.isFreeForever){
       statusBadge = '<span style="background:#27ae60;color:#fff;padding:2px 6px;border-radius:6px;font-size:10px">🎁 مجاني للأبد</span>';
       actions = `<button onclick="adminRemoveFree('${a.username}')" class="small danger" style="font-size:10px">إلغاء المجاني</button>`;
@@ -2372,51 +2166,33 @@ function loadAdminUsersList(){
     else if(sub.paidUntil && new Date(sub.paidUntil).getTime() > now){
       const days = Math.ceil((new Date(sub.paidUntil).getTime() - now) / (1000*60*60*24));
       statusBadge = `<span style="background:#3498db;color:#fff;padding:2px 6px;border-radius:6px;font-size:10px">✅ متبقي ${days} يوم</span>`;
-      actions = `<button onclick="adminActivateUser('${a.username}', 30)" class="small ok" style="font-size:10px">+30 يوم</button>
-                 <button onclick="adminFreeForever('${a.username}')" class="small blue" style="font-size:10px">🎁 مجاني</button>`;
+      actions = `<button onclick="adminActivateUser('${a.username}', 30)" class="small ok" style="font-size:10px">+30 يوم</button><button onclick="adminFreeForever('${a.username}')" class="small blue" style="font-size:10px">🎁 مجاني</button>`;
     }
     else if(sub.trialEndsAt && new Date(sub.trialEndsAt).getTime() > now){
       const days = Math.ceil((new Date(sub.trialEndsAt).getTime() - now) / (1000*60*60*24));
       statusBadge = `<span style="background:#f39c12;color:#fff;padding:2px 6px;border-radius:6px;font-size:10px">🎁 تجربة ${days} يوم</span>`;
-      actions = `<button onclick="adminActivateUser('${a.username}', 30)" class="small ok" style="font-size:10px">✅ تفعيل 30 يوم</button>
-                 <button onclick="adminFreeForever('${a.username}')" class="small blue" style="font-size:10px">🎁 مجاني</button>`;
+      actions = `<button onclick="adminActivateUser('${a.username}', 30)" class="small ok" style="font-size:10px">✅ تفعيل 30 يوم</button><button onclick="adminFreeForever('${a.username}')" class="small blue" style="font-size:10px">🎁 مجاني</button>`;
     }
     else {
       statusBadge = '<span style="background:#e74c3c;color:#fff;padding:2px 6px;border-radius:6px;font-size:10px">⚠️ منتهي</span>';
-      actions = `<button onclick="adminActivateUser('${a.username}', 30)" class="small ok" style="font-size:10px">✅ تفعيل 30 يوم</button>
-                 <button onclick="adminFreeForever('${a.username}')" class="small blue" style="font-size:10px">🎁 مجاني</button>`;
+      actions = `<button onclick="adminActivateUser('${a.username}', 30)" class="small ok" style="font-size:10px">✅ تفعيل 30 يوم</button><button onclick="adminFreeForever('${a.username}')" class="small blue" style="font-size:10px">🎁 مجاني</button>`;
     }
-    
-    h += `<div style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:10px;margin-bottom:6px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:6px">
-        <div>
-          <div style="font-size:13px;font-weight:bold">${a.fullName || a.username}</div>
-          <div style="font-size:10px;color:#888;direction:ltr">${a.username}</div>
-          ${a.city ? '<div style="font-size:10px;color:#666">📍 ' + a.city + '</div>' : ''}
-        </div>
-        <div>${statusBadge}</div>
-      </div>
-      <div style="display:flex;gap:4px;flex-wrap:wrap">${actions}</div>
-    </div>`;
+    h += `<div style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:10px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:6px"><div><div style="font-size:13px;font-weight:bold">${a.fullName || a.username}</div><div style="font-size:10px;color:#888;direction:ltr">${a.username}</div>${a.city ? '<div style="font-size:10px;color:#666">📍 ' + a.city + '</div>' : ''}</div><div>${statusBadge}</div></div><div style="display:flex;gap:4px;flex-wrap:wrap">${actions}</div></div>`;
   });
-  
   el.innerHTML = h || '<div style="text-align:center;color:#888;padding:20px">لا يوجد مستخدمين</div>';
 }
 
 function adminActivateUser(username, days){
   if(!isAdmin()) return toast('غير مصرح', true);
   if(!confirm(`تفعيل حساب ${username} لمدة ${days} يوم؟`)) return;
-  
   const accs = getAccounts();
   const idx = accs.findIndex(a => a.username === username);
   if(idx === -1) return toast('الحساب غير موجود', true);
-  
   if(!accs[idx].subscription) accs[idx].subscription = {};
   const currentPaid = accs[idx].subscription.paidUntil ? new Date(accs[idx].subscription.paidUntil).getTime() : Date.now();
   const baseTime = currentPaid > Date.now() ? currentPaid : Date.now();
   accs[idx].subscription.paidUntil = new Date(baseTime + days * 24 * 60 * 60 * 1000).toISOString();
   accs[idx].subscription.lastPayment = nowISO();
-  
   saveAccounts(accs);
   toast('✅ تم التفعيل');
   loadAdminUsersList();
@@ -2426,14 +2202,11 @@ function adminActivateUser(username, days){
 function adminFreeForever(username){
   if(!isAdmin()) return toast('غير مصرح', true);
   if(!confirm(`جعل حساب ${username} مجاني للأبد؟`)) return;
-  
   const accs = getAccounts();
   const idx = accs.findIndex(a => a.username === username);
   if(idx === -1) return toast('الحساب غير موجود', true);
-  
   if(!accs[idx].subscription) accs[idx].subscription = {};
   accs[idx].subscription.isFreeForever = true;
-  
   saveAccounts(accs);
   toast('✅ تم — مجاني للأبد');
   loadAdminUsersList();
@@ -2443,13 +2216,10 @@ function adminFreeForever(username){
 function adminRemoveFree(username){
   if(!isAdmin()) return toast('غير مصرح', true);
   if(!confirm(`إلغاء "المجاني للأبد" عن ${username}؟`)) return;
-  
   const accs = getAccounts();
   const idx = accs.findIndex(a => a.username === username);
   if(idx === -1) return;
-  
   if(accs[idx].subscription) accs[idx].subscription.isFreeForever = false;
-  
   saveAccounts(accs);
   toast('✅ تم الإلغاء');
   loadAdminUsersList();
@@ -2461,52 +2231,43 @@ async function _applySplitCloudDB(){
     const metaDoc = await cloudMetaRef.get();
     if(!metaDoc.exists) return false;
     const meta = metaDoc.data();
-    
     if(meta._lastActionBy === _deviceId) return false;
     if(db && db._pendingUpload === true) return false;
-    
     const metaTime = +meta._lastSaved || 0;
     const localTime = +db._lastSaved || 0;
-    
     const newDb = { ...db };
     let hasChanges = false;
-    
     for(const category of SPLIT_CATEGORIES){
       const cloudItems = await _loadSplitCategory(category);
-      
       const merged = new Map();
       cloudItems.forEach(item => { if(item && item.id) merged.set(item.id, item); });
-      
       (db[category] || []).forEach(localItem => {
         if(!localItem || !localItem.id) return;
-        if(!merged.has(localItem.id)){
-          merged.set(localItem.id, localItem);
-        } else {
+        if(!merged.has(localItem.id)){ merged.set(localItem.id, localItem); }
+        else {
           const cloudItem = merged.get(localItem.id);
           const cTime = +cloudItem._uploadedAt || +cloudItem._editedAt || 0;
           const lTime = +localItem._editedAt || 0;
           if(lTime > cTime) merged.set(localItem.id, localItem);
         }
       });
-      
       const mergedList = Array.from(merged.values());
       if(JSON.stringify(mergedList) !== JSON.stringify(db[category] || [])){
         newDb[category] = mergedList;
         hasChanges = true;
       }
     }
-    
     newDb._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : db._permanentCarry;
     newDb._cashboxOffset = meta._cashboxOffset !== undefined ? meta._cashboxOffset : db._cashboxOffset;
     newDb._lastArchiveAt = meta._lastArchiveAt || db._lastArchiveAt;
+    newDb._archiveCutoff = meta._archiveCutoff || db._archiveCutoff || db._lastArchiveAt;
+    newDb._archiveToken = meta._archiveToken || db._archiveToken;
     newDb._manualOverrides = meta._manualOverrides || db._manualOverrides;
     newDb._notifications = meta._notifications || db._notifications;
     newDb._lastSaved = Math.max(metaTime, localTime);
-    
     db = newDb;
     _fixDBFields(db);
     try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
-    
     return hasChanges || metaTime > localTime;
   }catch(e){
     console.error('_applySplitCloudDB error:', e);
@@ -2514,6 +2275,7 @@ async function _applySplitCloudDB(){
   }
 }
 
+// ✅ [تعديل نهائي] _listenToMeta — كشف أرشفة جديدة
 function _listenToMeta(){
   if(!cloudEnabled || !cloudMetaRef) return;
   try{
@@ -2528,9 +2290,32 @@ function _listenToMeta(){
         if(_isReceivingUpdate) return;
         
         _isReceivingUpdate = true;
+        
+        // ✅ [تعديل نهائي] كشف أرشفة جديدة
+        const remoteArchiveToken = meta._archiveToken || null;
+        const remoteArchiveAt = meta._lastArchiveAt || 0;
+        const localArchiveToken = db._archiveToken || null;
+        const localArchiveAt = db._lastArchiveAt || 0;
+        
+        const isNewArchive = (remoteArchiveAt > localArchiveAt) || 
+                             (remoteArchiveToken && remoteArchiveToken !== localArchiveToken);
+        
+        if(isNewArchive){
+          const archivedCats = ['sales','payments','expenses','buyers','cashAdditions','exchanges'];
+          archivedCats.forEach(cat => { db[cat] = []; });
+          db._archiveLock = true;
+          console.log('🔒 [listener] اكتشفنا أرشفة جديدة — مسح cats مؤرشفة');
+          setTimeout(() => { 
+            db._archiveLock = false; 
+            console.log('🔓 [listener] تم رفع قفل الأرشفة');
+          }, 3000);
+        }
+        
         db._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : db._permanentCarry;
         db._cashboxOffset = meta._cashboxOffset !== undefined ? meta._cashboxOffset : db._cashboxOffset;
-        db._lastArchiveAt = meta._lastArchiveAt || db._lastArchiveAt;
+        db._lastArchiveAt = remoteArchiveAt || db._lastArchiveAt;
+        db._archiveCutoff = meta._archiveCutoff || db._archiveCutoff || db._lastArchiveAt;
+        db._archiveToken = remoteArchiveToken || db._archiveToken;
         db._manualOverrides = meta._manualOverrides || db._manualOverrides;
         
         _lastCloudServerTime = meta.updatedAt && meta.updatedAt.toMillis ? meta.updatedAt.toMillis() : Date.now();
@@ -2550,7 +2335,6 @@ function _listenToCategory(category){
   if(!cloudEnabled) return;
   const ref = _getCategoryRef(category);
   if(!ref) return;
-  
   try{
     if(_listeners[category]){ _listeners[category](); }
     _listeners[category] = ref.onSnapshot(snap => {
@@ -2559,32 +2343,30 @@ function _listenToCategory(category){
         if(_isReceivingUpdate) return;
         if(db && db._pendingUpload === true) return;
         
+        // ✅ [تعديل نهائي] حماية إضافية: إذا القفل شغال ولا الفئة مؤرشفة، تجاهل
+        const archivedCats = ['sales','payments','expenses','buyers','cashAdditions','exchanges'];
+        if(db._archiveLock === true && archivedCats.includes(category)) return;
+        
         const cloudItems = [];
         snap.forEach(doc => {
           const item = doc.data();
           if(item) cloudItems.push(item);
         });
-        
         const allFromMe = cloudItems.every(item => item._lastActionBy === _deviceId);
         if(allFromMe) return;
-        
         _isReceivingUpdate = true;
-        
         const merged = new Map();
         cloudItems.forEach(item => { if(item && item.id) merged.set(item.id, item); });
-        
         (db[category] || []).forEach(localItem => {
           if(!localItem || !localItem.id) return;
-          if(!merged.has(localItem.id)){
-            merged.set(localItem.id, localItem);
-          } else {
+          if(!merged.has(localItem.id)){ merged.set(localItem.id, localItem); }
+          else {
             const cloudItem = merged.get(localItem.id);
             const cTime = +cloudItem._uploadedAt || +cloudItem._editedAt || 0;
             const lTime = +localItem._editedAt || 0;
             if(lTime > cTime) merged.set(localItem.id, localItem);
           }
         });
-        
         db[category] = Array.from(merged.values());
         try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
         renderAll();
@@ -2600,56 +2382,42 @@ function _listenToCategory(category){
 
 function _listenToOffers(){
   if(!cloudEnabled || !cloudOffersRef) return;
-  
   try{
     if(_listeners.offers){ _listeners.offers(); }
     _listeners.offers = null;
-    
     const myCity = currentAccount?.city || '';
     if(!myCity) return;
-    
     const lastSeenKey = 'flour_offers_seen_' + currentUser;
-    
-    _listeners.offers = cloudOffersRef
-      .orderBy('date', 'desc')
-      .limit(30)
-      .onSnapshot(snap => {
-        try{
-          if(snap.metadata.hasPendingWrites) return;
-          
-          const lastSeen = localStorage.getItem(lastSeenKey) || '0';
-          const lastSeenTime = parseInt(lastSeen) || 0;
-          let latestSeen = lastSeenTime;
-          
-          snap.forEach(doc => {
-            const offer = doc.data();
-            if(!offer || !offer.from) return;
-            if(offer.from === currentUser) return;
-            if(!Array.isArray(offer.cities)) return;
-            if(!offer.cities.includes(myCity)) return;
-            
-            const offerTime = new Date(offer.date).getTime();
-            if(offerTime <= lastSeenTime) return;
-            
-            _addOfferNotification(offer);
-            if(offerTime > latestSeen) latestSeen = offerTime;
-          });
-          
-          if(latestSeen > lastSeenTime){
-            localStorage.setItem(lastSeenKey, String(latestSeen));
-          }
-        }catch(e){ console.warn('offers listener err:', e); }
-      }, err => { console.warn('offers listener error:', err); });
+    _listeners.offers = cloudOffersRef.orderBy('date', 'desc').limit(30).onSnapshot(snap => {
+      try{
+        if(snap.metadata.hasPendingWrites) return;
+        const lastSeen = localStorage.getItem(lastSeenKey) || '0';
+        const lastSeenTime = parseInt(lastSeen) || 0;
+        let latestSeen = lastSeenTime;
+        snap.forEach(doc => {
+          const offer = doc.data();
+          if(!offer || !offer.from) return;
+          if(offer.from === currentUser) return;
+          if(!Array.isArray(offer.cities)) return;
+          if(!offer.cities.includes(myCity)) return;
+          const offerTime = new Date(offer.date).getTime();
+          if(offerTime <= lastSeenTime) return;
+          _addOfferNotification(offer);
+          if(offerTime > latestSeen) latestSeen = offerTime;
+        });
+        if(latestSeen > lastSeenTime){
+          localStorage.setItem(lastSeenKey, String(latestSeen));
+        }
+      }catch(e){ console.warn('offers listener err:', e); }
+    }, err => { console.warn('offers listener error:', err); });
   }catch(e){ console.warn('_listenToOffers error:', e); }
 }
 
 function _addOfferNotification(offer){
   if(!db) return;
   if(!db._notifications) db._notifications = [];
-  
   const exists = db._notifications.find(n => n.type === 'offer' && n.offerId === offer.id);
   if(exists) return;
-  
   db._notifications.unshift({
     id: uid(),
     type: 'offer',
@@ -2664,38 +2432,30 @@ function _addOfferNotification(offer){
     read: false,
     _editedAt: Date.now()
   });
-  
   if(db._notifications.length > 100) db._notifications = db._notifications.slice(0, 100);
-  
   try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
-  
   if(cloudMetaRef){
     cloudMetaRef.set({
       _notifications: (db._notifications || []).slice(0, 20),
       _lastActionBy: _deviceId
     }, { merge: true }).catch(e => {});
   }
-  
   _updateNotifBadge();
 }
 
 function startRealtimeListener(){
   if(!cloudEnabled || !currentUser) return;
-  
   const subStatus = checkSubscription();
   if(subStatus === 'expired'){
     console.log('⚠️ الاشتراك منتهي — المزامنة معطلة');
     setSyncStatus('err','⚠️ الاشتراك منتهي');
     return;
   }
-  
   _initUserRefs(currentUser);
-  
   console.log('🎧 بدء المستمعين...');
   _listenToMeta();
   SPLIT_CATEGORIES.forEach(cat => _listenToCategory(cat));
   _listenToOffers();
-  
   console.log('✅ تم تفعيل ' + (SPLIT_CATEGORIES.length + 2) + ' مستمع');
 }
 
@@ -2709,7 +2469,6 @@ function stopRealtimeListener(){
 
 async function _addNotification(type, fullName, identifier){
   if(type !== 'offer') return;
-  
   if(db){
     if(!db._notifications) db._notifications=[];
     db._notifications.unshift({
@@ -2727,10 +2486,8 @@ async function _addNotification(type, fullName, identifier){
 function _updateNotifBadge(){
   const badge=document.getElementById('notifBadge');
   if(!badge) return;
-  
   const offerNotifs = (db?._notifications || []).filter(n => n.type === 'offer');
   const unread = offerNotifs.filter(n=>!n.read).length;
-  
   if(unread>0){
     badge.textContent=unread>99?'99+':unread;
     badge.classList.add('show');
@@ -2743,7 +2500,6 @@ async function openNotif(){
   const panel=document.getElementById('notifPanel');
   const overlay=document.getElementById('notifOverlay');
   if(!panel||!overlay) return;
-
   renderNotifications();
   panel.classList.add('show');
   overlay.classList.add('show');
@@ -2759,32 +2515,23 @@ function closeNotif(){
 function renderNotifications(){
   const body=document.getElementById('notifBody');
   if(!body) return;
-  
   const allNotifs = (db?._notifications || []).filter(n => n.type === 'offer');
-  
   if(!allNotifs.length){
     body.innerHTML='<div class="notif-empty">📭 لا توجد إشعارات عروض</div>';
     return;
   }
-  
   let h='';
   allNotifs.forEach(n=>{
     let extraHTML = `<div style="font-size:12px;color:#8B4513;font-weight:bold;margin-top:4px">📢 ${n.title||'عرض جديد'}</div>`;
     if(n.city) extraHTML += `<div style="font-size:11px;color:#666">📍 ${n.city}</div>`;
     if(n.offerText) extraHTML += `<div style="font-size:11px;color:#555;margin-top:4px">${n.offerText.substring(0,80)}${n.offerText.length>80?'...':''}</div>`;
-    
     h+=`<div class="notif-item${n.read?'':' unread'}" data-nid="${n.id}">
       <div class="notif-icon ni-register">📢</div>
       <div class="notif-info">
-        <div class="notif-title">
-          <span class="notif-type-badge nt-register">عرض جديد</span>
-          <span class="notif-name">${n.fullName||'تاجر'}</span>
-        </div>
+        <div class="notif-title"><span class="notif-type-badge nt-register">عرض جديد</span><span class="notif-name">${n.fullName||'تاجر'}</span></div>
         <div class="notif-id">${n.identifier||''}</div>
         ${extraHTML}
-        <div class="notif-meta">
-          <span>📅 ${fmt(n.date)}</span>
-        </div>
+        <div class="notif-meta"><span>📅 ${fmt(n.date)}</span></div>
         <div class="notif-actions">
           <button class="btn-mark" onclick="markNotifRead('${n.id}')">✓ مقروء</button>
           <button class="btn-del" onclick="delNotif('${n.id}')">🗑️</button>
@@ -3118,9 +2865,7 @@ document.getElementById('loginPass').value='';
 toast('أهلاً بك 👋');
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ doLogout — تفريغ db
-// ═══════════════════════════════════════════════════════════
+// ===== تسجيل الخروج =====
 function doLogout(){
 if(!confirm('تسجيل الخروج؟'))return;
 try{ if(window._auth && currentAccount && currentAccount.email) window._auth.signOut(); }catch(e){}
@@ -3250,6 +2995,8 @@ function mergeSmart(localDb, cloudDb){
   result._permanentCarry = newer._permanentCarry ?? result._permanentCarry ?? 0;
   result._cashboxOffset = newer._cashboxOffset ?? result._cashboxOffset ?? 0;
   result._lastArchiveAt = newer._lastArchiveAt ?? result._lastArchiveAt ?? null;
+  result._archiveCutoff = newer._archiveCutoff ?? result._archiveCutoff ?? result._lastArchiveAt ?? null;
+  result._archiveToken = newer._archiveToken ?? result._archiveToken ?? null;
   const cloudManual = cloudDb._manualOverrides || {};
   const localManual = localDb._manualOverrides || {};
   const mergedManual = {};
@@ -3378,7 +3125,7 @@ async function loadUserData(){
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ _reloadFromSplitDocs
+// ✅ [تعديل نهائي] _reloadFromSplitDocs — حماية Archive Token + Cutoff + Lock
 // ═══════════════════════════════════════════════════════════
 async function _reloadFromSplitDocs(){
   try{
@@ -3386,6 +3133,7 @@ async function _reloadFromSplitDocs(){
     if(metaDoc.exists && metaDoc.data()){
       const meta = metaDoc.data();
       
+      // ✅ 1. حماية المسح الكامل (clearAll)
       if(meta._clearedAt && meta._clearedAt > (db._clearedAt || 0) && meta._clearedBy !== _deviceId){
         db = emptyDB();
         db._migratedToSplit = true;
@@ -3394,26 +3142,33 @@ async function _reloadFromSplitDocs(){
         return;
       }
       
-      // ✅ حماية الأرشفة: إذا في أرشيف جديد، نمسح العمليات المحلية
-      if(meta._lastArchiveAt && meta._lastArchiveAt > (db._lastArchiveAt || 0)){
-        db._lastArchiveAt = meta._lastArchiveAt;
+      // ✅ 2. [تعديل نهائي] حماية الأرشفة — كشف الأرشفة الجديدة
+      const remoteArchiveAt = meta._lastArchiveAt || 0;
+      const localArchiveAt = db._lastArchiveAt || 0;
+      const remoteArchiveToken = meta._archiveToken || null;
+      const localArchiveToken = db._archiveToken || null;
+      
+      const isNewArchive = (remoteArchiveAt > localArchiveAt) || 
+                           (remoteArchiveToken && remoteArchiveToken !== localArchiveToken);
+      
+      if(isNewArchive){
+        const archivedCats = ['sales','payments','expenses','buyers','cashAdditions','exchanges'];
+        archivedCats.forEach(cat => { db[cat] = []; });
+        
+        db._archiveCutoff = remoteArchiveAt || meta._archiveCutoff || remoteArchiveAt;
+        db._lastArchiveAt = remoteArchiveAt;
+        db._archiveToken = remoteArchiveToken;
+        db._archiveLock = true;
         db._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : db._permanentCarry;
         db._cashboxOffset = meta._cashboxOffset !== undefined ? meta._cashboxOffset : db._cashboxOffset;
         
-        db.sales = [];
-        db.payments = [];
-        db.expenses = [];
-        db.buyers = [];
-        db.cashAdditions = [];
-        db.exchanges = [];
-        db.deposits = [];
-        db.debts = [];
-        db.reservations = [];
-        db.flourTypes = [];
+        console.log('🔒 [تعديل نهائي] اكتشفنا أرشفة جديدة — قفل cats مؤرشفة');
       } else {
-        db._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : 0;
-        db._cashboxOffset = meta._cashboxOffset !== undefined ? meta._cashboxOffset : 0;
-        db._lastArchiveAt = meta._lastArchiveAt || null;
+        db._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : db._permanentCarry;
+        db._cashboxOffset = meta._cashboxOffset !== undefined ? meta._cashboxOffset : db._cashboxOffset;
+        db._lastArchiveAt = meta._lastArchiveAt || db._lastArchiveAt || null;
+        db._archiveCutoff = meta._archiveCutoff || db._archiveCutoff || db._lastArchiveAt || null;
+        db._archiveToken = remoteArchiveToken || db._archiveToken;
       }
       
       const remoteManual = meta._manualOverrides || {};
@@ -3424,12 +3179,15 @@ async function _reloadFromSplitDocs(){
         if(remoteT > localT) db._manualOverrides[k] = remoteManual[k];
       });
       
-      db._notifications = meta._notifications || [];
+      db._notifications = meta._notifications || db._notifications || [];
       db._lastSaved = meta._lastSaved || Date.now();
       db._migratedToSplit = true;
       _migrated = true;
     }
   }catch(e){ console.warn('read meta failed:', e); }
+  
+  const archivedCats = ['sales','payments','expenses','buyers','cashAdditions','exchanges'];
+  const isLocked = db._archiveLock === true;
   
   for(const category of SPLIT_CATEGORIES){
     try{
@@ -3455,10 +3213,23 @@ async function _reloadFromSplitDocs(){
         });
         db[category] = merged.length ? merged : db[category];
       } else {
-        // ✅ السحابة هي الأساس، ما نضيف محلي إلا الجديد
-        const localList = Array.isArray(db[category]) ? db[category] : [];
         const cloudList = Array.isArray(items) ? items : [];
         
+        // ✅ [تعديل نهائي] إذا الجهاز في وضع قفل أرشفة → نتجاهل السحابة للـ cats المؤرشفة
+        if(isLocked && archivedCats.includes(category)){
+          const archiveCutoff = db._archiveCutoff || 0;
+          const validCloudItems = cloudList.filter(item => {
+            if(!item || !item.date) return true;
+            try{ return new Date(item.date).getTime() > archiveCutoff; }catch(e){ return true; }
+          });
+          db[category] = validCloudItems;
+          if(validCloudItems.length < cloudList.length){
+            console.log(`🔒 تجاهلنا ${cloudList.length - validCloudItems.length} عنصر مؤرشف في ${category}`);
+          }
+          continue;
+        }
+        
+        const localList = Array.isArray(db[category]) ? db[category] : [];
         const cloudMap = new Map();
         cloudList.forEach(item => { if(item && item.id) cloudMap.set(item.id, item); });
         
@@ -3467,8 +3238,14 @@ async function _reloadFromSplitDocs(){
         
         localList.forEach(localItem => {
           if(!localItem || !localItem.id) return;
-          if(cloudIds.has(localItem.id)) return; // السحابة تفوز
-          mergedList.push(localItem); // عنصر جديد محلي فقط
+          if(cloudIds.has(localItem.id)) return;
+          // ✅ [تعديل نهائي] حماية من العناصر المؤرشفة في local
+          if(db._archiveCutoff && localItem.date){
+            try{
+              if(new Date(localItem.date).getTime() <= db._archiveCutoff) return;
+            }catch(e){}
+          }
+          mergedList.push(localItem);
         });
         
         if(category === 'sales' || category === 'payments' || category === 'deposits' || category === 'expenses' || category === 'exchanges' || category === 'cashAdditions'){
@@ -3480,6 +3257,15 @@ async function _reloadFromSplitDocs(){
     }catch(e){ console.warn('read ' + category + ' failed:', e); }
   }
   _fixDBFields(db);
+  
+  // ✅ [تعديل نهائي] رفع القفل بعد 3 ثواني (نعطي وقت للسحابة تنظف)
+  if(db._archiveLock){
+    setTimeout(() => {
+      db._archiveLock = false;
+      try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
+      console.log('🔓 تم رفع قفل الأرشفة');
+    }, 3000);
+  }
 }
 
 let _saveTimer = null;
@@ -3515,7 +3301,7 @@ function saveCategory(category){
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ _doUpload — يمسح الأقسام الفاضية من السحابة
+// ✅ [تعديل نهائي] _doUpload — تنظيف السحابة بعد الأرشفة
 // ═══════════════════════════════════════════════════════════
 async function _doUpload(){
   if(!currentUser){ if(db) db._pendingUpload = false; return false; }
@@ -3538,6 +3324,45 @@ async function _doUpload(){
   setSyncStatus('loading','⏳ جاري الحفظ...');
   
   try{
+    // ✅ [تعديل نهائي] إذا في أرشفة جديدة، نظّف السحابة قبل الرفع
+    if(db._archiveToken && db._archiveToken !== db._lastUploadedArchiveToken){
+      if(_firestoreDB){
+        const archivedCats = ['sales','payments','expenses','buyers','cashAdditions','exchanges'];
+        let needsClean = false;
+        
+        for(const cat of archivedCats){
+          const ref = _getCategoryRef(cat);
+          if(!ref) continue;
+          try{
+            const snap = await ref.limit(1).get();
+            if(snap.size > 0){ needsClean = true; break; }
+          }catch(e){}
+        }
+        
+        if(needsClean){
+          setSyncStatus('loading','🧹 تنظيف السحابة...');
+          for(const cat of archivedCats){
+            const ref = _getCategoryRef(cat);
+            if(!ref) continue;
+            try{
+              const snap = await ref.get();
+              if(snap.size > 0){
+                const docs = [];
+                snap.forEach(doc => docs.push(doc.ref));
+                for(let i = 0; i < docs.length; i += 400){
+                  const batch = _firestoreDB.batch();
+                  docs.slice(i, i + 400).forEach(r => batch.delete(r));
+                  await batch.commit();
+                }
+                console.log('🧹 مسح ' + cat + ' (' + docs.length + ')');
+              }
+            }catch(e){ console.warn('clean ' + cat + ':', e); }
+          }
+        }
+        db._lastUploadedArchiveToken = db._archiveToken;
+      }
+    }
+    
     await _uploadMetaConfig();
     
     if(!_migrated || !db._migratedToSplit){
@@ -3573,7 +3398,6 @@ async function _doUpload(){
       const ref = _getCategoryRef(category);
       if(!ref) continue;
       
-      // ✅ مسح كامل للأقسام الفاضية (بعد الأرشفة)
       if(items.length === 0 && ['sales','payments','expenses','buyers','cashAdditions','exchanges'].includes(category)){
         try{
           const snap = await ref.get();
@@ -3684,9 +3508,6 @@ async function forceSync(){
   }catch(e){ toast('❌ فشل', true); }
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ sendMyData — رفع نسخة طبق الأصل ومسح السحابة
-// ═══════════════════════════════════════════════════════════
 async function sendMyData(){
   if(!currentUser) return;
   if(!cloudEnabled){ toast('❌ Firebase غير متصل', true); return; }
@@ -3696,7 +3517,6 @@ async function sendMyData(){
   try{
     setSyncStatus('loading','🔀 جاري الرفع...');
     
-    // ✅ مسح كل شي من السحابة أولاً
     for(const cat of ['sales','payments','expenses','buyers','cashAdditions','exchanges','deposits','debts','reservations','flourTypes','archive']){
       const ref = _getCategoryRef(cat);
       if(!ref) continue;
@@ -3729,9 +3549,6 @@ async function sendMyData(){
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ receiveFromCloud — جلب البيانات ومسح المحلي
-// ═══════════════════════════════════════════════════════════
 async function receiveFromCloud(){
   if(!currentUser) return;
   if(!cloudEnabled){ toast('❌ Firebase غير متصل', true); return; }
@@ -4729,7 +4546,17 @@ function fmtTime(dt){if(!dt)return '-';const d=new Date(dt);const now=new Date()
 function money(n){return Number(n||0).toLocaleString('en-US');}
 function toast(m,e){const t=document.getElementById('toast');t.textContent=m;t.className='toast show'+(e?' err':'');setTimeout(()=>t.className='toast',2500);}
 
-function getArchiveTime(){if(db && db._lastArchiveAt) return db._lastArchiveAt;if(db && db.archive && db.archive.length > 0 && db.archive[0].archivedAt){db._lastArchiveAt = db.archive[0].archivedAt;return db._lastArchiveAt;}return null;}
+function getArchiveTime(){if(db && db._archiveCutoff) return db._archiveCutoff;if(db && db._lastArchiveAt) return db._lastArchiveAt;if(db && db.archive && db.archive.length > 0 && db.archive[0].archivedAt){db._lastArchiveAt = db.archive[0].archivedAt;return db._lastArchiveAt;}return null;}
+
+// ✅ [تعديل نهائي] دالة مساعدة: هل العنصر مؤرشف؟
+function _isArchivedItem(item){
+  if(!item || !item.date) return false;
+  const cutoff = db._archiveCutoff || db._lastArchiveAt || 0;
+  if(!cutoff) return false;
+  try{
+    return new Date(item.date).getTime() <= new Date(cutoff).getTime();
+  }catch(e){ return false; }
+}
 
 function promptDateTime(cur){
 const d=new Date(cur);const curStr=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
@@ -4739,9 +4566,6 @@ if(!inp.trim())return cur;
 try{const p=new Date(inp.trim().replace(' ','T'));if(isNaN(p.getTime()))throw new Error();return p.toISOString();}catch(e){toast('❌ تاريخ غير صحيح',true);return undefined;}
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ [جديد] دوال ضبط المخزن
-// ═══════════════════════════════════════════════════════════
 function _getOriginalQty(t){
   if(!t) return 0;
   if(t._manualOverride && t._manualOriginal !== undefined && t._manualOriginal !== null){
@@ -4783,9 +4607,6 @@ function _allFlourFix(){
   db.flourTypes.forEach(t => _fixFlourType(t));
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ [إصلاح] _getDepositPool
-// ═══════════════════════════════════════════════════════════
 function _getDepositPool(buyer, typeName){
   const bC = _cleanPerson(buyer);
   const tC = _cleanType(typeName);
@@ -5234,9 +5055,6 @@ function removeDepositItem(id){if(_depositItems.length===1){_depositItems=[{id:u
 function addDepositTypeRow(){_depositItems.push({id:uid(),typeId:'',qty:'',price:''});renderDepositTypes();}
 function updateMultiDepSum(){const sum=_depositItems.reduce((a,it)=>a+((+it.qty||0)*(+it.price||0)),0);const el=document.getElementById('multiDepSum');if(el)el.textContent=money(sum)+' د.ع';}
 
-// ═══════════════════════════════════════════════════════════
-// ✅ _calculateAndApplyWasselDeductions
-// ═══════════════════════════════════════════════════════════
 function _calculateAndApplyWasselDeductions(saleBuyer, saleItems, saleId, saleDate){
 const wasselRemByType = {};
 const wasselWithdrawals = [];
@@ -5306,39 +5124,27 @@ pools.forEach(p => {
     if(p.depositParentId){
       const dep = db.deposits.find(x => x.id === p.depositParentId);
       if(dep){
-        if(usedQty > 0){
-          dep._usedQty = (+dep._usedQty || 0) + usedQty;
-        }
-        if(usedAmt > 0){
-          dep._usedMoney = (+dep._usedMoney || 0) + usedAmt;
-        }
+        if(usedQty > 0){ dep._usedQty = (+dep._usedQty || 0) + usedQty; }
+        if(usedAmt > 0){ dep._usedMoney = (+dep._usedMoney || 0) + usedAmt; }
         dep._editedAt = Date.now();
         const origQty = +dep.originalQty || +dep.qty || 0;
         const origAmt = +dep.originalAmount || +dep.amount || 0;
         const remQ = Math.max(0, origQty - (dep._usedQty || 0));
         const remA = Math.max(0, origAmt - (dep._usedMoney || 0));
-        if(remQ <= 0 && remA <= 0){
-          dep._finished = true;
-        }
+        if(remQ <= 0 && remA <= 0){ dep._finished = true; }
       }
     }
   } else {
     const dep = db.deposits.find(x => x.id === p.depositId);
     if(dep){
-      if(usedQty > 0){
-        dep._usedQty = (+dep._usedQty || 0) + usedQty;
-      }
-      if(usedAmt > 0){
-        dep._usedMoney = (+dep._usedMoney || 0) + usedAmt;
-      }
+      if(usedQty > 0){ dep._usedQty = (+dep._usedQty || 0) + usedQty; }
+      if(usedAmt > 0){ dep._usedMoney = (+dep._usedMoney || 0) + usedAmt; }
       dep._editedAt = Date.now();
       const origQty = +dep.originalQty || +dep.qty || 0;
       const origAmt = +dep.originalAmount || +dep.amount || 0;
       const remQ = Math.max(0, origQty - (dep._usedQty || 0));
       const remA = Math.max(0, origAmt - (dep._usedMoney || 0));
-      if(remQ <= 0 && remA <= 0){
-        dep._finished = true;
-      }
+      if(remQ <= 0 && remA <= 0){ dep._finished = true; }
       
       if(_cleanType(dep.typeName) === tC && _cleanType(dep.typeName) !== ''){
         const matchingRes = (db.reservations || []).filter(r => 
@@ -5399,14 +5205,8 @@ if(p.remainingQty > 0 || usedQty > 0) specificHasQty = true;
 if(p.remainingAmt > 0 || usedAmt > 0) specificHasAmt = true;
 });
 
-if(specificHasQty){
-remQtyShow = specificQtyAfter;
-hasQtyDeposit = true;
-}
-if(specificHasAmt){
-remMoneyShow = specificAmtAfter;
-hasMoneyDeposit = true;
-}
+if(specificHasQty){ remQtyShow = specificQtyAfter; hasQtyDeposit = true; }
+if(specificHasAmt){ remMoneyShow = specificAmtAfter; hasMoneyDeposit = true; }
 } else {
 let freeAmtAfter = 0;
 let freeHasAmt = false;
@@ -5420,10 +5220,7 @@ if(p.remainingAmt > 0 || usedAmt > 0) freeHasAmt = true;
 });
 
 remQtyShow = null;
-if(freeHasAmt){
-remMoneyShow = freeAmtAfter;
-hasMoneyDeposit = true;
-}
+if(freeHasAmt){ remMoneyShow = freeAmtAfter; hasMoneyDeposit = true; }
 }
 
 wasselRemByType[typeName] = {
@@ -5472,18 +5269,12 @@ for(const it of validItems){
   const price = +it.price||0;
   const qty = +it.qty||0;
   const needMoney = price * qty;
-  
   const hasSpecific = availQty > 0;
   const hasMoney = availMoney > 0;
-  
-  if(!hasSpecific && !hasMoney){
-    return toast('❌ الزبون ما عنده إيداع من نوع "'+t.name+'" ولا مبلغ حر',true);
-  }
-  
+  if(!hasSpecific && !hasMoney){ return toast('❌ الزبون ما عنده إيداع من نوع "'+t.name+'" ولا مبلغ حر',true); }
   if(!hasSpecific && hasMoney && needMoney > availMoney){
     if(!confirm('⚠️ نوع "'+t.name+'" غير موجود بالإيداع!\n\nالمبلغ الحر المتاح: '+money(availMoney)+' د.ع\nالمطلوب: '+money(needMoney)+' د.ع\n\nمتابعة؟')){return;}
   }
-  
   if(hasSpecific && availQty < qty){
     if(!confirm('⚠️ نوع "'+t.name+'" الكمية غير كافية!\n\nالمتاح: '+money(availQty)+' كيس\nالمطلوب: '+money(qty)+' كيس\n\nمتابعة؟')){return;}
   }
@@ -5557,17 +5348,8 @@ if(remaining>0)extra.push('باقي: '+money(remaining));
 toast((currentMethod==='هدية'?'🎁 هدية':'تم تسجيل البيع ✅')+(extra.length?' — '+extra.join(' — '):''));
 }
 
-function recordBuyer(b,items,m,d,car,total){
-let x=db.buyers.find(y=>y.name===b);
-const tq=items.reduce((a,i)=>a+(+i.qty||0),0);
-const trans={date:d,items:items.map(i=>({typeName:i.typeName,qty:i.qty,price:i.unitPrice,total:i.total})),method:m,carrier:car,total};
-if(!x){db.buyers.push({name:b,firstDate:d,lastDate:d,totalQty:tq,totalAmount:total,transactions:[trans],id:uid(),_editedAt:Date.now()});}
-else{x.lastDate=d;x.totalQty+=tq;x.totalAmount+=total;x.transactions.push(trans);x._editedAt=Date.now();}
-}
+// (recordBuyer كانت في الجزء الرابع — تبقى هناك)
 
-// ═══════════════════════════════════════════════════════════
-// ✅ renderFlour — العرض الصح للأصلي/المباع/الباقي
-// ═══════════════════════════════════════════════════════════
 function renderFlour(){
 const el=document.getElementById('flourList');
 if(!db||!db.flourTypes.length){el.innerHTML='<div class="empty">لا توجد أنواع بعد</div>';return;}
@@ -5576,9 +5358,9 @@ let h=`<table><tr><th>النوع</th><th>الأصلية</th><th>المباعة</
 let grandTotal=0;
 const _sortedFT = [...db.flourTypes].sort((a,b)=>String(a._visibleFrom||'').localeCompare(String(b._visibleFrom||'')));
 _sortedFT.forEach(t=>{
-const s=+t.totalSold||0;               // ✅ المباع
-const o=_getOriginalQty(t);            // ✅ الأصلي
-const f=(+t.qty||0)<=0;                // ✅ منتهي
+const s=+t.totalSold||0;
+const o=_getOriginalQty(t);
+const f=(+t.qty||0)<=0;
 const m=_matchedFlourIds.has(t.id);
 const a=t.additions||[];
 const reserved=getReservedQty(t.name, null);
@@ -5657,10 +5439,8 @@ const d=nowISO();
 const nC=_cleanType(n);
 let t=db.flourTypes.find(x=>_cleanType(x.name)===nC);
 if(t){
-  // ✅ إضافة لنفس النوع
   if(!t.additions) t.additions=[];
   t.additions.push({qty:q,date:d,note:'حمولة جديدة'});
-  // ✅ إعادة حساب qty
   _recalcFlourType(t);
   t.updatedAt=d;
   t._editedAt=Date.now();
@@ -5769,43 +5549,59 @@ editDeposit(deps[idx].id);
 
 let _lastCashboxValue=0;
 
+// ═══════════════════════════════════════════════════════════
+// ✅ [تعديل نهائي] renderHome — حماية من الأرشيف
+// ═══════════════════════════════════════════════════════════
 function renderHome(){
-var _archT=getArchiveTime();
+var _archT = db._archiveCutoff || getArchiveTime();
 let reportTotal=0;
+
+// ✅ [تعديل نهائي] دالة فحص الأرشفة
+const _isArch = (item) => {
+  if(!item || !item.date || !_archT) return false;
+  try{ return new Date(item.date).getTime() <= new Date(_archT).getTime(); }catch(e){ return false; }
+};
+
 db.sales.forEach(s=>{
-const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
-const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0);
-const disc=s.discount||0;
-items.forEach(it=>{
-const ratio=grossTotal>0?(it.total/grossTotal):0;
-const discountedTotal=Math.max(0,it.total-disc*ratio);
-let paid=discountedTotal;
-if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);}
-else if(s.method==='واصل'){paid=0;}
-else if(s.method==='هدية'){paid=0;}
-reportTotal += paid;
+  if(_isArch(s)) return;  // ✅ تجاهل المؤرشف
+  const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
+  const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0);
+  const disc=s.discount||0;
+  items.forEach(it=>{
+    const ratio=grossTotal>0?(it.total/grossTotal):0;
+    const discountedTotal=Math.max(0,it.total-disc*ratio);
+    let paid=discountedTotal;
+    if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);}
+    else if(s.method==='واصل'){paid=0;}
+    else if(s.method==='هدية'){paid=0;}
+    reportTotal += paid;
+  });
 });
-});
-reportTotal += db.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0);
-reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
+
+reportTotal += db.payments.filter(p => p._fromDeposit !== true && !_isArch(p)).reduce((a,p)=>a+p.amount,0);
+reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين' && !_isArch(e)).reduce((a,e)=>a+(+e.diff||0), 0);
 reportTotal += (db.deposits||[]).filter(d=>{
+  if(_isArch(d)) return false;  // ✅ تجاهل المؤرشف
   if(!(+d.originalAmount>0)) return false;
   if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;
   if(d.legacy && d._showInReport !== true) return false;
   if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;
   if(d._archived) return false;
-  if(_archT && d.date && d.date <= _archT) return false;
   return true;
 }).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
+reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange && !_isArch(c)).reduce((a,c)=>a+c.amount,0);
 
-reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
-const gs=db.sales.filter(s=>s.method==='هدية').reduce((a,s)=>a+(s.qty||0),0);
+const gs=db.sales.filter(s=>s.method==='هدية' && !_isArch(s)).reduce((a,s)=>a+(s.qty||0),0);
 const _debtPersons=[...new Set(db.debts.map(d=>d.person))];
-const td=_debtPersons.reduce((sum,p)=>{const debtSum=db.debts.filter(x=>x.person===p).reduce((a,x)=>a+x.amount,0);const paySum=db.payments.filter(x=>x.person===p).reduce((a,x)=>a+x.amount,0);return sum+Math.max(0,debtSum-paySum);},0);
-const tp=db.payments.reduce((a,p)=>a+p.amount,0);
-const te=db.expenses.reduce((a,e)=>a+e.amount,0);
+const td=_debtPersons.reduce((sum,p)=>{
+  const debtSum=db.debts.filter(x=>x.person===p && !_isArch(x)).reduce((a,x)=>a+x.amount,0);
+  const paySum=db.payments.filter(x=>x.person===p && !_isArch(x)).reduce((a,x)=>a+x.amount,0);
+  return sum+Math.max(0,debtSum-paySum);
+},0);
+const tp=db.payments.filter(p=>!_isArch(p)).reduce((a,p)=>a+p.amount,0);
+const te=db.expenses.filter(e=>!_isArch(e)).reduce((a,e)=>a+e.amount,0);
 if(!db.cashAdditions)db.cashAdditions=[];
-const caTotal=db.cashAdditions.filter(c=>!c.fromExchange).reduce((a,x)=>a+x.amount,0);
+const caTotal=db.cashAdditions.filter(c=>!c.fromExchange && !_isArch(c)).reduce((a,x)=>a+x.amount,0);
 let carryBalance=0;
 if(db._permanentCarry !== undefined && db._permanentCarry !== null){carryBalance=+db._permanentCarry || 0;}
 const cashboxTotal=reportTotal + carryBalance - te + (db._cashboxOffset || 0);
@@ -5859,7 +5655,7 @@ document.getElementById('stats').innerHTML=`
 </div>`;
 
 const lastArchTime2=db.archive&&db.archive.length?new Date(db.archive[0].archivedAt).getTime():0;
-const all=[...db.sales.map(s=>({date:s.date,type:'sale',id:s.id,isCarry:false,txt:`${s.method==='هدية'?'🎁':'🛒'} (${s.items?s.items.map(i=>i.typeName+' × '+money(i.qty)).join(' + '):s.typeName+' × '+money(s.qty)}) لـ ${s.buyer} = ${s.method==='واصل'?'—':money(s.total)} (${s.method})`})),...db.deposits.filter(d=>!d._archived&&!d._finished&&!d.isCarry).map(d=>({date:d.date,type:'deposit',id:d.id,isCarry:false,txt:`${d.isWithdrawal?'🔄 استقطاع':(+d.amount>0?'💰 إيداع':'📤')} ${d.person} = ${money(Math.abs(d.amount))}`})),...db.payments.map(p=>({date:p.date,type:'payment',id:p.id,isCarry:false,txt:`✅ تسديد ${p.person} = ${money(p.amount)}`})),...db.expenses.map(e=>({date:e.date,type:'expense',id:e.id,isCarry:false,txt:`💸 ${e.desc} = ${money(e.amount)}`})),...(db.cashAdditions||[]).map(c=>({date:c.date,type:'cash',id:c.id,isCarry:!!c.isCarry,txt:`💵 ${c.note?'('+c.note+')':''} = ${money(c.amount)}`})),...(db.exchanges||[]).map(e=>({date:e.date,type:'exchange',id:e.id,isCarry:false,txt:`🔄 ${e.returnItems&&e.returnItems.length&&e.swapItems&&e.swapItems.length?'تبديل':'استرجاع'} ${e.buyer} = ${e.diff!==0?money(e.diff)+' فرق':'بدون فرق'}`}))]
+const all=[...db.sales.filter(s=>!_isArch(s)).map(s=>({date:s.date,type:'sale',id:s.id,isCarry:false,txt:`${s.method==='هدية'?'🎁':'🛒'} (${s.items?s.items.map(i=>i.typeName+' × '+money(i.qty)).join(' + '):s.typeName+' × '+money(s.qty)}) لـ ${s.buyer} = ${s.method==='واصل'?'—':money(s.total)} (${s.method})`})),...db.deposits.filter(d=>!d._archived&&!d._finished&&!d.isCarry && !_isArch(d)).map(d=>({date:d.date,type:'deposit',id:d.id,isCarry:false,txt:`${d.isWithdrawal?'🔄 استقطاع':(+d.amount>0?'💰 إيداع':'📤')} ${d.person} = ${money(Math.abs(d.amount))}`})),...db.payments.filter(p=>!_isArch(p)).map(p=>({date:p.date,type:'payment',id:p.id,isCarry:false,txt:`✅ تسديد ${p.person} = ${money(p.amount)}`})),...db.expenses.filter(e=>!_isArch(e)).map(e=>({date:e.date,type:'expense',id:e.id,isCarry:false,txt:`💸 ${e.desc} = ${money(e.amount)}`})),...(db.cashAdditions||[]).filter(c=>!_isArch(c)).map(c=>({date:c.date,type:'cash',id:c.id,isCarry:!!c.isCarry,txt:`💵 ${c.note?'('+c.note+')':''} = ${money(c.amount)}`})),...(db.exchanges||[]).filter(e=>!_isArch(e)).map(e=>({date:e.date,type:'exchange',id:e.id,isCarry:false,txt:`🔄 ${e.returnItems&&e.returnItems.length&&e.swapItems&&e.swapItems.length?'تبديل':'استرجاع'} ${e.buyer} = ${e.diff!==0?money(e.diff)+' فرق':'بدون فرق'}`}))]
 .filter(x=>{if(x.isCarry)return false;if(lastArchTime2>0&&new Date(x.date).getTime()<=lastArchTime2)return false;return true;})
 .sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
 document.getElementById('recent').innerHTML=all.length?'<table>'+all.map(x=>`<tr><td style="width:180px;color:#888;font-size:11px">${fmt(x.date)}</td><td style="font-size:12px">${x.txt}</td><td style="width:120px;white-space:nowrap"><button class="blue small" onclick="editRecent('${x.type}','${x.id}')">✏️</button> <button class="gold small" onclick="editDateTime('${x.type}','${x.id}')">⏰</button> <button class="danger small" onclick="delRecent('${x.type}','${x.id}')">🗑️</button></td></tr>`).join('')+'</table>':'<div class="empty">لا توجد عمليات</div>';
@@ -5889,9 +5685,6 @@ _skipNextMerge=true;
 save();renderHome();toast('✅');
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ addDeposit — رصيد قديم ما يظهر بالمطابقة
-// ═══════════════════════════════════════════════════════════
 function addDeposit(){
 const p=document.getElementById('dPerson').value.trim();
 const carrier=document.getElementById('dCarrier')?document.getElementById('dCarrier').value.trim():'';
@@ -5913,9 +5706,7 @@ const dtInput=document.getElementById('dDateTime');
 if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(parsed.getTime())){d=parsed.toISOString();}}catch(e){}}
 
 const validItems=_depositItems.filter(it=>it.typeId&&(+it.qty>0));
-if(amountEntered<=0 && validItems.length===0 && rem<=0){
-return toast('اكتب مبلغ أو كمية',true);
-}
+if(amountEntered<=0 && validItems.length===0 && rem<=0){ return toast('اكتب مبلغ أو كمية',true); }
 
 const bC = _cleanPerson(p);
 
@@ -5949,9 +5740,7 @@ if(shouldDeductDebt && debtBefore > 0){
   freeDisplay = amountEntered;
 }
 
-if(rem > 0){
-  newDebtAmount += rem;
-}
+if(rem > 0){ newDebtAmount += rem; }
 
 if(amountEntered > 0){
   let amountToRegister = amountEntered;
@@ -5960,9 +5749,7 @@ if(amountEntered > 0){
     amountToRegister -= applied;
     remainingDiscount -= applied;
   }
-
   const totalUsedMoney = itemsValue + debtDeducted;
-  
   const depositInfo = {
     _itemsList: itemsList,
     _itemsValue: itemsValue,
@@ -5973,24 +5760,15 @@ if(amountEntered > 0){
     _usedMoney: totalUsedMoney,
     _date: d
   };
-
   const newFreeDep = {
-    id:uid(),
-    person:p,
-    carrier:carrier,
-    amount:freeDisplay,
-    originalAmount:amountToRegister,
+    id:uid(), person:p, carrier:carrier,
+    amount:freeDisplay, originalAmount:amountToRegister,
     _usedMoney:totalUsedMoney,
-    typeName:'',
-    qty:0,
-    originalQty:0,
-    unitPrice:0,
-    totalPrice:0,
-    date:d,
+    typeName:'', qty:0, originalQty:0,
+    unitPrice:0, totalPrice:0, date:d,
     legacy:isLegacy,
     note:debtDeducted > 0 ? '💵 المبلغ (خصم دين)' : '💵 المبلغ',
-    _usedQty:0,
-    _editedAt:Date.now(),
+    _usedQty:0, _editedAt:Date.now(),
     _lastDepositInfo: depositInfo
   };
   db.deposits.push(newFreeDep);
@@ -6002,15 +5780,12 @@ validItems.forEach(it=>{
   const qty=+it.qty||0;
   const price=+it.price||0;
   let total=qty*price;
-  
   if(remainingDiscount > 0 && total > 0){
     const applied = Math.min(total, remainingDiscount);
     total -= applied;
     remainingDiscount -= applied;
   }
-  
   const tC = _cleanType(t.name);
-  
   let dep = db.deposits.find(x => 
     _cleanPerson(x.person) === bC && 
     _cleanType(x.typeName) === tC && 
@@ -6018,7 +5793,6 @@ validItems.forEach(it=>{
     x.originalQty !== undefined && 
     !!x.legacy === !!isLegacy
   );
-  
   if(dep){
     dep.originalQty = (+dep.originalQty || 0) + qty;
     dep.qty = (+dep.qty || 0) + qty;
@@ -6039,17 +5813,13 @@ validItems.forEach(it=>{
       _usedQty:0, _usedMoney:0, _editedAt:Date.now()
     });
   }
-  
   let r = db.reservations.find(x => 
     _cleanPerson(x.person) === bC && 
     _cleanType(x.typeName) === tC && 
     (x.totalQty - x.usedQty) > 0
   );
-  if(r){
-    r.totalQty += qty;
-    r.lastDate = d;
-    r._editedAt = Date.now();
-  } else {
+  if(r){ r.totalQty += qty; r.lastDate = d; r._editedAt = Date.now(); }
+  else {
     db.reservations.push({
       id: uid(), person: p, typeName: t.name,
       totalQty: qty, usedQty: 0, date: d, lastDate: d,
@@ -6068,10 +5838,7 @@ if(rem > 0){
 }
 
 if(debtDeducted > 0){
-  const sortedDebts = db.debts
-    .filter(x => _cleanPerson(x.person) === bC)
-    .sort((a,b) => a.date.localeCompare(b.date));
-  
+  const sortedDebts = db.debts.filter(x => _cleanPerson(x.person) === bC).sort((a,b) => a.date.localeCompare(b.date));
   let remaining = debtDeducted;
   sortedDebts.forEach(dbt => {
     if(remaining <= 0) return;
@@ -6080,11 +5847,7 @@ if(debtDeducted > 0){
     dbt._editedAt = Date.now();
     remaining -= deduct;
   });
-  
-  db.debts = db.debts.filter(x => 
-    _cleanPerson(x.person) !== bC || +x.amount > 0.01
-  );
-
+  db.debts = db.debts.filter(x => _cleanPerson(x.person) !== bC || +x.amount > 0.01);
   db.payments.push({
     id: uid(), person: p, amount: debtDeducted,
     typeName: '💳 خصم تلقائي', qty: 0,
@@ -6139,7 +5902,6 @@ let h='';
 pl.forEach(p=>{
 const liveDeps = db.deposits.filter(d=>_cleanPerson(d.person)===_cleanPerson(p) && !d.isWithdrawal && !d.isCarry && !d.cashPayment && !d._finished);
 if(!liveDeps.length) return;
-
 let totalMoney = 0;
 let totalQty = 0;
 liveDeps.forEach(d=>{
@@ -6151,9 +5913,7 @@ totalQty += Math.max(0, origQty - usedQty);
 totalMoney += Math.max(0, origAmt - usedAmt);
 });
 const isFinished = (totalMoney <= 0 && totalQty <= 0);
-
 h+=`<div class="buyer-group" style="${isFinished?'opacity:0.7':''}"><div class="buyer-head" onclick="toggleBuyer('depP_${p.replace(/[^a-zA-Z0-9]/g,'')}')"><div class="name">👤 <b>${p}</b> <span style="font-size:11px;color:#888">(${liveDeps.length} إيداع)</span></div><div style="display:flex;gap:6px;flex-wrap:wrap">${totalMoney>0?`<span class="total" style="background:#27ae60">💰 ${money(totalMoney)}</span>`:''}${totalQty>0?`<span class="total" style="background:#2980b9">📦 ${money(totalQty)} كيس</span>`:''}<button class="blue small" onclick="event.stopPropagation();editPersonDepositBalance('${p.replace(/'/g,"\\'")}')">✏️</button><button class="danger small" onclick="event.stopPropagation();delPersonDeposits('${p.replace(/'/g,"\\'")}')">🗑️</button></div></div><div class="buyer-body open" id="depP_${p.replace(/[^a-zA-Z0-9]/g,'')}">`;
-
 h+=`<table style="font-size:11px;margin:6px"><tr><th>النوع</th><th>📦 الأصلي</th><th>📦 المستخدم</th><th>📦 المتبقي</th><th>💰 الأصلي</th><th>💰 المستخدم</th><th>💰 المتبقي</th><th>💵 السعر</th><th>📅 التاريخ</th><th>الحالة</th><th></th></tr>`;
 liveDeps.forEach(dep=>{
 const dType = dep.typeName || '— مبلغ حر —';
@@ -6164,19 +5924,14 @@ const usedAmt = +dep._usedMoney || 0;
 const remQty = Math.max(0, origQty - usedQty);
 const remAmt = Math.max(0, origAmt - usedAmt);
 const depFinished = (remQty <= 0 && remAmt <= 0);
-
 let qtyCells = '';
 let moneyCells = '';
 if(origQty > 0){
 qtyCells = `<td style="color:#2980b9;font-weight:bold">${money(origQty)}</td><td style="color:#e67e22;font-weight:bold">${money(usedQty)}</td><td style="color:${remQty<=0?'#8b0000':'#c0392b'};font-weight:bold">${remQty<=0?'<span style="background:#8b0000;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px">انتهى</span>':money(remQty)}</td>`;
-} else {
-qtyCells = `<td style="color:#ccc">—</td><td style="color:#ccc">—</td><td style="color:#ccc">—</td>`;
-}
+} else { qtyCells = `<td style="color:#ccc">—</td><td style="color:#ccc">—</td><td style="color:#ccc">—</td>`; }
 if(origAmt > 0){
 moneyCells = `<td style="color:#2980b9;font-weight:bold">${money(origAmt)}</td><td style="color:#e67e22;font-weight:bold">${money(usedAmt)}</td><td style="color:${remAmt<=0?'#8b0000':'#c0392b'};font-weight:bold">${remAmt<=0?'<span style="background:#8b0000;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px">انتهى</span>':money(remAmt)}</td>`;
-} else {
-moneyCells = `<td style="color:#ccc">—</td><td style="color:#ccc">—</td><td style="color:#ccc">—</td>`;
-}
+} else { moneyCells = `<td style="color:#ccc">—</td><td style="color:#ccc">—</td><td style="color:#ccc">—</td>`; }
 h+=`<tr${depFinished?' style="background:#f5f5f5;opacity:0.7"':''}>
 <td><b>${dType}</b>${dep.legacy?' <span style="background:#f39c12;color:#fff;padding:1px 6px;border-radius:6px;font-size:9px">📜 قديم</span>':''}</td>
 ${qtyCells}
@@ -6194,7 +5949,6 @@ bal.innerHTML=h;
 renderReservations();
 const el=document.getElementById('depositList');
 if(!db.deposits.length){el.innerHTML='<div class="empty">لا يوجد سجل</div>';return;}
-
 const groups={};
 db.deposits.forEach(d=>{
   if(d._finished === true && !d.isWithdrawal) return;
@@ -6205,7 +5959,6 @@ Object.keys(groups).forEach(person=>{
   const hasActive = groups[person].some(d => !d._finished || d.isWithdrawal);
   if(!hasActive) delete groups[person];
 });
-
 let h2='';let idx=0;
 Object.keys(groups).forEach(person=>{
 const items=[...groups[person]].sort((a,b)=>b.date.localeCompare(a.date));
@@ -6263,15 +6016,11 @@ if(!a||a<=0)return toast('اكتب المبلغ',true);
 let d=nowISO();
 const dtInput=document.getElementById('pDateTime');
 if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(parsed.getTime())){d=parsed.toISOString();}}catch(e){}}
-
 const debtBefore = debtBalance(p);
-
 if(a > debtBefore && debtBefore > 0){
   const paymentAmount = debtBefore;
   const excess = a - debtBefore;
-
   db.payments.push({id:uid(),person:p,amount:paymentAmount,typeName:tn||'',qty:q,details:(det||'')+' (فائض '+money(excess)+' للإيداع)',date:d,_editedAt:Date.now()});
-
   const bC = _cleanPerson(p);
   let freeDep = db.deposits.find(x => _cleanPerson(x.person) === bC && (!x.typeName || x.typeName === '') && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished);
   if(freeDep){
@@ -6281,13 +6030,11 @@ if(a > debtBefore && debtBefore > 0){
   } else {
     db.deposits.push({id:uid(),person:p,carrier:'',amount:excess,originalAmount:excess,_usedMoney:0,typeName:'',qty:0,originalQty:0,unitPrice:0,totalPrice:0,date:d,note:'💵 فائض تسديد',_usedQty:0,_editedAt:Date.now()});
   }
-
   toast(`✅ تسديد ${money(paymentAmount)} — الفائض ${money(excess)} ذهب للإيداع`);
 } else {
   db.payments.push({id:uid(),person:p,amount:a,typeName:tn||'',qty:q,details:det,date:d,_editedAt:Date.now()});
   toast('تم التسديد ✅');
 }
-
 save();renderAll();
 document.getElementById('pPerson').value='';document.getElementById('pType').value='';document.getElementById('pQty').value='';document.getElementById('pAmount').value='';
 if(document.getElementById('pDetails'))document.getElementById('pDetails').value='';
@@ -7075,39 +6822,53 @@ function _aggregateFreeDeposits(deposits){
   return result;
 }
 
+// ═══════════════════════════════════════════════════════════
+// ✅ [تعديل نهائي] renderReport — حماية من الأرشيف
+// ═══════════════════════════════════════════════════════════
 function renderReport(){
-var _archT=getArchiveTime();
+var _archT = db._archiveCutoff || getArchiveTime();
+
+// ✅ [تعديل نهائي] دالة فحص الأرشفة
+const _isArch = (item) => {
+  if(!item || !item.date || !_archT) return false;
+  try{ return new Date(item.date).getTime() <= new Date(_archT).getTime(); }catch(e){ return false; }
+};
+
 const wasselBals=computeWasselBalances();
 const rows=[];
 db.sales.forEach(s=>{
-const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
-const grossTotal=s.grossTotal||items.reduce((a,i)=>a+(i.total||0),0);
-const disc=s.discount||0;
-items.forEach(it=>{
-const ratio=grossTotal>0?(it.total/grossTotal):0;
-const itemDisc=disc*ratio;
-const discountedTotal=Math.max(0,it.total-itemDisc);
-const discountedUnitPrice=it.qty>0?Math.round((discountedTotal/it.qty)*100)/100:0;
-let rB=null;
-if(s.method==='واصل'){const wKey=s.id + '|' + it.typeName;if(wasselBals[wKey]) rB=wasselBals[wKey];else rB=getSaleRemaining(s.buyer, it.typeName, s.date, s.id);}
-if(s.method==='واصل' && s.remByType && s.remByType[it.typeName]){const rb = s.remByType[it.typeName];rB = {mode: rb.mode, qty: rb.qty, money: rb.money, hasQtyDeposit: rb.hasQtyDeposit, hasMoneyDeposit: rb.hasMoneyDeposit};}
-let paidAmount=discountedTotal;
-let remAfterPaid=0;
-if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;remAfterPaid=debtPart;paidAmount=Math.max(0, discountedTotal - debtPart);}
-else if(s.method==='واصل'){paidAmount=0;remAfterPaid=rB ? (rB.money>0 ? rB.money : 0) : 0;}
-else if(s.method==='هدية'){paidAmount=0;remAfterPaid=0;}
-rows.push({date:s.date,type:it.typeName,qty:it.qty,unitPrice:discountedUnitPrice,buyer:s.buyer,carrier:s.carrier||'—',amount:paidAmount,displayAmount:paidAmount,method:s.method,remQty:rB?rB.qty:(it.remQty!==undefined?it.remQty:null),remMoney:rB?rB.money:(it.remMoney!==undefined?it.remMoney:remAfterPaid),hasQtyDeposit:rB?rB.hasQtyDeposit:(it.remQty>0),hasMoneyDeposit:rB?rB.hasMoneyDeposit:(remAfterPaid>0)});
+  if(_isArch(s)) return;  // ✅ تجاهل المؤرشف
+  const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
+  const grossTotal=s.grossTotal||items.reduce((a,i)=>a+(i.total||0),0);
+  const disc=s.discount||0;
+  items.forEach(it=>{
+    const ratio=grossTotal>0?(it.total/grossTotal):0;
+    const itemDisc=disc*ratio;
+    const discountedTotal=Math.max(0,it.total-itemDisc);
+    const discountedUnitPrice=it.qty>0?Math.round((discountedTotal/it.qty)*100)/100:0;
+    let rB=null;
+    if(s.method==='واصل'){const wKey=s.id + '|' + it.typeName;if(wasselBals[wKey]) rB=wasselBals[wKey];else rB=getSaleRemaining(s.buyer, it.typeName, s.date, s.id);}
+    if(s.method==='واصل' && s.remByType && s.remByType[it.typeName]){const rb = s.remByType[it.typeName];rB = {mode: rb.mode, qty: rb.qty, money: rb.money, hasQtyDeposit: rb.hasQtyDeposit, hasMoneyDeposit: rb.hasMoneyDeposit};}
+    let paidAmount=discountedTotal;
+    let remAfterPaid=0;
+    if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;remAfterPaid=debtPart;paidAmount=Math.max(0, discountedTotal - debtPart);}
+    else if(s.method==='واصل'){paidAmount=0;remAfterPaid=rB ? (rB.money>0 ? rB.money : 0) : 0;}
+    else if(s.method==='هدية'){paidAmount=0;remAfterPaid=0;}
+    rows.push({date:s.date,type:it.typeName,qty:it.qty,unitPrice:discountedUnitPrice,buyer:s.buyer,carrier:s.carrier||'—',amount:paidAmount,displayAmount:paidAmount,method:s.method,remQty:rB?rB.qty:(it.remQty!==undefined?it.remQty:null),remMoney:rB?rB.money:(it.remMoney!==undefined?it.remMoney:remAfterPaid),hasQtyDeposit:rB?rB.hasQtyDeposit:(it.remQty>0),hasMoneyDeposit:rB?rB.hasMoneyDeposit:(remAfterPaid>0)});
+  });
 });
-});
-db.payments.filter(p => p._fromDeposit !== true).forEach(p=>{rows.push({date:p.date,type:p.typeName||'—',qty:p.qty||'',unitPrice:'',buyer:p.person,carrier:'—',amount:p.amount,displayAmount:p.amount,method:'تسديد',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
-db.debts.filter(d=>d.manual && !d.fromSale && !d.fromDeposit && !d.fromExchange).forEach(d=>{rows.push({date:d.date,type:d.typeName||'دين يدوي',qty:'',unitPrice:d.amount,buyer:d.person,carrier:'—',amount:0,displayAmount:0,method:'دين يدوي',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+
+db.payments.filter(p => p._fromDeposit !== true && !_isArch(p)).forEach(p=>{rows.push({date:p.date,type:p.typeName||'—',qty:p.qty||'',unitPrice:'',buyer:p.person,carrier:'—',amount:p.amount,displayAmount:p.amount,method:'تسديد',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+
+db.debts.filter(d=>d.manual && !d.fromSale && !d.fromDeposit && !d.fromExchange && !_isArch(d)).forEach(d=>{rows.push({date:d.date,type:d.typeName||'دين يدوي',qty:'',unitPrice:d.amount,buyer:d.person,carrier:'—',amount:0,displayAmount:0,method:'دين يدوي',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+
 const _reportableDeps = (db.deposits||[]).filter(d=>{
+  if(_isArch(d)) return false;  // ✅ تجاهل المؤرشف
   if(!(+d.originalAmount>0)) return false;
   if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;
   if(d.legacy && d._showInReport !== true) return false;
   if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;
   if(d._archived) return false;
-  if(_archT && d.date && d.date <= _archT) return false;
   return true;
 });
 const _aggregatedDeps = _aggregateFreeDeposits(_reportableDeps);
@@ -7130,14 +6891,16 @@ _aggregatedDeps.forEach(d=>{
     _isAggregated: isAggregated,_aggregatedDates: datesStr,_aggregatedCount: isAggregated ? d._aggregatedIds.length : 0
   });
 });
-(db.cashAdditions||[]).filter(c=>!c.isCarry&&!c.fromExchange).forEach(c=>{rows.push({date:c.date,type:'—',qty:'',unitPrice:'',buyer:c.note||'إضافة صندوق',carrier:'—',amount:c.amount,displayAmount:c.amount,method:'إضافات',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
-(db.exchanges||[]).forEach(e=>{
+
+(db.cashAdditions||[]).filter(c=>!c.isCarry&&!c.fromExchange && !_isArch(c)).forEach(c=>{rows.push({date:c.date,type:'—',qty:'',unitPrice:'',buyer:c.note||'إضافة صندوق',carrier:'—',amount:c.amount,displayAmount:c.amount,method:'إضافات',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
+
+(db.exchanges||[]).filter(e=>!_isArch(e)).forEach(e=>{
 (e.returnItems||[]).forEach(ri=>{rows.push({date:e.date,type:ri.typeName,qty:ri.qty,unitPrice:ri.unitPrice||0,buyer:e.buyer,carrier:e.carrier||'—',amount:0,displayAmount:0,method:'استرجاع',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
 (e.swapItems||[]).forEach(si=>{rows.push({date:e.date,type:si.typeName,qty:si.qty,unitPrice:si.unitPrice||0,buyer:e.buyer,carrier:e.carrier||'—',amount:0,displayAmount:0,method:'تبديل',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
 if(e.diff!==0){rows.push({date:e.date,type:'—',qty:'',unitPrice:'',buyer:e.buyer,carrier:'—',amount:0,displayAmount:0,method:'فرق',diffValue:e.diff,diffMethod:e.method,remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});}
 });
 rows.sort((a,b)=>a.date.localeCompare(b.date));
-const totalSales=rows.filter(r=>r.method!=='استرجاع'&&r.method!=='تبديل'&&r.method!=='فرق'&&r.method!=='دين يدوي').reduce((a,r)=>a+r.amount,0) + (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
+const totalSales=rows.filter(r=>r.method!=='استرجاع'&&r.method!=='تبديل'&&r.method!=='فرق'&&r.method!=='دين يدوي').reduce((a,r)=>a+r.amount,0) + (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين' && !_isArch(e)).reduce((a,e)=>a+(+e.diff||0), 0);
 const dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 let _carryAmount=0;let _carryDate='';
 if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carryAmount=(+db._permanentCarry || 0) + (+db._cashboxOffset || 0);_carryDate=db._lastArchiveAt || nowISO();}
@@ -7194,7 +6957,7 @@ h+=`<tr><td colspan="11" style="text-align:center;color:#888;padding:12px">لا 
 if(_carryAmount > 0){h+=`<tr style="background:#faf0e6;font-weight:bold"><td colspan="7" style="text-align:center">المجموع</td><td style="color:#8B4513;font-size:14px">${money(_carryAmount)}</td><td colspan="3"></td></tr>`;}
 }
 h+=`</table></div>`;
-const expRows=[...db.expenses].sort((a,b)=>a.date.localeCompare(b.date));
+const expRows=[...db.expenses].filter(e=>!_isArch(e)).sort((a,b)=>a.date.localeCompare(b.date));
 if(expRows.length){
 const totalExp=expRows.reduce((a,e)=>a+e.amount,0);
 h+=`<div class="card" style="background:#fff5f5;border:2px solid #c0392b;margin-top:10px;padding:10px"><div style="text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:2px dashed #c0392b"><b style="color:#c0392b;font-size:14px">💸 الصرفيات</b></div>`;
@@ -7207,24 +6970,25 @@ h+=`<tr style="background:#ffe5e5;font-weight:bold"><td style="text-align:center
 }
 let _reportTotal=0;
 db.sales.forEach(s=>{
-const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
-const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0);
-const disc=s.discount||0;
-items.forEach(it=>{
-const ratio=grossTotal>0?(it.total/grossTotal):0;
-const discountedTotal=Math.max(0,it.total-disc*ratio);
-let paid=discountedTotal;
-if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);}
-else if(s.method==='واصل'){paid=0;}
-else if(s.method==='هدية'){paid=0;}
-_reportTotal += paid;
+  if(_isArch(s)) return;  // ✅ تجاهل المؤرشف
+  const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
+  const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0);
+  const disc=s.discount||0;
+  items.forEach(it=>{
+    const ratio=grossTotal>0?(it.total/grossTotal):0;
+    const discountedTotal=Math.max(0,it.total-disc*ratio);
+    let paid=discountedTotal;
+    if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);}
+    else if(s.method==='واصل'){paid=0;}
+    else if(s.method==='هدية'){paid=0;}
+    _reportTotal += paid;
+  });
 });
-});
-_reportTotal += db.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0);
-_reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
+_reportTotal += db.payments.filter(p => p._fromDeposit !== true && !_isArch(p)).reduce((a,p)=>a+p.amount,0);
+_reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين' && !_isArch(e)).reduce((a,e)=>a+(+e.diff||0), 0);
 _reportTotal += _aggregatedDeps.reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
-_reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
-const _te=db.expenses.reduce((a,e)=>a+e.amount,0);
+_reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange && !_isArch(c)).reduce((a,c)=>a+c.amount,0);
+const _te=db.expenses.filter(e=>!_isArch(e)).reduce((a,e)=>a+e.amount,0);
 let _carry=0;
 if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carry=+db._permanentCarry || 0;}
 _finalTotal=_reportTotal + _carry;
@@ -7267,7 +7031,7 @@ toast('✅ تم توليد '+imgs.length+' صور');
 function viewFlour(){
 if(!db.flourTypes.length){toast('لا توجد أنواع',true);return;}
 window._printRowLimit=20;window._autoFontSize=true;
-const to=db.flourTypes.reduce((a,t)=>a+(t.qty+(t.totalSold||0)),0);
+const to=db.flourTypes.reduce((a,t)=>a+(_getOriginalQty(t)),0);
 const ts=db.flourTypes.reduce((a,t)=>a+(t.totalSold||0),0);
 const tr=db.flourTypes.reduce((a,t)=>a+t.qty,0);
 const tReserved=db.flourTypes.reduce((a,t)=>a+getReservedQty(t.name,null),0);
@@ -7276,9 +7040,11 @@ const grandTotal=db.flourTypes.reduce((a,t)=>{const net=Math.max(0,(+t.qty||0)-g
 let c=`<div style="text-align:center;margin-bottom:10px;background:#fff8e6;border:2px solid #f39c12;border-radius:10px;padding:10px"><div style="font-size:16px;font-weight:bold;color:#8B4513">🌾 أنواع الطحين</div><div style="font-size:11px;color:#666;margin-top:4px">📅 ${fmt(nowISO())}</div></div>`;
 c+=`<table style="font-size:10px;line-height:1.3;width:100%"><tr><th>#</th><th>النوع</th><th>الأصلي</th><th>المباع</th><th>الباقية</th><th>المحجوزة</th><th>الصافي</th><th>💵 السعر</th><th>💰 الكلي</th><th>الإضافة</th></tr>`;
 const _sortedFT2 = [...db.flourTypes].sort((a,b)=>String(a._visibleFrom||'').localeCompare(String(b._visibleFrom||'')));
-const _archT3 = getArchiveTime();
+const _archT3 = db._archiveCutoff || getArchiveTime();
 _sortedFT2.forEach((t,i)=>{
-const s=t.totalSold||0;const o=t.qty+s;const f=t.qty<=0;
+const s=t.totalSold||0;
+const o=_getOriginalQty(t);
+const f=t.qty<=0;
 const reserved=getReservedQty(t.name, null);
 const net=Math.max(0, (+t.qty||0) - reserved);
 const up=+t.unitPrice||0;
@@ -7387,6 +7153,9 @@ function _formatDateArabic(dateKey){
   }catch(e){ return dateKey; }
 }
 
+// ═══════════════════════════════════════════════════════════
+// ✅ [تعديل نهائي] doArchive — Archive Token + Cutoff
+// ═══════════════════════════════════════════════════════════
 async function doArchive(){
   const hd = db.sales.length || db.payments.length || db.expenses.length || db.buyers.length || (db.cashAdditions||[]).length || (db.exchanges||[]).length || db.debts.some(d=>d.manual);
   if(!hd) return toast('لا توجد بيانات', true);
@@ -7395,7 +7164,7 @@ async function doArchive(){
   if(!confirm('⚠️ تأكيد نهائي؟')) return;
 
   if(_saveTimer) clearTimeout(_saveTimer);
-  _isReceivingUpdate = true; // ✅ إيقاف استقبال البيانات مؤقتاً
+  _isReceivingUpdate = true;
 
   const _savedReportHTML = document.getElementById('reportArea')?.innerHTML || '';
   const _savedFinalTotal = _finalTotal;
@@ -7526,6 +7295,9 @@ async function doArchive(){
   db.buyers.forEach(x=>markDeleted('buyers',x.id));
 
   db._lastArchiveAt = _archiveTime;
+  // ✅ [تعديل نهائي] إضافة Cutoff + Token
+  db._archiveCutoff = _archiveTime;
+  db._archiveToken = _deviceId + '_' + _archiveTime + '_' + Math.random().toString(36).slice(2,8);
   db._permanentCarry = currentCashbox;
   db._cashboxOffset = 0;
   
@@ -7554,7 +7326,22 @@ async function doArchive(){
 
   setSyncStatus('loading','⏳ جاري رفع الأرشيف...');
 
-  // ✅ [تعديل جذري]: مسح العمليات القديمة من السحابة مباشرة
+  // ✅ [تعديل نهائي] حفظ Archive Token + Cutoff في meta أولاً
+  if(cloudMetaRef){
+    try{
+      await cloudMetaRef.set({
+        _lastArchiveAt: _archiveTime,
+        _archiveCutoff: _archiveTime,
+        _archiveToken: db._archiveToken,
+        _permanentCarry: db._permanentCarry,
+        _cashboxOffset: 0,
+        _lastActionBy: _deviceId
+      }, { merge: true });
+      console.log('✅ [تعديل نهائي] حفظ Archive Token + Cutoff في meta');
+    }catch(e){ console.warn('meta save failed:', e); }
+  }
+
+  // ✅ مسح مباشر من السحابة
   if(cloudEnabled && _firestoreDB){
     const catsToClear = ['sales','payments','expenses','buyers','cashAdditions','exchanges'];
     for(const cat of catsToClear){
@@ -8811,4 +8598,4 @@ document.addEventListener('input', function(e){ if(e.target && e.target.id === '
 })();
 </script>
 </body>
-             </html>
+</html>
