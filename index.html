@@ -1243,7 +1243,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><script>
 // ===== التحديث التلقائي — إجباري بعد 3 تأجيلات =====
-const APP_VERSION = "2.10";
+const APP_VERSION = "2.11";
 const APP_UPDATE_URL = "https://aliyuoohoogoogl-cmyk.github.io/flour/latest.json";
 const MAX_UPDATE_POSTPONES = 3;
 
@@ -3143,42 +3143,23 @@ document.getElementById('authScreen').classList.remove('hidden');
 showLogin();
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ _upgradeAccount
-// ═══════════════════════════════════════════════════════════
 function _upgradeAccount(){
   if(!currentAccount) return false;
   let changed = false;
   const accs = getAccounts();
   const idx = accs.findIndex(a => a.username === currentUser);
   if(idx === -1) return false;
-  
   if(!accs[idx].subscription){
     const createdAt = accs[idx].createdAt ? new Date(accs[idx].createdAt) : new Date();
     const trialEnds = new Date(createdAt.getTime() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000);
-    accs[idx].subscription = {
-      trialEndsAt: trialEnds.toISOString(),
-      paidUntil: null,
-      isFreeForever: accs[idx].role === 'admin',
-      lastPayment: null,
-      payments: []
-    };
+    accs[idx].subscription = { trialEndsAt: trialEnds.toISOString(), paidUntil: null, isFreeForever: accs[idx].role === 'admin', lastPayment: null, payments: [] };
     changed = true;
   }
-  if(accs[idx].city === undefined){
-    accs[idx].city = '';
-    changed = true;
-  }
-  if(changed){
-    saveAccounts(accs);
-    currentAccount = accs[idx];
-  }
+  if(accs[idx].city === undefined){ accs[idx].city = ''; changed = true; }
+  if(changed){ saveAccounts(accs); currentAccount = accs[idx]; }
   return changed;
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ showApp
-// ═══════════════════════════════════════════════════════════
 function showApp(){
 if(!db) db = emptyDB();
 document.getElementById('authScreen').classList.add('hidden');
@@ -3191,7 +3172,6 @@ document.getElementById('settingsAvatar').textContent=displayName.charAt(0);
 if(currentAccount)document.getElementById('settingsSince').textContent='منذ: '+fmt(currentAccount.createdAt);
 const badge=document.getElementById('headerBadge');
 const roleEl=document.getElementById('settingsRole');
-
 if(isAdmin()){
 badge.style.display='inline-block';
 document.body.classList.add('is-admin');
@@ -3240,9 +3220,6 @@ _updateNotifBadge();
 startRealtimeListener();
 }
 
-// ═══════════════════════════════════════════════════════════
-// 🧠 mergeSmart
-// ═══════════════════════════════════════════════════════════
 function mergeSmart(localDb, cloudDb){
   if(!localDb && !cloudDb) return emptyDB();
   if(!localDb) return JSON.parse(JSON.stringify(cloudDb));
@@ -3302,9 +3279,6 @@ function mergeSmart(localDb, cloudDb){
   return result;
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ _applyCloudDB
-// ═══════════════════════════════════════════════════════════
 function _applyCloudDB(cloudDb){
   try{
     if(!cloudDb) return false;
@@ -3317,15 +3291,9 @@ function _applyCloudDB(cloudDb){
     db = merged;
     try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
     return true;
-  }catch(e){
-    console.error('_applyCloudDB error:', e);
-    return false;
-  }
+  }catch(e){ return false; }
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ loadUserData
-// ═══════════════════════════════════════════════════════════
 async function loadUserData(){
   const key = DATA_PREFIX+currentUser;
   let localDb = null;
@@ -3344,12 +3312,9 @@ async function loadUserData(){
       waited++;
     }
   }
-  
   if(!cloudEnabled || !cloudDataRef){
     setSyncStatus('err','📱 محلي فقط');
-    db = localDb || emptyDB();
-    _fixDBFields(db);
-    return;
+    db = localDb || emptyDB(); _fixDBFields(db); return;
   }
   
   _initUserRefs(currentUser);
@@ -3362,7 +3327,7 @@ async function loadUserData(){
     const metaDoc = await cloudMetaRef.get();
     metaExists = metaDoc.exists;
     metaData = metaExists ? metaDoc.data() : null;
-  }catch(e){ console.warn('check migration failed:', e); }
+  }catch(e){}
   
   if(!metaExists){
     let hasOldData = false;
@@ -3377,10 +3342,7 @@ async function loadUserData(){
     else if(localDb && (localDb.sales?.length || localDb.deposits?.length || localDb.debts?.length || localDb.flourTypes?.length)) migrationNeeded = true;
     else {
       try{
-        await cloudMetaRef.set({
-          _migratedToSplit: true, _migratedAt: Date.now(), _lastActionBy: _deviceId,
-          _permanentCarry: 0, _cashboxOffset: 0, _manualOverrides: {}, _notifications: [], _lastSaved: Date.now()
-        });
+        await cloudMetaRef.set({ _migratedToSplit: true, _migratedAt: Date.now(), _lastActionBy: _deviceId, _permanentCarry: 0, _cashboxOffset: 0, _manualOverrides: {}, _notifications: [], _lastSaved: Date.now() });
         _migrated = true;
       }catch(e){}
     }
@@ -3388,7 +3350,6 @@ async function loadUserData(){
   else if(metaData && metaData._migratedToSplit === true){ _migrated = true; }
   
   if(migrationNeeded){
-    console.log('📦 جاري الترحيل...');
     if(localDb){ db = localDb; _fixDBFields(db); }
     else {
       try{
@@ -3399,15 +3360,12 @@ async function loadUserData(){
     }
     const migOk = await _migrateToSplitDocs();
     if(migOk){
-      db._migratedToSplit = true;
-      _migrated = true;
+      db._migratedToSplit = true; _migrated = true;
       try{ await cloudMetaRef.set({ _migratedToSplit: true, _migratedAt: Date.now(), _lastActionBy: _deviceId }, { merge: true }); }catch(e){}
       await _reloadFromSplitDocs();
     } else {
       setSyncStatus('warn','⚠️ فشل الترحيل');
-      if(localDb) db = localDb;
-      _fixDBFields(db);
-      return;
+      if(localDb) db = localDb; _fixDBFields(db); return;
     }
   } else {
     await _reloadFromSplitDocs();
@@ -3420,7 +3378,7 @@ async function loadUserData(){
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [تعديل جذري] _reloadFromSplitDocs
+// ✅ _reloadFromSplitDocs
 // ═══════════════════════════════════════════════════════════
 async function _reloadFromSplitDocs(){
   try{
@@ -3428,7 +3386,6 @@ async function _reloadFromSplitDocs(){
     if(metaDoc.exists && metaDoc.data()){
       const meta = metaDoc.data();
       
-      // ✅ إذا السحابة مسحت (clearedAt) → نمسح محلياً
       if(meta._clearedAt && meta._clearedAt > (db._clearedAt || 0) && meta._clearedBy !== _deviceId){
         db = emptyDB();
         db._migratedToSplit = true;
@@ -3437,24 +3394,28 @@ async function _reloadFromSplitDocs(){
         return;
       }
       
-      // ✅ حماية الأرشفة
+      // ✅ حماية الأرشفة: إذا في أرشيف جديد، نمسح العمليات المحلية
       if(meta._lastArchiveAt && meta._lastArchiveAt > (db._lastArchiveAt || 0)){
         db._lastArchiveAt = meta._lastArchiveAt;
         db._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : db._permanentCarry;
         db._cashboxOffset = meta._cashboxOffset !== undefined ? meta._cashboxOffset : db._cashboxOffset;
+        
         db.sales = [];
         db.payments = [];
         db.expenses = [];
         db.buyers = [];
         db.cashAdditions = [];
         db.exchanges = [];
+        db.deposits = [];
+        db.debts = [];
+        db.reservations = [];
+        db.flourTypes = [];
       } else {
         db._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : 0;
         db._cashboxOffset = meta._cashboxOffset !== undefined ? meta._cashboxOffset : 0;
         db._lastArchiveAt = meta._lastArchiveAt || null;
       }
       
-      // ✅ دمج التعديلات اليدوية (الأحدث يفوز)
       const remoteManual = meta._manualOverrides || {};
       if(!db._manualOverrides) db._manualOverrides = {};
       Object.keys(remoteManual).forEach(k => {
@@ -3470,13 +3431,11 @@ async function _reloadFromSplitDocs(){
     }
   }catch(e){ console.warn('read meta failed:', e); }
   
-  // ✅ [الجديد] لكل قسم — الوقت الأحدث يفوز
   for(const category of SPLIT_CATEGORIES){
     try{
       const items = await _loadSplitCategory(category);
       
       if(category === 'flourTypes'){
-        // ✅ حماية خاصة لـ flourTypes (التعديلات اليدوية)
         const localManualMap = new Map();
         (db.flourTypes || []).forEach(t => {
           if(t._manualOverride && t._manualOriginal !== undefined){
@@ -3496,48 +3455,22 @@ async function _reloadFromSplitDocs(){
         });
         db[category] = merged.length ? merged : db[category];
       } else {
-        // ✅ [الدمج الذكي] لكل عنصر — الأحدث يفوز
+        // ✅ السحابة هي الأساس، ما نضيف محلي إلا الجديد
         const localList = Array.isArray(db[category]) ? db[category] : [];
         const cloudList = Array.isArray(items) ? items : [];
         
         const cloudMap = new Map();
         cloudList.forEach(item => { if(item && item.id) cloudMap.set(item.id, item); });
         
-        const localMap = new Map();
-        localList.forEach(item => { if(item && item.id) localMap.set(item.id, item); });
+        const mergedList = [...cloudList];
+        const cloudIds = new Set(cloudList.map(x => x.id));
         
-        const allIds = new Set([...cloudMap.keys(), ...localMap.keys()]);
-        const mergedList = [];
-        
-        allIds.forEach(id => {
-          const cloudItem = cloudMap.get(id);
-          const localItem = localMap.get(id);
-          
-          if(!cloudItem && localItem){
-            // ← موجود محلي فقط → احتفظ به
-            mergedList.push(localItem);
-            return;
-          }
-          if(cloudItem && !localItem){
-            // ← موجود بالسحابة فقط → استخدم السحابة
-            mergedList.push(cloudItem);
-            return;
-          }
-          
-          // ← موجود في الاثنين → الأحدث يفوز
-          const cloudEdit = +cloudItem._editedAt || +cloudItem._uploadedAt || 0;
-          const localEdit = +localItem._editedAt || 0;
-          
-          if(cloudEdit > localEdit){
-            mergedList.push(cloudItem);
-          } else if(localEdit > cloudEdit){
-            mergedList.push(localItem);
-          } else {
-            mergedList.push(cloudItem);
-          }
+        localList.forEach(localItem => {
+          if(!localItem || !localItem.id) return;
+          if(cloudIds.has(localItem.id)) return; // السحابة تفوز
+          mergedList.push(localItem); // عنصر جديد محلي فقط
         });
         
-        // ✅ ترتيب حسب التاريخ
         if(category === 'sales' || category === 'payments' || category === 'deposits' || category === 'expenses' || category === 'exchanges' || category === 'cashAdditions'){
           mergedList.sort((a,b) => String(a.date || '').localeCompare(String(b.date || '')));
         }
@@ -3546,13 +3479,9 @@ async function _reloadFromSplitDocs(){
       }
     }catch(e){ console.warn('read ' + category + ' failed:', e); }
   }
-  
   _fixDBFields(db);
 }
 
-// ═══════════════════════════════════════════════════════════
-// 💾 save
-// ═══════════════════════════════════════════════════════════
 let _saveTimer = null;
 let _pendingCategories = new Set();
 
@@ -3644,7 +3573,7 @@ async function _doUpload(){
       const ref = _getCategoryRef(category);
       if(!ref) continue;
       
-      // ✅ مسح كامل للأقسام الفاضية من السحابة (بعد الأرشفة)
+      // ✅ مسح كامل للأقسام الفاضية (بعد الأرشفة)
       if(items.length === 0 && ['sales','payments','expenses','buyers','cashAdditions','exchanges'].includes(category)){
         try{
           const snap = await ref.get();
@@ -3687,7 +3616,6 @@ async function _doUpload(){
     setSyncStatus('ok','☁️ متزامن');
     _lastCloudServerTime = Date.now();
     return true;
-    
   }catch(e){
     console.error('_doUpload error:', e);
     if(db) db._pendingUpload = false;
@@ -3700,9 +3628,6 @@ window.addEventListener('beforeunload', function(){
   if(_saveTimer && currentUser && cloudEnabled && navigator.onLine){ clearTimeout(_saveTimer); try{ _uploadMetaConfig(); }catch(e){} }
 });
 
-// ═══════════════════════════════════════════════════════════
-// 🔄 autoSyncOnConnect
-// ═══════════════════════════════════════════════════════════
 async function autoSyncOnConnect(){
   if(!currentUser || !navigator.onLine) return;
   if(!cloudEnabled || !cloudDataRef){
@@ -3759,51 +3684,86 @@ async function forceSync(){
   }catch(e){ toast('❌ فشل', true); }
 }
 
+// ═══════════════════════════════════════════════════════════
+// ✅ sendMyData — رفع نسخة طبق الأصل ومسح السحابة
+// ═══════════════════════════════════════════════════════════
 async function sendMyData(){
   if(!currentUser) return;
   if(!cloudEnabled){ toast('❌ Firebase غير متصل', true); return; }
-  const subStatus = checkSubscription();
-  if(subStatus === 'expired'){ toast('⚠️ اشترك أولاً للمزامنة', true); gotoPage('subscription'); return; }
-  if(!confirm('📤 سيتم دمج بياناتك مع السحابة\n\n✅ ما راح تنمسح أي بيانات\n✅ بدون تكرار\n\nمتابعة؟')) return;
+  
+  if(!confirm('📤 سيتم رفع بياناتك الحالية لتكون هي الأساس في السحابة.\n\n⚠️ سيتم مسح كل البيانات القديمة من السحابة.\n✅ الأجهزة الثانية راح تصير نسخة طبق الأصل من جهازك هذا.\n\nمتابعة؟')) return;
+  
   try{
-    setSyncStatus('loading','🔀 جاري الدمج...');
-    if(!_migrated || !db._migratedToSplit){ await _migrateToSplitDocs(); }
-    db._lastSaved = Date.now() + 1000;
+    setSyncStatus('loading','🔀 جاري الرفع...');
+    
+    // ✅ مسح كل شي من السحابة أولاً
+    for(const cat of ['sales','payments','expenses','buyers','cashAdditions','exchanges','deposits','debts','reservations','flourTypes','archive']){
+      const ref = _getCategoryRef(cat);
+      if(!ref) continue;
+      const snap = await ref.get();
+      if(snap.size > 0){
+        const docs = []; snap.forEach(doc => docs.push(doc.ref));
+        for(let i = 0; i < docs.length; i += 400){
+          const batch = _firestoreDB.batch();
+          docs.slice(i, i + 400).forEach(r => batch.delete(r));
+          await batch.commit();
+        }
+      }
+    }
+    
+    db._lastSaved = Date.now();
     db._lastActionBy = _deviceId;
     db._lastSync = 0;
     await _uploadMetaConfig();
+    
     _pendingCategories = new Set(SPLIT_CATEGORIES);
     await _doUpload();
+    
     renderAll();renderArchive();renderSettings();
     setSyncStatus('ok','☁️ متزامن');
-    toast('✅ تم الدمج بنجاح');
+    toast('✅ تم الرفع بنجاح — الأجهزة الثانية راح تتزامن');
   }catch(e){
     console.error(e);
-    toast('❌ فشل الدمج', true);
+    toast('❌ فشل الرفع', true);
     setSyncStatus('err','⚠️ فشل');
   }
 }
 
+// ═══════════════════════════════════════════════════════════
+// ✅ receiveFromCloud — جلب البيانات ومسح المحلي
+// ═══════════════════════════════════════════════════════════
 async function receiveFromCloud(){
   if(!currentUser) return;
   if(!cloudEnabled){ toast('❌ Firebase غير متصل', true); return; }
-  const subStatus = checkSubscription();
-  if(subStatus === 'expired'){ toast('⚠️ اشترك أولاً للمزامنة', true); gotoPage('subscription'); return; }
-  if(!confirm('📥 سيتم دمج السحابة مع بياناتك\n\n✅ ما راح تنمسح أي بيانات\n✅ بدون تكرار\n\nمتابعة؟')) return;
+  
+  if(!confirm('📥 سيتم جلب البيانات من السحابة ومسح بياناتك المحلية الحالية.\n\n⚠️ راح تصير نسخة طبق الأصل من آخر جهاز أرسل بياناته.\n\nمتابعة؟')) return;
+  
   try{
-    if(_migrated && db._migratedToSplit){ await _reloadFromSplitDocs(); }
-    else {
-      const doc = await cloudDataRef.doc(currentUser).get();
-      if(doc.exists && doc.data() && doc.data().data){ const cloudDb = doc.data().data; db = mergeSmart(db, cloudDb); _fixDBFields(db); }
-    }
+    setSyncStatus('loading','📥 جاري الاستقبال...');
+    
+    db.sales = [];
+    db.payments = [];
+    db.expenses = [];
+    db.buyers = [];
+    db.cashAdditions = [];
+    db.exchanges = [];
+    db.deposits = [];
+    db.debts = [];
+    db.reservations = [];
+    db.flourTypes = [];
+    db.archive = [];
+    
+    await _reloadFromSplitDocs();
+    
     db._lastSync = Date.now();
     localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db));
+    
     renderAll();renderArchive();renderSettings();renderSaleItems();renderExItems();renderDepositTypes();
     setSyncStatus('ok','☁️ متزامن');
-    toast('✅ تم الدمج مع السحابة');
+    toast('✅ تم استقبال البيانات بالكامل');
   }catch(e){
     console.error(e);
-    toast('❌ فشل', true);
+    toast('❌ فشل الاستقبال', true);
   }
 }
 </script><script>
@@ -7080,9 +7040,6 @@ return {mode:'qty',qty:null,money:0,hasQtyDeposit:false,hasMoneyDeposit:false};
 
 let _finalCashbox=0;let _finalTotal=0;let _finalExpenses=0;
 
-// ═══════════════════════════════════════════════════════════
-// ✅ [تجميع الحرة]
-// ═══════════════════════════════════════════════════════════
 function _aggregateFreeDeposits(deposits){
   const result = [];
   const freeGroups = new Map();
@@ -7118,9 +7075,6 @@ function _aggregateFreeDeposits(deposits){
   return result;
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ renderReport
-// ═══════════════════════════════════════════════════════════
 function renderReport(){
 var _archT=getArchiveTime();
 const wasselBals=computeWasselBalances();
@@ -7145,10 +7099,8 @@ else if(s.method==='هدية'){paidAmount=0;remAfterPaid=0;}
 rows.push({date:s.date,type:it.typeName,qty:it.qty,unitPrice:discountedUnitPrice,buyer:s.buyer,carrier:s.carrier||'—',amount:paidAmount,displayAmount:paidAmount,method:s.method,remQty:rB?rB.qty:(it.remQty!==undefined?it.remQty:null),remMoney:rB?rB.money:(it.remMoney!==undefined?it.remMoney:remAfterPaid),hasQtyDeposit:rB?rB.hasQtyDeposit:(it.remQty>0),hasMoneyDeposit:rB?rB.hasMoneyDeposit:(remAfterPaid>0)});
 });
 });
-
 db.payments.filter(p => p._fromDeposit !== true).forEach(p=>{rows.push({date:p.date,type:p.typeName||'—',qty:p.qty||'',unitPrice:'',buyer:p.person,carrier:'—',amount:p.amount,displayAmount:p.amount,method:'تسديد',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
 db.debts.filter(d=>d.manual && !d.fromSale && !d.fromDeposit && !d.fromExchange).forEach(d=>{rows.push({date:d.date,type:d.typeName||'دين يدوي',qty:'',unitPrice:d.amount,buyer:d.person,carrier:'—',amount:0,displayAmount:0,method:'دين يدوي',remQty:null,remMoney:null,hasQtyDeposit:false,hasMoneyDeposit:false});});
-
 const _reportableDeps = (db.deposits||[]).filter(d=>{
   if(!(+d.originalAmount>0)) return false;
   if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;
@@ -7281,7 +7233,6 @@ _finalCashbox=_finalTotal - _finalExpenses + (db._cashboxOffset || 0);
 document.getElementById('reportArea').innerHTML=h;
 }
 
-// ✅ عارض الصور
 function openImageViewer(src){
 var old=document.getElementById('imgViewer');if(old) old.remove();
 var v=document.createElement('div');v.id='imgViewer';
@@ -7436,9 +7387,6 @@ function _formatDateArabic(dateKey){
   }catch(e){ return dateKey; }
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ doArchive (مصحح - يمسح من السحابة)
-// ═══════════════════════════════════════════════════════════
 async function doArchive(){
   const hd = db.sales.length || db.payments.length || db.expenses.length || db.buyers.length || (db.cashAdditions||[]).length || (db.exchanges||[]).length || db.debts.some(d=>d.manual);
   if(!hd) return toast('لا توجد بيانات', true);
