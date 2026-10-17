@@ -3339,7 +3339,7 @@ function _applyCloudDB(cloudDb){
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [إصلاح] loadUserData — منع الترحيل المتكرر
+// ✅ loadUserData — منع الترحيل المتكرر
 // ═══════════════════════════════════════════════════════════
 async function loadUserData(){
   const key = DATA_PREFIX+currentUser;
@@ -3369,9 +3369,6 @@ async function loadUserData(){
   
   _initUserRefs(currentUser);
   
-  // ═══════════════════════════════════════════════════════════
-  // ✅ فحص الترحيل — بدون ترحيل متكرر
-  // ═══════════════════════════════════════════════════════════
   let migrationNeeded = false;
   let metaExists = false;
   let metaData = null;
@@ -3385,7 +3382,6 @@ async function loadUserData(){
   }
   
   if(!metaExists){
-    // ✅ ما في meta — نتحقق إذا في بيانات قديمة في userdata الرئيسي
     let hasOldData = false;
     try{
       const oldDoc = await cloudDataRef.doc(currentUser).get();
@@ -3405,7 +3401,6 @@ async function loadUserData(){
     } else if(localDb && (localDb.sales?.length || localDb.deposits?.length || localDb.debts?.length || localDb.flourTypes?.length)){
       migrationNeeded = true;
     } else {
-      // ✅ حساب جديد فاضي — نكتب meta مع علامة ترحيل
       try{
         await cloudMetaRef.set({
           _migratedToSplit: true,
@@ -3423,13 +3418,9 @@ async function loadUserData(){
   } else if(metaData && metaData._migratedToSplit !== true){
     migrationNeeded = true;
   } else if(metaData && metaData._migratedToSplit === true){
-    // ✅ مرحّل من قبل — نتأكد من _migrated
     _migrated = true;
   }
   
-  // ═══════════════════════════════════════════════════════════
-  // ✅ تنفيذ الترحيل (إذا لزم)
-  // ═══════════════════════════════════════════════════════════
   if(migrationNeeded){
     console.log('📦 جاري الترحيل (أول مرة فقط)...');
     
@@ -3452,7 +3443,6 @@ async function loadUserData(){
     
     const migOk = await _migrateToSplitDocs();
     if(migOk){
-      // ✅ تأكيد علامة الترحيل
       db._migratedToSplit = true;
       _migrated = true;
       try{
@@ -3471,7 +3461,6 @@ async function loadUserData(){
       return;
     }
   } else {
-    // ✅ مرحّل من قبل — تحميل عادي
     await _reloadFromSplitDocs();
   }
   
@@ -3484,7 +3473,7 @@ async function loadUserData(){
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ إعادة تحميل البيانات من split docs
+// ✅ [حماية التعديل اليدوي] _reloadFromSplitDocs
 // ═══════════════════════════════════════════════════════════
 async function _reloadFromSplitDocs(){
   try{
@@ -3494,7 +3483,18 @@ async function _reloadFromSplitDocs(){
       db._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : 0;
       db._cashboxOffset = meta._cashboxOffset !== undefined ? meta._cashboxOffset : 0;
       db._lastArchiveAt = meta._lastArchiveAt || null;
-      db._manualOverrides = meta._manualOverrides || {};
+      
+      // ✅ دمج التعديلات اليدوية (احتفاظ بالأحدث)
+      const remoteManual = meta._manualOverrides || {};
+      if(!db._manualOverrides) db._manualOverrides = {};
+      Object.keys(remoteManual).forEach(k => {
+        const localT = (db._manualOverrides[k] && db._manualOverrides[k].timestamp) || 0;
+        const remoteT = (remoteManual[k] && remoteManual[k].timestamp) || 0;
+        if(remoteT > localT){
+          db._manualOverrides[k] = remoteManual[k];
+        }
+      });
+      
       db._notifications = meta._notifications || [];
       db._lastSaved = meta._lastSaved || Date.now();
       db._migratedToSplit = true;
@@ -3505,7 +3505,42 @@ async function _reloadFromSplitDocs(){
   for(const category of SPLIT_CATEGORIES){
     try{
       const items = await _loadSplitCategory(category);
-      if(items.length || !(db[category]||[]).length){
+      
+      // ✅ حماية خاصة لـ flourTypes — لا نمسح التعديلات اليدوية
+      if(category === 'flourTypes'){
+        const localManualMap = new Map();
+        (db.flourTypes || []).forEach(t => {
+          if(t._manualOverride && t._manualOriginal !== undefined){
+            localManualMap.set(t.id, {
+              _manualOriginal: t._manualOriginal,
+              _manualOverride: t._manualOverride,
+              _manualSold: t._manualSold,
+              _manualQty: t._manualQty
+            });
+          }
+        });
+        
+        const merged = items.map(remoteT => {
+          const localManual = localManualMap.get(remoteT.id);
+          if(localManual){
+            const localT = (+localManual._manualOverride || 0);
+            const remoteT2 = (+remoteT._manualOverride || 0);
+            if(localT > remoteT2){
+              return {
+                ...remoteT,
+                _manualOriginal: localManual._manualOriginal,
+                _manualOverride: localManual._manualOverride,
+                _manualSold: localManual._manualSold,
+                _manualQty: localManual._manualQty,
+                qty: localManual._manualQty !== undefined ? localManual._manualQty : remoteT.qty,
+                totalSold: localManual._manualSold !== undefined ? localManual._manualSold : remoteT.totalSold
+              };
+            }
+          }
+          return remoteT;
+        });
+        db[category] = merged.length ? merged : db[category];
+      } else if(items.length || !(db[category]||[]).length){
         db[category] = items;
       }
     }catch(e){ console.warn('read ' + category + ' failed:', e); }
@@ -4849,17 +4884,57 @@ try{const p=new Date(inp.trim().replace(' ','T'));if(isNaN(p.getTime()))throw ne
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [إصلاح "انتهى"] _getDepositPool
+// ✅ [جديد] دوال ضبط المخزن
 // ═══════════════════════════════════════════════════════════
-// ✅ التغيير الجذري: إذا الشخص عنده reservations (حجز/مطلوبين)
-//    نعتمد عليها كأساس لحساب المتبقي، وليس deposits
+function _getOriginalQty(t){
+  if(!t) return 0;
+  if(t._manualOverride && t._manualOriginal !== undefined && t._manualOriginal !== null){
+    return +t._manualOriginal || 0;
+  }
+  if(db && db._manualOverrides){
+    const cleanName = _cleanType(t.name);
+    const mo = db._manualOverrides[cleanName];
+    if(mo && mo.original !== undefined && mo.original !== null){
+      return +mo.original || 0;
+    }
+  }
+  return (t.additions||[]).reduce((a,x)=>a+(+x.qty||0), 0);
+}
+
+function _fixFlourType(t){
+  if(!t) return;
+  if(!t.additions) t.additions = [];
+  if(t.totalSold === undefined) t.totalSold = 0;
+  if(t.qty === undefined) t.qty = 0;
+  const original = _getOriginalQty(t);
+  const sold = +t.totalSold || 0;
+  const expectedRemaining = Math.max(0, original - sold);
+  if(Math.abs((+t.qty||0) - expectedRemaining) > 0.001){
+    t.qty = expectedRemaining;
+  }
+}
+
+function _recalcFlourType(t){
+  if(!t) return;
+  const original = _getOriginalQty(t);
+  const sold = +t.totalSold || 0;
+  t.qty = Math.max(0, original - sold);
+  t._editedAt = Date.now();
+}
+
+function _allFlourFix(){
+  if(!db || !db.flourTypes) return;
+  db.flourTypes.forEach(t => _fixFlourType(t));
+}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ [إصلاح] _getDepositPool
 // ═══════════════════════════════════════════════════════════
 function _getDepositPool(buyer, typeName){
   const bC = _cleanPerson(buyer);
   const tC = _cleanType(typeName);
   const pools = [];
   
-  // ✅ 1. ابحث في reservations أولاً (المصدر الحقيقي للكميات)
   const matchingRes = (db.reservations || []).filter(r => 
     _cleanPerson(r.person) === bC && 
     _cleanType(r.typeName) === tC
@@ -4867,9 +4942,7 @@ function _getDepositPool(buyer, typeName){
   
   const totalResQty = matchingRes.reduce((a,r)=>a+Math.max(0, (r.totalQty||0) - (r.usedQty||0)), 0);
   
-  // ✅ إذا في reservations → استخدمها (لأنها تعكس المتبقي الحقيقي)
   if(matchingRes.length > 0 && totalResQty > 0){
-    // ✅ ابحث عن deposits مطابق لجلب السعر
     const matchingDep = (db.deposits || []).find(d =>
       _cleanPerson(d.person) === bC &&
       _cleanType(d.typeName) === tC &&
@@ -4878,12 +4951,10 @@ function _getDepositPool(buyer, typeName){
     
     const unitPrice = matchingDep ? (+matchingDep.unitPrice || 0) : 0;
     
-    // ✅ أنشئ pool من reservations
     matchingRes.forEach(r => {
       const remQty = Math.max(0, (r.totalQty || 0) - (r.usedQty || 0));
       if(remQty <= 0) return;
       
-      // ✅ حساب المبلغ المتبقي من deposits (بنسبة الكمية)
       let remAmt = 0;
       if(matchingDep && (+matchingDep.originalAmount || 0) > 0){
         const origQty = +matchingDep.originalQty || +matchingDep.qty || 0;
@@ -4911,7 +4982,6 @@ function _getDepositPool(buyer, typeName){
     return pools;
   }
   
-  // ✅ 2. إذا ما في reservations → استخدم deposits العادي
   (db.deposits || []).forEach(d => {
     if(d.isWithdrawal || d.isCarry || d.cashPayment) return;
     if(_cleanPerson(d.person) !== bC) return;
@@ -5309,7 +5379,7 @@ function addDepositTypeRow(){_depositItems.push({id:uid(),typeId:'',qty:'',price
 function updateMultiDepSum(){const sum=_depositItems.reduce((a,it)=>a+((+it.qty||0)*(+it.price||0)),0);const el=document.getElementById('multiDepSum');if(el)el.textContent=money(sum)+' د.ع';}
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [إصلاح] _calculateAndApplyWasselDeductions — تزامن كامل
+// ✅ _calculateAndApplyWasselDeductions
 // ═══════════════════════════════════════════════════════════
 function _calculateAndApplyWasselDeductions(saleBuyer, saleItems, saleId, saleDate){
 const wasselRemByType = {};
@@ -5328,7 +5398,6 @@ const hasSpecificDeposit = pools.some(p => p.kind === 'specific');
 let remainingQtyToDeduct = qty;
 let remainingAmtToDeduct = price > 0 ? (qty * price) : 0;
 
-// ✅ 1. خصم من المحدد (كمية + مبلغ)
 pools.forEach(p => {
 if(p.kind === 'specific'){
 if(remainingQtyToDeduct > 0 && p.remainingQty > 0){
@@ -5350,7 +5419,6 @@ remainingAmtToDeduct -= amtFromThis;
 }
 });
 
-// ✅ 2. خصم من المبلغ الحر
 pools.forEach(p => {
 if(p.kind !== 'free') return;
 if(hasSpecificDeposit){
@@ -5368,20 +5436,17 @@ remainingAmtToDeduct -= amtToTake;
 }
 });
 
-// ✅ 3. تطبيق الخصم
 pools.forEach(p => {
   const usedQty = p._deductedQty || 0;
   const usedAmt = p._deductedAmt || 0;
   if(usedQty <= 0 && usedAmt <= 0) return;
   
   if(p.source === 'reservation'){
-    // ✅ خصم من reservations
     const r = db.reservations.find(x => x.id === p.depositId);
     if(r){
       r.usedQty = (r.usedQty || 0) + usedQty;
       r._editedAt = Date.now();
     }
-    // ✅ خصم من deposits المرتبط
     if(p.depositParentId){
       const dep = db.deposits.find(x => x.id === p.depositParentId);
       if(dep){
@@ -5402,7 +5467,6 @@ pools.forEach(p => {
       }
     }
   } else {
-    // ✅ خصم من deposits مباشرة
     const dep = db.deposits.find(x => x.id === p.depositId);
     if(dep){
       if(usedQty > 0){
@@ -5420,7 +5484,6 @@ pools.forEach(p => {
         dep._finished = true;
       }
       
-      // ✅ تزامن reservations
       if(_cleanType(dep.typeName) === tC && _cleanType(dep.typeName) !== ''){
         const matchingRes = (db.reservations || []).filter(r => 
           _cleanPerson(r.person) === bC && 
@@ -5442,7 +5505,6 @@ pools.forEach(p => {
   }
 });
 
-// ✅ 4. إنشاء withdrawal records
 pools.forEach(p => {
 const usedQty = p._deductedQty || 0;
 const usedAmt = p._deductedAmt || 0;
@@ -5458,7 +5520,6 @@ remQtyAfter:null,remMoneyAfter:null,_editedAt:Date.now()
 }
 });
 
-// ✅ 5. حساب المتبقي للعرض
 let remQtyShow = null;
 let remMoneyShow = null;
 let hasQtyDeposit = false;
@@ -5647,6 +5708,751 @@ const trans={date:d,items:items.map(i=>({typeName:i.typeName,qty:i.qty,price:i.u
 if(!x){db.buyers.push({name:b,firstDate:d,lastDate:d,totalQty:tq,totalAmount:total,transactions:[trans],id:uid(),_editedAt:Date.now()});}
 else{x.lastDate=d;x.totalQty+=tq;x.totalAmount+=total;x.transactions.push(trans);x._editedAt=Date.now();}
 }
+
+// ═══════════════════════════════════════════════════════════
+// ✅ renderFlour — العرض الصح للأصلي/المباع/الباقي
+// ═══════════════════════════════════════════════════════════
+function renderFlour(){
+const el=document.getElementById('flourList');
+if(!db||!db.flourTypes.length){el.innerHTML='<div class="empty">لا توجد أنواع بعد</div>';return;}
+const _archT = getArchiveTime();
+let h=`<table><tr><th>النوع</th><th>الأصلية</th><th>المباعة</th><th>الباقية</th><th>المحجوزة</th><th>الصافي</th><th>💵 سعر المفرد</th><th>💰 السعر الكلي</th><th>حمولة</th><th></th></tr>`;
+let grandTotal=0;
+const _sortedFT = [...db.flourTypes].sort((a,b)=>String(a._visibleFrom||'').localeCompare(String(b._visibleFrom||'')));
+_sortedFT.forEach(t=>{
+const s=+t.totalSold||0;               // ✅ المباع
+const o=_getOriginalQty(t);            // ✅ الأصلي
+const f=(+t.qty||0)<=0;                // ✅ منتهي
+const m=_matchedFlourIds.has(t.id);
+const a=t.additions||[];
+const reserved=getReservedQty(t.name, null);
+const net=Math.max(0, (+t.qty||0) - reserved);
+const up=+t.unitPrice || 0;
+const lineTotal=net * up;
+grandTotal += lineTotal;
+let ah='';
+const _vF = t._visibleFrom || '';
+const _cutoff = _archT || _vF || '';
+const visAdds = _cutoff ? a.filter(x => String(x.date||'') > _cutoff) : a;
+if(visAdds.length){
+ah=`<div class="additions-info">`;
+visAdds.forEach((x,i)=>{ah+=`📅 إضافة ${i+1}: <b>${money(x.qty)}</b> كيس — ${fmtShort(x.date)}<br>`;});
+ah+=`</div>`;
+}
+const reservedShow=reserved>0 ? `<span style="color:#e67e22;font-weight:bold">${money(reserved)}</span>` : `<span style="color:#ccc">—</span>`;
+h+=`<tr data-flour-id="${t.id}" data-net="${net}"${f?' style="background:#fff5f5"':''}>
+<td><div><b>${t.name}</b> ${m?'<span style="color:#27ae60;font-size:18px;font-weight:bold">✅</span>':''} ${f?'<span class="finished-badge">منتهي</span>':''}</div>${ah}</td>
+<td style="color:#2980b9;font-weight:bold;vertical-align:top">${money(o)}</td>
+<td style="color:#c0392b;font-weight:bold;vertical-align:top">${money(s)}</td>
+<td style="color:${f?'#c0392b':'#27ae60'};font-weight:bold;vertical-align:top">${money(t.qty)}</td>
+<td style="vertical-align:top">${reservedShow}</td>
+<td style="color:#2980b9;font-weight:bold;vertical-align:top">${money(net)}</td>
+<td style="vertical-align:top"><input type="number" min="0" placeholder="السعر" value="${up||''}" oninput="updateFlourPrice('${t.id}',this.value,false)" onchange="updateFlourPrice('${t.id}',this.value,true)" style="min-width:75px;max-width:100px;padding:6px 8px;font-size:12px;font-weight:bold;text-align:center;color:#8B4513;border:2px solid #f39c12;background:#fffdf5"></td>
+<td class="flour-total" style="color:#8B4513;font-weight:bold;vertical-align:top;font-size:13px">${money(lineTotal)}</td>
+<td style="vertical-align:top"><div style="display:flex;gap:5px"><input id="ship_${t.id}" type="number" placeholder="كمية"><button class="small" style="padding:5px 8px" onclick="addShipment('${t.id}')">➕</button></div></td>
+<td style="vertical-align:top"><button class="blue small" onclick="editFlourType('${t.id}')">✏️</button> <button class="danger small" onclick="delFlourType('${t.id}')">🗑️</button></td>
+</tr>`;
+});
+el.innerHTML=h+`</table>
+<div style="background:linear-gradient(135deg,#D2691E,#8B4513);color:#fff;padding:14px 20px;border-radius:12px;margin-top:12px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 12px rgba(139,69,19,0.25)">
+<div style="font-size:15px;font-weight:bold">💰 المبلغ الكلي للمخزون</div>
+<div style="font-size:24px;font-weight:bold" id="flourGrandTotal">${money(grandTotal)} د.ع</div>
+</div>
+<div style="margin-top:12px;text-align:center">
+<button class="purple" style="padding:10px 20px;font-size:13px" onclick="fixAllFlour()">🔄 إصلاح الكميات تلقائياً</button>
+</div>`;
+}
+
+function fixAllFlour(){
+if(!confirm('سيتم إصلاح الكميات (الباقية = الأصلية - المباعة) لكل الأنواع.\n\nمتابعة؟'))return;
+let fixed=0;
+db.flourTypes.forEach(t=>{
+const before=+t.qty||0;
+_fixFlourType(t);
+const after=+t.qty||0;
+if(Math.abs(before-after)>0.001) fixed++;
+});
+save();
+renderAll();
+toast(fixed>0 ? `✅ تم إصلاح ${fixed} نوع` : '✅ كل الكميات مضبوطة');
+}
+
+function updateFlourPrice(id, val, doSave){
+const t=db.flourTypes.find(x=>x.id === id);
+if(!t) return;
+t.unitPrice=Math.max(0, +val || 0);
+t._editedAt=Date.now();
+const row=document.querySelector('tr[data-flour-id="'+id+'"]');
+if(row){const net=+row.dataset.net || 0;const totalEl=row.querySelector('.flour-total');if(totalEl) totalEl.textContent=money(net * t.unitPrice);}
+let grandTotal=0;
+db.flourTypes.forEach(x=>{const reserved=getReservedQty(x.name, null);const net=Math.max(0, (+x.qty||0) - reserved);grandTotal += net * (+x.unitPrice||0);});
+const gtEl=document.getElementById('flourGrandTotal');
+if(gtEl) gtEl.textContent=money(grandTotal) + ' د.ع';
+if(doSave) save();
+}
+
+function addFlourType(){
+_matchedFlourIds.clear();
+const n=document.getElementById('ftName').value.trim();
+const q=+document.getElementById('ftQty').value;
+if(!n)return toast('اكتب اسم النوع',true);
+if(!q||q<=0)return toast('اكتب الكمية',true);
+const d=nowISO();
+const nC=_cleanType(n);
+let t=db.flourTypes.find(x=>_cleanType(x.name)===nC);
+if(t){
+  // ✅ إضافة لنفس النوع
+  if(!t.additions) t.additions=[];
+  t.additions.push({qty:q,date:d,note:'حمولة جديدة'});
+  // ✅ إعادة حساب qty
+  _recalcFlourType(t);
+  t.updatedAt=d;
+  t._editedAt=Date.now();
+  if(!t._visibleFrom) t._visibleFrom = d;
+}else{
+  db.flourTypes.push({
+    id:uid(),name:n,qty:q,totalSold:0,unitPrice:0,updatedAt:d,
+    additions:[{qty:q,date:d,note:'الكمية الأولى'}],
+    _visibleFrom:d,
+    _editedAt:Date.now()
+  });
+}
+save();renderAll();
+document.getElementById('ftName').value='';
+document.getElementById('ftQty').value='';
+toast('تمت الإضافة ✅ '+fmtShort(d));
+}
+
+function addShipment(id){
+_matchedFlourIds.clear();
+const inp=document.getElementById('ship_'+id);
+const q=+inp.value;
+if(!q||q<=0)return toast('اكتب الكمية',true);
+const t=db.flourTypes.find(x=>x.id===id);
+if(!t)return;
+const d=nowISO();
+if(!t.additions) t.additions=[];
+t.additions.push({qty:q,date:d,note:'حمولة جديدة'});
+_recalcFlourType(t);
+t.updatedAt=d;
+t._editedAt=Date.now();
+if(!t._visibleFrom) t._visibleFrom = d;
+save();renderAll();
+toast('تمت الإضافة ✅ '+fmtShort(d));
+}
+
+function delFlourType(id){
+if(!confirm('تأكيد الحذف؟'))return;
+_matchedFlourIds.clear();
+const t=db.flourTypes.find(x=>x.id===id);
+if(t){
+  const tC=_cleanType(t.name);
+  if(db._manualOverrides) delete db._manualOverrides[tC];
+  const otherDups=db.flourTypes.filter(x=>x.id!==id && _cleanType(x.name)===tC);
+  otherDups.forEach(x=>markDeleted('flourTypes',x.id));
+  db.flourTypes=db.flourTypes.filter(x=>x.id!==id && _cleanType(x.name)!==tC);
+}else{
+  markDeleted('flourTypes',id);
+  db.flourTypes=db.flourTypes.filter(x=>x.id!==id);
+}
+save();renderAll();
+}
+
+function editFlourType(id){
+const t=db.flourTypes.find(x=>x.id===id);if(!t)return;
+const nnI=prompt('🌾 اسم النوع:',t.name);if(nnI===null)return;const nn=nnI.trim();if(!nn)return toast('اكتب الاسم',true);
+const currentOriginal = _getOriginalQty(t);
+const nAddI=prompt('📦 الكمية الأصلية:',currentOriginal);if(nAddI===null)return;const nAdd=+nAddI;if(isNaN(nAdd)||nAdd<0)return toast('كمية غير صحيحة',true);
+const nSoldI=prompt('📊 المباعة:',t.totalSold||0);if(nSoldI===null)return;const nSold=+nSoldI||0;
+const nupI=prompt('💵 سعر المفرد:',t.unitPrice||0);if(nupI===null)return;const nup=+nupI||0;
+const nQty=Math.max(0,nAdd-nSold);
+if(nn!==t.name){
+db.sales.forEach(s=>{if(s.items)s.items.forEach(it=>{if(it.typeName===t.name)it.typeName=nn;});if(s.typeName===t.name)s.typeName=nn;if(s.remByType&&s.remByType[t.name]){s.remByType[nn]=s.remByType[t.name];delete s.remByType[t.name];}});
+db.debts.forEach(d=>{if(d.typeName===t.name)d.typeName=nn;});
+db.deposits.forEach(d=>{if(d.typeName===t.name)d.typeName=nn;});
+db.payments.forEach(p=>{if(p.typeName===t.name)p.typeName=nn;});
+db.reservations.forEach(r=>{if(r.typeName===t.name)r.typeName=nn;});
+(db.customerPrices||[]).forEach(c=>{c.prices.forEach(p=>{if(p.typeName===t.name)p.typeName=nn;});});
+(db.exchanges||[]).forEach(e=>{(e.returnItems||[]).forEach(it=>{if(it.typeName===t.name)it.typeName=nn;});(e.swapItems||[]).forEach(it=>{if(it.typeName===t.name)it.typeName=nn;});});
+if(db._manualOverrides) delete db._manualOverrides[_cleanType(t.name)];
+}
+const now = nowISO();
+t.name=nn;t.qty=nQty;t.totalSold=nSold;t.unitPrice=nup;t.updatedAt=now;t._editedAt=Date.now();
+t._manualOverride = Date.now();
+t._manualQty = nQty;
+t._manualOriginal = nAdd;
+if(!t._visibleFrom) t._visibleFrom = now;
+
+if(!db._manualOverrides) db._manualOverrides = {};
+db._manualOverrides[_cleanType(nn)] = {
+  original: nAdd,
+  timestamp: Date.now()
+};
+
+save();renderAll();toast('✅ تم — تم احترام تعديلك اليدوي');
+}
+
+function refreshFlourView(){
+_matchedFlourIds.clear();
+renderFlour();
+toast('✅ تم تحديث الكميات');
+}
+
+function editPersonDepositBalance(p){
+const deps=db.deposits.filter(d=>d.person===p&&!d.isWithdrawal&&!d.isCarry&&!d.cashPayment&&!d._finished);
+if(!deps.length)return toast('لا توجد إيداعات',true);
+if(deps.length===1){editDeposit(deps[0].id);return;}
+let msg='اختر رقم الإيداع:\n\n';
+deps.forEach((d,i)=>{const amt=d.originalAmount!==undefined?d.originalAmount:d.amount;const qty=d.originalQty!==undefined?d.originalQty:d.qty||0;msg+=(i+1)+'. '+(d.typeName||'مبلغ حر')+' — '+money(amt)+(qty?' ('+money(qty)+' كيس)':'')+' — '+fmtShort(d.date)+'\n';});
+const choice=prompt(msg);
+if(choice===null)return;
+const idx=+choice-1;
+if(isNaN(idx)||idx<0||idx>=deps.length)return toast('❌ رقم غير صحيح',true);
+editDeposit(deps[idx].id);
+}
+
+let _lastCashboxValue=0;
+
+function renderHome(){
+var _archT=getArchiveTime();
+let reportTotal=0;
+db.sales.forEach(s=>{
+const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
+const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0);
+const disc=s.discount||0;
+items.forEach(it=>{
+const ratio=grossTotal>0?(it.total/grossTotal):0;
+const discountedTotal=Math.max(0,it.total-disc*ratio);
+let paid=discountedTotal;
+if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);}
+else if(s.method==='واصل'){paid=0;}
+else if(s.method==='هدية'){paid=0;}
+reportTotal += paid;
+});
+});
+reportTotal += db.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0);
+reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0);
+reportTotal += (db.deposits||[]).filter(d=>{
+  if(!(+d.originalAmount>0)) return false;
+  if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;
+  if(d.legacy && d._showInReport !== true) return false;
+  if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;
+  if(d._archived) return false;
+  if(_archT && d.date && d.date <= _archT) return false;
+  return true;
+}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
+
+reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0);
+const gs=db.sales.filter(s=>s.method==='هدية').reduce((a,s)=>a+(s.qty||0),0);
+const _debtPersons=[...new Set(db.debts.map(d=>d.person))];
+const td=_debtPersons.reduce((sum,p)=>{const debtSum=db.debts.filter(x=>x.person===p).reduce((a,x)=>a+x.amount,0);const paySum=db.payments.filter(x=>x.person===p).reduce((a,x)=>a+x.amount,0);return sum+Math.max(0,debtSum-paySum);},0);
+const tp=db.payments.reduce((a,p)=>a+p.amount,0);
+const te=db.expenses.reduce((a,e)=>a+e.amount,0);
+if(!db.cashAdditions)db.cashAdditions=[];
+const caTotal=db.cashAdditions.filter(c=>!c.fromExchange).reduce((a,x)=>a+x.amount,0);
+let carryBalance=0;
+if(db._permanentCarry !== undefined && db._permanentCarry !== null){carryBalance=+db._permanentCarry || 0;}
+const cashboxTotal=reportTotal + carryBalance - te + (db._cashboxOffset || 0);
+_lastCashboxValue=cashboxTotal;
+document.getElementById('cashbox').textContent=money(cashboxTotal)+' د.ع';
+const offInfo=document.getElementById('cashboxOffsetInfo');
+if(offInfo){
+const off=db._cashboxOffset || 0;
+const carryInfo=carryBalance !== 0 ? '<div style="margin-bottom:4px">🏦 رصيد مرحّل: <b style="color:#8B4513">'+money(carryBalance)+' د.ع</b></div>' : '';
+if(Math.abs(off) > 0.01){const sign=off > 0 ? '+' : '';offInfo.innerHTML=carryInfo + '🔧 تعديل يدوي: <b style="color:'+(off>0?'#27ae60':'#c0392b')+'">'+sign+money(off)+' د.ع</b> — <a style="color:#c0392b;cursor:pointer;text-decoration:underline" onclick="resetCashboxOffset()">إلغاء</a>';}
+else{offInfo.innerHTML=carryInfo;}
+}
+
+document.getElementById('stats').innerHTML=`
+<div class="stats-wrapper">
+<div class="stat-card sc-green" style="grid-column:span 2">
+<div class="sc-icon">📋</div>
+<div class="sc-label">مجموع السجل</div>
+<div class="sc-value">${money(reportTotal)}</div>
+</div>
+<div class="stat-card sc-blue">
+<div class="sc-icon">🏦</div>
+<div class="sc-label">البايت (رصيد مرحّل)</div>
+<div class="sc-value">${money(carryBalance)}</div>
+</div>
+<div class="stat-card sc-red">
+<div class="sc-icon">💳</div>
+<div class="sc-label">ديون متبقية</div>
+<div class="sc-value">${money(td)}</div>
+</div>
+<div class="stat-card sc-green">
+<div class="sc-icon">✅</div>
+<div class="sc-label">التسديدات</div>
+<div class="sc-value">${money(tp)}</div>
+</div>
+<div class="stat-card sc-gold">
+<div class="sc-icon">💰</div>
+<div class="sc-label">إضافات صندوق</div>
+<div class="sc-value">${money(caTotal)}</div>
+</div>
+<div class="stat-card sc-pink">
+<div class="sc-icon">💸</div>
+<div class="sc-label">الصرفيات</div>
+<div class="sc-value">${money(te)}</div>
+</div>
+<div class="stat-card sc-purple">
+<div class="sc-icon">🎁</div>
+<div class="sc-label">هدايا (كيس)</div>
+<div class="sc-value">${money(gs)}</div>
+</div>
+</div>`;
+
+const lastArchTime2=db.archive&&db.archive.length?new Date(db.archive[0].archivedAt).getTime():0;
+const all=[...db.sales.map(s=>({date:s.date,type:'sale',id:s.id,isCarry:false,txt:`${s.method==='هدية'?'🎁':'🛒'} (${s.items?s.items.map(i=>i.typeName+' × '+money(i.qty)).join(' + '):s.typeName+' × '+money(s.qty)}) لـ ${s.buyer} = ${s.method==='واصل'?'—':money(s.total)} (${s.method})`})),...db.deposits.filter(d=>!d._archived&&!d._finished&&!d.isCarry).map(d=>({date:d.date,type:'deposit',id:d.id,isCarry:false,txt:`${d.isWithdrawal?'🔄 استقطاع':(+d.amount>0?'💰 إيداع':'📤')} ${d.person} = ${money(Math.abs(d.amount))}`})),...db.payments.map(p=>({date:p.date,type:'payment',id:p.id,isCarry:false,txt:`✅ تسديد ${p.person} = ${money(p.amount)}`})),...db.expenses.map(e=>({date:e.date,type:'expense',id:e.id,isCarry:false,txt:`💸 ${e.desc} = ${money(e.amount)}`})),...(db.cashAdditions||[]).map(c=>({date:c.date,type:'cash',id:c.id,isCarry:!!c.isCarry,txt:`💵 ${c.note?'('+c.note+')':''} = ${money(c.amount)}`})),...(db.exchanges||[]).map(e=>({date:e.date,type:'exchange',id:e.id,isCarry:false,txt:`🔄 ${e.returnItems&&e.returnItems.length&&e.swapItems&&e.swapItems.length?'تبديل':'استرجاع'} ${e.buyer} = ${e.diff!==0?money(e.diff)+' فرق':'بدون فرق'}`}))]
+.filter(x=>{if(x.isCarry)return false;if(lastArchTime2>0&&new Date(x.date).getTime()<=lastArchTime2)return false;return true;})
+.sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+document.getElementById('recent').innerHTML=all.length?'<table>'+all.map(x=>`<tr><td style="width:180px;color:#888;font-size:11px">${fmt(x.date)}</td><td style="font-size:12px">${x.txt}</td><td style="width:120px;white-space:nowrap"><button class="blue small" onclick="editRecent('${x.type}','${x.id}')">✏️</button> <button class="gold small" onclick="editDateTime('${x.type}','${x.id}')">⏰</button> <button class="danger small" onclick="delRecent('${x.type}','${x.id}')">🗑️</button></td></tr>`).join('')+'</table>':'<div class="empty">لا توجد عمليات</div>';
+}
+
+function editCashboxManual(){
+const currentDisplay=_lastCashboxValue || 0;
+const offset=db._cashboxOffset || 0;
+const calculated=currentDisplay - offset;
+const curStr=String(Math.round(currentDisplay * 100) / 100);
+const inp=prompt('💰 اكتب المبلغ:\n\n(الحالي: '+money(currentDisplay)+' د.ع)', curStr);
+if(inp === null) return;
+if(inp.trim() === ''){db._cashboxOffset=0;_skipNextMerge=true;save();renderHome();toast('✅');return;}
+const newVal=parseFloat(String(inp).replace(/,/g, '').replace(/[^\d.\-]/g,''));
+if(isNaN(newVal)) return toast('❌ رقم غير صحيح', true);
+db._cashboxOffset=newVal - calculated;
+_skipNextMerge=true;
+save();renderHome();
+toast('✅ تم تعديل الصندوق إلى ' + money(newVal) + ' د.ع');
+}
+
+function resetCashboxOffset(){
+if(!db._cashboxOffset){ toast('ما يوجد', true); return; }
+if(!confirm('إلغاء؟')) return;
+db._cashboxOffset=0;
+_skipNextMerge=true;
+save();renderHome();toast('✅');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ addDeposit — رصيد قديم ما يظهر بالمطابقة
+// ═══════════════════════════════════════════════════════════
+function addDeposit(){
+const p=document.getElementById('dPerson').value.trim();
+const carrier=document.getElementById('dCarrier')?document.getElementById('dCarrier').value.trim():'';
+let amountEntered=+document.getElementById('dAmount').value||0;
+const _discEl=document.getElementById('dDiscount');
+let remainingDiscount=_discEl?+_discEl.value||0:0;
+const originalDiscount=remainingDiscount;
+const rem=+document.getElementById('dRemaining').value||0;
+const isLegacy=document.getElementById('dLegacy')&&document.getElementById('dLegacy').checked;
+const _deductCheck=document.getElementById('dDeductDebt');
+const shouldDeductDebt=_deductCheck?!!_deductCheck.checked:false;
+
+if(!p)return toast('اكتب اسم الشخص',true);
+const flourNames = new Set((db.flourTypes||[]).map(t => _cleanType(t.name)));
+if(flourNames.has(_cleanPerson(p)) || flourNames.has(_cleanType(p)))return toast('❌ هذا اسم نوع طحين، وليس اسم شخص',true);
+
+let d=nowISO();
+const dtInput=document.getElementById('dDateTime');
+if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(parsed.getTime())){d=parsed.toISOString();}}catch(e){}}
+
+const validItems=_depositItems.filter(it=>it.typeId&&(+it.qty>0));
+if(amountEntered<=0 && validItems.length===0 && rem<=0){
+return toast('اكتب مبلغ أو كمية',true);
+}
+
+const bC = _cleanPerson(p);
+
+let itemsValue = 0;
+const itemsList = [];
+validItems.forEach(it => {
+  const t = db.flourTypes.find(x => x.id === it.typeId);
+  if(!t) return;
+  const qty = +it.qty || 0;
+  const price = +it.price || 0;
+  const total = qty * price;
+  itemsValue += total;
+  itemsList.push({ name: t.name, qty: qty, price: price, total: total });
+});
+
+const debtBefore = debtBalance(p);
+
+let debtDeducted = 0;
+let freeDisplay = 0;
+let newDebtAmount = 0;
+
+if(shouldDeductDebt && debtBefore > 0){
+  const cashRemaining = amountEntered - itemsValue;
+  if(cashRemaining > 0){
+    debtDeducted = Math.min(debtBefore, cashRemaining);
+    freeDisplay = cashRemaining - debtDeducted;
+  } else if(cashRemaining < 0){
+    newDebtAmount = Math.abs(cashRemaining);
+  }
+} else {
+  freeDisplay = amountEntered;
+}
+
+if(rem > 0){
+  newDebtAmount += rem;
+}
+
+if(amountEntered > 0){
+  let amountToRegister = amountEntered;
+  if(remainingDiscount > 0){
+    const applied = Math.min(amountToRegister, remainingDiscount);
+    amountToRegister -= applied;
+    remainingDiscount -= applied;
+  }
+
+  const totalUsedMoney = itemsValue + debtDeducted;
+  
+  const depositInfo = {
+    _itemsList: itemsList,
+    _itemsValue: itemsValue,
+    _debtBefore: debtBefore,
+    _debtDeducted: debtDeducted,
+    _freeRemaining: freeDisplay,
+    _fullAmount: amountEntered,
+    _usedMoney: totalUsedMoney,
+    _date: d
+  };
+
+  const newFreeDep = {
+    id:uid(),
+    person:p,
+    carrier:carrier,
+    amount:freeDisplay,
+    originalAmount:amountToRegister,
+    _usedMoney:totalUsedMoney,
+    typeName:'',
+    qty:0,
+    originalQty:0,
+    unitPrice:0,
+    totalPrice:0,
+    date:d,
+    legacy:isLegacy,
+    note:debtDeducted > 0 ? '💵 المبلغ (خصم دين)' : '💵 المبلغ',
+    _usedQty:0,
+    _editedAt:Date.now(),
+    _lastDepositInfo: depositInfo
+  };
+  db.deposits.push(newFreeDep);
+}
+
+validItems.forEach(it=>{
+  const t=db.flourTypes.find(x=>x.id===it.typeId);
+  if(!t)return;
+  const qty=+it.qty||0;
+  const price=+it.price||0;
+  let total=qty*price;
+  
+  if(remainingDiscount > 0 && total > 0){
+    const applied = Math.min(total, remainingDiscount);
+    total -= applied;
+    remainingDiscount -= applied;
+  }
+  
+  const tC = _cleanType(t.name);
+  
+  let dep = db.deposits.find(x => 
+    _cleanPerson(x.person) === bC && 
+    _cleanType(x.typeName) === tC && 
+    !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && 
+    x.originalQty !== undefined && 
+    !!x.legacy === !!isLegacy
+  );
+  
+  if(dep){
+    dep.originalQty = (+dep.originalQty || 0) + qty;
+    dep.qty = (+dep.qty || 0) + qty;
+    if(total > 0){
+      dep.originalAmount = (+dep.originalAmount || 0) + total;
+      dep.amount = (+dep.amount || 0) + total;
+    }
+    if(price > 0) dep.unitPrice = price;
+    dep._editedAt = Date.now();
+  } else {
+    db.deposits.push({
+      id:uid(), person:p, carrier:carrier,
+      amount:total, originalAmount:total,
+      typeName:t.name, qty:qty, originalQty:qty,
+      unitPrice:price, totalPrice:total,
+      date:d, legacy:isLegacy,
+      note:total>0?'💰+🌾':'📦 كمية فقط',
+      _usedQty:0, _usedMoney:0, _editedAt:Date.now()
+    });
+  }
+  
+  let r = db.reservations.find(x => 
+    _cleanPerson(x.person) === bC && 
+    _cleanType(x.typeName) === tC && 
+    (x.totalQty - x.usedQty) > 0
+  );
+  if(r){
+    r.totalQty += qty;
+    r.lastDate = d;
+    r._editedAt = Date.now();
+  } else {
+    db.reservations.push({
+      id: uid(), person: p, typeName: t.name,
+      totalQty: qty, usedQty: 0, date: d, lastDate: d,
+      _editedAt: Date.now()
+    });
+  }
+});
+
+if(rem > 0){
+  db.debts.push({
+    id: uid(), person: p, amount: rem,
+    typeName: '(الباقي من إيداع)',
+    qty: 0, date: d, manual: true,
+    fromDeposit: true, _editedAt: Date.now()
+  });
+}
+
+if(debtDeducted > 0){
+  const sortedDebts = db.debts
+    .filter(x => _cleanPerson(x.person) === bC)
+    .sort((a,b) => a.date.localeCompare(b.date));
+  
+  let remaining = debtDeducted;
+  sortedDebts.forEach(dbt => {
+    if(remaining <= 0) return;
+    const deduct = Math.min(remaining, +dbt.amount || 0);
+    dbt.amount = Math.max(0, (+dbt.amount || 0) - deduct);
+    dbt._editedAt = Date.now();
+    remaining -= deduct;
+  });
+  
+  db.debts = db.debts.filter(x => 
+    _cleanPerson(x.person) !== bC || +x.amount > 0.01
+  );
+
+  db.payments.push({
+    id: uid(), person: p, amount: debtDeducted,
+    typeName: '💳 خصم تلقائي', qty: 0,
+    details: `أنواع: ${money(itemsValue)} — مطلوب: ${money(debtBefore)} — باقي: ${money(freeDisplay)}`,
+    date: d, _fromDeposit: true,
+    _debtBefore: debtBefore, _debtDeducted: debtDeducted,
+    _debtAfter: Math.max(0, debtBefore - debtDeducted),
+    _editedAt: Date.now()
+  });
+}
+
+if(newDebtAmount > 0){
+  db.debts.push({
+    id: uid(), person: p, amount: newDebtAmount,
+    typeName: '💳 باقي', qty: 0, unitPrice: 0,
+    date: d, manual: true, _fromDeposit: true,
+    _note: amountEntered - itemsValue < 0 ? 'الباقي سالب' : 'باقي كلي',
+    _editedAt: Date.now()
+  });
+}
+
+if(document.getElementById('dLegacy'))document.getElementById('dLegacy').checked=false;
+if(_deductCheck)_deductCheck.checked=false;
+
+save();renderAll();
+document.getElementById('dPerson').value='';
+if(document.getElementById('dCarrier'))document.getElementById('dCarrier').value='';
+document.getElementById('dAmount').value='';
+if(document.getElementById('dDiscount'))document.getElementById('dDiscount').value='';
+document.getElementById('dRemaining').value='';
+if(document.getElementById('dDateTime'))document.getElementById('dDateTime').value='';
+_depositItems=[{id:uid(),typeId:'',qty:'',price:''}];
+renderDepositTypes();
+
+let msg = '✅ تم الإيداع: ' + money(amountEntered);
+if(itemsValue > 0) msg += ` — أنواع: ${money(itemsValue)}`;
+if(debtDeducted > 0) msg += ` — خصم دين: ${money(debtDeducted)}`;
+if(freeDisplay > 0) msg += ` — باقي حر: ${money(freeDisplay)}`;
+if(newDebtAmount > 0) msg += ` — دين جديد: ${money(newDebtAmount)}`;
+if(originalDiscount > 0) msg += ` — خصم: ${money(originalDiscount)}`;
+if(isLegacy) msg += ` 📜 قديم`;
+toast(msg);
+}
+
+function renderDeposit(){
+const bal=document.getElementById('depositBalances');
+const _plSet=new Set([...db.deposits.filter(d=>!d._finished&&!d.isWithdrawal&&!d.isCarry&&!d.cashPayment).map(d=>d.person),...db.reservations.map(r=>r.person)]);
+const pl=[..._plSet];
+if(!pl.length)bal.innerHTML='<div class="empty">لا توجد إيداعات</div>';
+else{
+let h='';
+pl.forEach(p=>{
+const liveDeps = db.deposits.filter(d=>_cleanPerson(d.person)===_cleanPerson(p) && !d.isWithdrawal && !d.isCarry && !d.cashPayment && !d._finished);
+if(!liveDeps.length) return;
+
+let totalMoney = 0;
+let totalQty = 0;
+liveDeps.forEach(d=>{
+const origQty = +d.originalQty || +d.qty || 0;
+const origAmt = +d.originalAmount || +d.amount || 0;
+const usedQty = +d._usedQty || 0;
+const usedAmt = +d._usedMoney || 0;
+totalQty += Math.max(0, origQty - usedQty);
+totalMoney += Math.max(0, origAmt - usedAmt);
+});
+const isFinished = (totalMoney <= 0 && totalQty <= 0);
+
+h+=`<div class="buyer-group" style="${isFinished?'opacity:0.7':''}"><div class="buyer-head" onclick="toggleBuyer('depP_${p.replace(/[^a-zA-Z0-9]/g,'')}')"><div class="name">👤 <b>${p}</b> <span style="font-size:11px;color:#888">(${liveDeps.length} إيداع)</span></div><div style="display:flex;gap:6px;flex-wrap:wrap">${totalMoney>0?`<span class="total" style="background:#27ae60">💰 ${money(totalMoney)}</span>`:''}${totalQty>0?`<span class="total" style="background:#2980b9">📦 ${money(totalQty)} كيس</span>`:''}<button class="blue small" onclick="event.stopPropagation();editPersonDepositBalance('${p.replace(/'/g,"\\'")}')">✏️</button><button class="danger small" onclick="event.stopPropagation();delPersonDeposits('${p.replace(/'/g,"\\'")}')">🗑️</button></div></div><div class="buyer-body open" id="depP_${p.replace(/[^a-zA-Z0-9]/g,'')}">`;
+
+h+=`<table style="font-size:11px;margin:6px"><tr><th>النوع</th><th>📦 الأصلي</th><th>📦 المستخدم</th><th>📦 المتبقي</th><th>💰 الأصلي</th><th>💰 المستخدم</th><th>💰 المتبقي</th><th>💵 السعر</th><th>📅 التاريخ</th><th>الحالة</th><th></th></tr>`;
+liveDeps.forEach(dep=>{
+const dType = dep.typeName || '— مبلغ حر —';
+const origQty = +dep.originalQty || +dep.qty || 0;
+const origAmt = +dep.originalAmount || +dep.amount || 0;
+const usedQty = +dep._usedQty || 0;
+const usedAmt = +dep._usedMoney || 0;
+const remQty = Math.max(0, origQty - usedQty);
+const remAmt = Math.max(0, origAmt - usedAmt);
+const depFinished = (remQty <= 0 && remAmt <= 0);
+
+let qtyCells = '';
+let moneyCells = '';
+if(origQty > 0){
+qtyCells = `<td style="color:#2980b9;font-weight:bold">${money(origQty)}</td><td style="color:#e67e22;font-weight:bold">${money(usedQty)}</td><td style="color:${remQty<=0?'#8b0000':'#c0392b'};font-weight:bold">${remQty<=0?'<span style="background:#8b0000;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px">انتهى</span>':money(remQty)}</td>`;
+} else {
+qtyCells = `<td style="color:#ccc">—</td><td style="color:#ccc">—</td><td style="color:#ccc">—</td>`;
+}
+if(origAmt > 0){
+moneyCells = `<td style="color:#2980b9;font-weight:bold">${money(origAmt)}</td><td style="color:#e67e22;font-weight:bold">${money(usedAmt)}</td><td style="color:${remAmt<=0?'#8b0000':'#c0392b'};font-weight:bold">${remAmt<=0?'<span style="background:#8b0000;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px">انتهى</span>':money(remAmt)}</td>`;
+} else {
+moneyCells = `<td style="color:#ccc">—</td><td style="color:#ccc">—</td><td style="color:#ccc">—</td>`;
+}
+h+=`<tr${depFinished?' style="background:#f5f5f5;opacity:0.7"':''}>
+<td><b>${dType}</b>${dep.legacy?' <span style="background:#f39c12;color:#fff;padding:1px 6px;border-radius:6px;font-size:9px">📜 قديم</span>':''}</td>
+${qtyCells}
+${moneyCells}
+<td style="color:#8B4513;font-weight:bold">${dep.unitPrice?money(dep.unitPrice):'—'}</td>
+<td style="font-size:10px;color:#666">${fmtShort(dep.date)}</td>
+<td>${depFinished?'<span style="background:#95a5a6;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">انتهى</span>':'<span style="background:#27ae60;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">مفعّل</span>'}</td>
+<td style="white-space:nowrap"><button class="blue small" onclick="editDeposit('${dep.id}')">✏️</button> <button class="gold small" onclick="editDateTime('deposit','${dep.id}')">⏰</button> <button class="danger small" onclick="delDeposit('${dep.id}')">🗑️</button></td>
+</tr>`;
+});
+h+=`</table></div></div>`;
+});
+bal.innerHTML=h;
+}
+renderReservations();
+const el=document.getElementById('depositList');
+if(!db.deposits.length){el.innerHTML='<div class="empty">لا يوجد سجل</div>';return;}
+
+const groups={};
+db.deposits.forEach(d=>{
+  if(d._finished === true && !d.isWithdrawal) return;
+  if(!groups[d.person])groups[d.person]=[];
+  groups[d.person].push(d);
+});
+Object.keys(groups).forEach(person=>{
+  const hasActive = groups[person].some(d => !d._finished || d.isWithdrawal);
+  if(!hasActive) delete groups[person];
+});
+
+let h2='';let idx=0;
+Object.keys(groups).forEach(person=>{
+const items=[...groups[person]].sort((a,b)=>b.date.localeCompare(a.date));
+const posItems=items.filter(d=>!d.isWithdrawal&&((+d.amount>0)||(+d.qty>0)));
+const tIn=posItems.reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount||0),0);
+const tInQty=posItems.reduce((a,d)=>a+(+d.originalQty!==undefined?+d.originalQty:+d.qty||0),0);
+h2+=`<div class="buyer-group"><div class="buyer-head" onclick="toggleBuyer('dep_${idx}')"><div class="name">👤 <b>${person}</b><br><span style="font-size:11px;color:#888">${items.length} حركة</span></div><div style="display:flex;gap:6px;flex-wrap:wrap">${tIn>0?`<span class="total" style="background:#27ae60">إيداع: ${money(tIn)}</span>`:''}${tInQty>0?`<span class="total" style="background:#2980b9">كمية: ${money(tInQty)}</span>`:''}</div></div><div class="buyer-body open" id="dep_${idx}"><table><tr><th>التاريخ</th><th>الناقل 🚛</th><th>المبلغ</th><th>النوع</th><th>الكمية</th><th>سعر المفرد</th><th>ملاحظة</th><th></th></tr>`;
+items.forEach(d=>{
+const isWithdrawal=d.isWithdrawal||+d.amount<0||+d.qty<0;
+h2+=`<tr${isWithdrawal?' style="background:#fff5f5"':''}><td style="font-size:11px">${fmt(d.date)}${d.legacy?' <span style="background:#f39c12;color:#fff;padding:1px 6px;border-radius:6px;font-size:9px">📜 قديم</span>':''}</td><td style="font-size:11px;color:#666">${d.carrier||'—'}</td><td style="color:${+d.amount>0?'#27ae60':'#c0392b'};font-weight:bold">${money(d.amount)}</td><td>${d.typeName||'-'}</td><td>${d.qty!==undefined?money(d.qty):'-'}</td><td>${d.unitPrice?money(d.unitPrice):'-'}</td><td style="font-size:10px">${d.note||''}</td><td>${isWithdrawal?'<span style="background:#c0392b;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">واصل</span>':'<button class="blue small" onclick="editDeposit(\''+d.id+'\')">✏️</button> <button class="gold small" onclick="editDateTime(\'deposit\',\''+d.id+'\')">⏰</button> <button class="danger small" onclick="delDeposit(\''+d.id+'\')">🗑️</button>'}</td></tr>`;
+});
+h2+=`</table></div></div>`;idx++;
+});
+el.innerHTML=h2;
+}
+
+function delPersonDeposits(p){
+if(!confirm('حذف كل إيداعات "'+p+'"؟'))return;
+db.deposits.filter(d=>d.person===p).forEach(d=>markDeleted('deposits',d.id));
+db.reservations.filter(r=>r.person===p).forEach(r=>markDeleted('reservations',r.id));
+db.deposits=db.deposits.filter(d=>d.person!==p);db.reservations=db.reservations.filter(r=>r.person!==p);
+save();renderAll();toast('تم');
+}
+
+function renderReservations(){
+const rv=document.getElementById('rsvList');
+if(!rv)return;
+if(!db.reservations.length){rv.innerHTML='<div class="empty">لا توجد طلبات</div>';return;}
+const groups={};
+db.reservations.forEach(r=>{if(!groups[r.person])groups[r.person]=[];groups[r.person].push(r);});
+let h='';
+Object.keys(groups).forEach(person=>{
+const items=groups[person];
+const totalRem=items.reduce((a,r)=>a+Math.max(0,(r.totalQty||0)-(r.usedQty||0)),0);
+const isFinished=totalRem<=0;
+h+=`<div class="rsv-table" style="${isFinished?'opacity:0.75':''}"><div class="rsv-table-head"><div>👤 ${person}</div><div class="total">📦 ${items.length} نوع — الباقي: ${money(totalRem)} كيس</div></div><div class="rsv-table-body"><table style="font-size:12px"><tr><th>النوع</th><th>الأصلية</th><th>الباقية</th><th>الحالة</th><th></th></tr>`;
+items.forEach(r=>{
+const rem=Math.max(0,(r.totalQty||0)-(r.usedQty||0));
+const fin=rem<=0;
+h+=`<tr${fin?' style="background:#f5f5f5;opacity:0.7"':''}><td><b>${r.typeName}</b></td><td style="color:#2980b9;font-weight:bold">${money(r.totalQty)}</td><td style="color:${fin?'#888':'#c0392b'};font-weight:bold;font-size:14px">${money(rem)} كيس</td><td>${fin?'<span style="background:#95a5a6;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">انتهى</span>':'<span style="background:#27ae60;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">مفعّل</span>'}</td><td style="white-space:nowrap"><button class="blue small" onclick="editRsv('${r.id}')">✏️</button> <button class="danger small" onclick="delRsv('${r.id}')">🗑️</button></td></tr>`;
+});
+h+=`</table></div></div>`;
+});
+rv.innerHTML=h;
+}
+
+function addPayment(){
+const p=document.getElementById('pPerson').value.trim();
+const tn=document.getElementById('pType').value.trim();
+const q=+document.getElementById('pQty').value||0;
+const a=+document.getElementById('pAmount').value;
+const det=document.getElementById('pDetails')?document.getElementById('pDetails').value.trim():'';
+if(!p)return toast('اكتب اسم الزبون',true);
+if(!a||a<=0)return toast('اكتب المبلغ',true);
+let d=nowISO();
+const dtInput=document.getElementById('pDateTime');
+if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(parsed.getTime())){d=parsed.toISOString();}}catch(e){}}
+
+const debtBefore = debtBalance(p);
+
+if(a > debtBefore && debtBefore > 0){
+  const paymentAmount = debtBefore;
+  const excess = a - debtBefore;
+
+  db.payments.push({id:uid(),person:p,amount:paymentAmount,typeName:tn||'',qty:q,details:(det||'')+' (فائض '+money(excess)+' للإيداع)',date:d,_editedAt:Date.now()});
+
+  const bC = _cleanPerson(p);
+  let freeDep = db.deposits.find(x => _cleanPerson(x.person) === bC && (!x.typeName || x.typeName === '') && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished);
+  if(freeDep){
+    freeDep.amount = (+freeDep.amount || 0) + excess;
+    freeDep.originalAmount = (+freeDep.originalAmount || 0) + excess;
+    freeDep._editedAt = Date.now();
+  } else {
+    db.deposits.push({id:uid(),person:p,carrier:'',amount:excess,originalAmount:excess,_usedMoney:0,typeName:'',qty:0,originalQty:0,unitPrice:0,totalPrice:0,date:d,note:'💵 فائض تسديد',_usedQty:0,_editedAt:Date.now()});
+  }
+
+  toast(`✅ تسديد ${money(paymentAmount)} — الفائض ${money(excess)} ذهب للإيداع`);
+} else {
+  db.payments.push({id:uid(),person:p,amount:a,typeName:tn||'',qty:q,details:det,date:d,_editedAt:Date.now()});
+  toast('تم التسديد ✅');
+}
+
+save();renderAll();
+document.getElementById('pPerson').value='';document.getElementById('pType').value='';document.getElementById('pQty').value='';document.getElementById('pAmount').value='';
+if(document.getElementById('pDetails'))document.getElementById('pDetails').value='';
+if(document.getElementById('pDateTime'))document.getElementById('pDateTime').value='';
+}
+
+function renderPay(){
+const el=document.getElementById('payList');
+if(!db.payments.length){el.innerHTML='<div class="empty">لا توجد تسديدات</div>';return;}
+let h=`<table><tr><th>التاريخ</th><th>الاسم</th><th>النوع</th><th>الكمية</th><th>المبلغ</th><th>التفاصيل</th><th>المتبقي</th><th></th></tr>`;
+[...db.payments].reverse().forEach(p=>{
+const isAuto = p._fromDeposit === true;
+const typeBadge = isAuto ? '<span style="background:#f39c12;color:#fff;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:bold">💳 خصم تلقائي</span>' : (p.typeName||'—');
+h+=`<tr${isAuto?' style="background:#fff8e6"':''}><td style="font-size:11px">${fmt(p.date)}</td><td><b>${p.person}</b></td><td>${typeBadge}</td><td>${p.qty?money(p.qty)+' كيس':'—'}</td><td style="color:#27ae60;font-weight:bold">${money(p.amount)}</td><td style="font-size:11px;color:#666">${p.details||'—'}</td><td style="color:#c0392b">${money(debtBalance(p.person))}</td><td style="white-space:nowrap"><button class="blue small" onclick="editPayment('${p.id}')">✏️</button> <button class="gold small" onclick="editDateTime('payment','${p.id}')">⏰</button> <button class="danger small" onclick="delPayment('${p.id}')">🗑️</button></td></tr>`;
+});
+el.innerHTML=h+'</table>';
+}
+
+function addExpense(){const d=document.getElementById('eDesc').value.trim();const a=+document.getElementById('eAmount').value;if(!d)return toast('اكتب الوصف',true);if(!a||a<=0)return toast('اكتب المبلغ',true);db.expenses.push({id:uid(),desc:d,amount:a,date:nowISO(),_editedAt:Date.now()});save();renderAll();document.getElementById('eDesc').value='';document.getElementById('eAmount').value='';toast('✅');}
+function renderExpense(){const el=document.getElementById('expenseList');if(!db.expenses.length){el.innerHTML='<div class="empty">لا توجد صرفيات</div>';return;}let h=`<table><tr><th>التاريخ</th><th>الوصف</th><th>المبلغ</th><th></th></tr>`;[...db.expenses].reverse().forEach(e=>{h+=`<tr><td style="font-size:11px">${fmt(e.date)}</td><td>${e.desc}</td><td style="color:#c0392b;font-weight:bold">${money(e.amount)}</td><td style="white-space:nowrap"><button class="blue small" onclick="editExpense('${e.id}')">✏️</button> <button class="gold small" onclick="editDateTime('expense','${e.id}')">⏰</button> <button class="danger small" onclick="delExpense('${e.id}')">🗑️</button></td></tr>`;});el.innerHTML=h+'</table>';}
+function addCashAmount(){if(!db.cashAdditions)db.cashAdditions=[];const a=+document.getElementById('caAmount').value;const n=document.getElementById('caNote').value.trim();if(!a||a<=0)return toast('اكتب المبلغ',true);db.cashAdditions.push({id:uid(),amount:a,note:n,date:nowISO(),_editedAt:Date.now()});save();renderAll();document.getElementById('caAmount').value='';document.getElementById('caNote').value='';toast('✅');}
 </script><script>
 function editDateTime(type,id){
 let coll=null;
@@ -7688,6 +8494,9 @@ b.style.flex='1';
 });
 }
 
+// ═══════════════════════════════════════════════════════════
+// ✅ doExchange — ضبط الكميات الأصلية والمباعة والباقية
+// ═══════════════════════════════════════════════════════════
 function doExchange(){
 const buyer=document.getElementById('exPerson').value.trim();
 const carrier=document.getElementById('exCarrier')?.value.trim()||'';
@@ -7714,7 +8523,17 @@ validRet.forEach(it=>{
   const price=+it.price||0;
   const total=qty*price;
   retTotal+=total;
+  
+  // ✅ 1. زيادة الكمية الحالية
   t.qty=(+t.qty||0)+qty;
+  
+  // ✅ 2. نقصان المباع
+  t.totalSold=Math.max(0, (+t.totalSold||0) - qty);
+  
+  // ✅ 3. إضافة الكمية إلى additions (الكمية الأصلية)
+  if(!t.additions) t.additions=[];
+  t.additions.push({qty:qty, date:d, note:'↩️ استرجاع من ' + buyer});
+  
   t._editedAt=Date.now();
   retItems.push({typeName:t.name,qty,unitPrice:price,total});
 
@@ -7744,7 +8563,14 @@ validSwp.forEach(it=>{
   const price=+it.price||0;
   const total=qty*price;
   swpTotal+=total;
-  t.qty-=qty;t.totalSold=(t.totalSold||0)+qty;t._editedAt=Date.now();
+  
+  // ✅ 1. نقصان من الكمية الحالية
+  t.qty=(+t.qty||0)-qty;
+  
+  // ✅ 2. زيادة في المباع (لأنه بديل خرج)
+  t.totalSold=(+t.totalSold||0)+qty;
+  
+  t._editedAt=Date.now();
   swpItems.push({typeName:t.name,qty,unitPrice:price,total});
 });
 
@@ -7809,13 +8635,29 @@ h+=`</div></div>`;
 el.innerHTML=h;
 }
 
+// ═══════════════════════════════════════════════════════════
+// ✅ delExchange — عكس كل شي (بما فيه additions)
+// ═══════════════════════════════════════════════════════════
 function delExchange(id){
 if(!confirm('حذف هذه العملية؟'))return;
 const e=db.exchanges.find(x=>x.id===id);if(!e)return;
+
+// ✅ عكس الاسترجاع
 (e.returnItems||[]).forEach(ri=>{
   const t=db.flourTypes.find(x=>x.name===ri.typeName);
   if(t){
     t.qty=Math.max(0,t.qty-ri.qty);
+    t.totalSold=(t.totalSold||0)+ri.qty;
+    
+    // ✅ نحذف الـ addition اللي أضفناه
+    if(t.additions && t.additions.length){
+      const addIdx = t.additions.findIndex(a => 
+        a.note && a.note.includes('استرجاع') && a.note.includes(e.buyer) && a.qty === ri.qty
+      );
+      if(addIdx !== -1){
+        t.additions.splice(addIdx, 1);
+      }
+    }
     t._editedAt=Date.now();
   }
   const bC=_cleanPerson(e.buyer);
@@ -7827,11 +8669,23 @@ const e=db.exchanges.find(x=>x.id===id);if(!e)return;
     if(dep.originalQty<=0 && dep.qty<=0){markDeleted('deposits',dep.id);db.deposits=db.deposits.filter(d=>d.id!==dep.id);}
   }
 });
-(e.swapItems||[]).forEach(si=>{const t=db.flourTypes.find(x=>x.name===si.typeName);if(t){t.qty+=si.qty;t.totalSold=Math.max(0,(t.totalSold||0)-si.qty);t._editedAt=Date.now();}});
+
+// ✅ عكس التبديل
+(e.swapItems||[]).forEach(si=>{
+  const t=db.flourTypes.find(x=>x.name===si.typeName);
+  if(t){
+    t.qty=(+t.qty||0)+si.qty;
+    t.totalSold=Math.max(0,(t.totalSold||0)-si.qty);
+    t._editedAt=Date.now();
+  }
+});
+
 db.debts.filter(d=>d.exchangeId===id).forEach(d=>markDeleted('debts',d.id));
 db.cashAdditions.filter(c=>c.exchangeId===id).forEach(c=>markDeleted('cashAdditions',c.id));
 db.expenses.filter(x=>x.exchangeId===id).forEach(x=>markDeleted('expenses',x.id));
-db.debts=db.debts.filter(d=>d.exchangeId!==id);db.cashAdditions=db.cashAdditions.filter(c=>c.exchangeId!==id);db.expenses=db.expenses.filter(x=>x.exchangeId!==id);
+db.debts=db.debts.filter(d=>d.exchangeId!==id);
+db.cashAdditions=db.cashAdditions.filter(c=>c.exchangeId!==id);
+db.expenses=db.expenses.filter(x=>x.exchangeId!==id);
 markDeleted('exchanges',id);
 db.exchanges=db.exchanges.filter(x=>x.id!==id);
 save();renderAll();toast('تم');
@@ -7988,7 +8842,7 @@ function addNewAccount(){
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [مشكلة 1] switchAccount — تفريغ كامل قبل التبديل
+// ✅ switchAccount — تفريغ كامل
 // ═══════════════════════════════════════════════════════════
 async function switchAccount(u){
   if(!confirm('التبديل إلى '+u+'؟'))return;
@@ -8105,7 +8959,7 @@ function exportData(){const d={user:currentUser,role:currentAccount?currentAccou
 function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=(ev)=>{try{const p=JSON.parse(ev.target.result);const d=p.data||p;if(!confirm('استيراد؟'))return;db=Object.assign(emptyDB(),d);_fixDBFields(db);save();renderAll();renderArchive();renderSettings();toast('تم ✅');}catch(err){toast('ملف غير صالح',true);}};r.readAsText(f);e.target.value='';}
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [تعديل] clearAll — يحذف من السحابة + المحلي
+// ✅ clearAll — يحذف من السحابة + المحلي
 // ═══════════════════════════════════════════════════════════
 async function clearAll(){
   if(!confirm('⚠️ حذف كل البيانات؟\n\nسيتم حذف كل البيانات من:\n✅ جهازك\n✅ السحابة (Firestore)\n\n⚠️ لا يمكن التراجع!'))return;
@@ -8123,7 +8977,6 @@ async function clearAll(){
   };
   
   try{
-    // ✅ 1. حذف من السحابة
     if(cloudEnabled && _firestoreDB && currentUser){
       _updateStatus('☁️ جاري حذف البيانات من السحابة...');
       
@@ -8137,7 +8990,6 @@ async function clearAll(){
           if(snap.size > 0){
             const docs = [];
             snap.forEach(doc => docs.push(doc.ref));
-            // دفعات 400 (حد Firestore 500)
             for(let i = 0; i < docs.length; i += 400){
               const batch = _firestoreDB.batch();
               docs.slice(i, i + 400).forEach(ref => batch.delete(ref));
@@ -8158,7 +9010,6 @@ async function clearAll(){
       }catch(e){ console.warn('حذف main:', e); }
     }
     
-    // ✅ 2. تفريغ محلي
     _updateStatus('📱 تفريغ البيانات المحلية...');
     db = emptyDB();
     db._migratedToSplit = true;
@@ -8172,7 +9023,6 @@ async function clearAll(){
       localStorage.setItem(DATA_PREFIX + currentUser, JSON.stringify(db));
     }catch(e){}
     
-    // ✅ 3. حفظ meta فارغة جديدة في السحابة (مع علامة المسح)
     if(cloudEnabled && cloudMetaRef){
       _updateStatus('📝 حفظ علامة المسح في السحابة...');
       try{
@@ -8191,17 +9041,14 @@ async function clearAll(){
       }catch(e){ console.warn('حفظ meta جديد:', e); }
     }
     
-    // ✅ 4. إيقاف المستمعين (عشان ما يرجعون البيانات)
     stopRealtimeListener();
     
-    // ✅ 5. إعادة رسم كل الواجهات
     _updateStatus('✅ جاري تحديث الواجهة...');
     renderAll();
     renderArchive();
     renderReport();
     renderSettings();
     
-    // ✅ 6. إعادة تشغيل المستمعين بعد لحظة
     setTimeout(() => {
       startRealtimeListener();
     }, 1500);
@@ -8218,7 +9065,7 @@ async function clearAll(){
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [جديد] clearCloudOnly — يحذف من السحابة فقط
+// ✅ clearCloudOnly — يحذف من السحابة فقط
 // ═══════════════════════════════════════════════════════════
 async function clearCloudOnly(){
   if(!confirm('⚠️ حذف البيانات من السحابة فقط؟\n\n✅ البيانات المحلية ستبقى كما هي\n☁️ سيتم حذف كل البيانات من Firestore\n\n⚠️ الأجهزة الثانية راح ترجع فاضية!'))return;
@@ -8280,159 +9127,194 @@ async function clearCloudOnly(){
   }
 }
 
+// ═══════════════════════════════════════════════════════════
+// ✅ [إصلاح] recalculateAll — يحترم التعديل اليدوي
+// ═══════════════════════════════════════════════════════════
 async function recalculateAll(){
-if(!confirm('🔄 سيتم تحديث الأرقام.\n\n✅ يجلب أحدث البيانات من السحابة أولاً\n\nمتابعة؟'))return;
-
-if(typeof cloudEnabled !== 'undefined' && cloudEnabled && navigator.onLine){
-  try{
-    setSyncStatus('loading','📥 جاري جلب أحدث بيانات...');
-    if(_migrated && db._migratedToSplit){
-      await _reloadFromSplitDocs();
-    } else if(cloudDataRef){
-      const doc = await cloudDataRef.doc(currentUser).get();
-      if(doc.exists && doc.data()?.data){
-        const cloudDb = doc.data().data;
-        const cloudTime = +cloudDb._lastSaved || 0;
-        const localTime = +db._lastSaved || 0;
-        if(cloudTime > localTime){
-          if(typeof mergeSmart === 'function'){
-            db = mergeSmart(db, cloudDb);
-          } else {
-            db = Object.assign(emptyDB(), cloudDb);
+  if(!confirm('🔄 سيتم تحديث الأرقام من البيانات المحلية.\n\n⚠️ التعديلات اليدوية راح تبقى محفوظة\n\nمتابعة؟')) return;
+  
+  // ✅ ما نجيب من السحابة أول شي — نعتمد على البيانات المحلية
+  // هذا يمنع مسح التعديلات اليدوية
+  if(typeof cloudEnabled !== 'undefined' && cloudEnabled && navigator.onLine && !db._pendingUpload && cloudMetaRef){
+    try{
+      setSyncStatus('loading','📥 جاري التحقق من السحابة...');
+      const metaDoc = await cloudMetaRef.get();
+      if(metaDoc.exists && metaDoc.data()){
+        const remoteManualOverrides = metaDoc.data()._manualOverrides || {};
+        if(!db._manualOverrides) db._manualOverrides = {};
+        Object.keys(remoteManualOverrides).forEach(k => {
+          const localT = (db._manualOverrides[k] && db._manualOverrides[k].timestamp) || 0;
+          const remoteT = (remoteManualOverrides[k] && remoteManualOverrides[k].timestamp) || 0;
+          if(remoteT > localT){
+            db._manualOverrides[k] = remoteManualOverrides[k];
           }
-          _fixDBFields(db);
-          db._lastSaved = Math.max(localTime, cloudTime);
-        }
+        });
+        console.log('✅ تم دمج التعديلات اليدوية من السحابة');
       }
+    }catch(e){
+      console.warn('fetch before recalc failed:', e);
     }
-    try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
+  }
+  
+  const _overlay=document.createElement('div');
+  _overlay.id='recalcLoading';
+  _overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;font-family:inherit';
+  _overlay.innerHTML='<div style="font-size:50px;margin-bottom:15px">⏳</div><div style="font-size:18px;font-weight:bold">جاري تحديث الأرقام...</div><div style="font-size:12px;margin-top:8px;opacity:0.8">لا تغلق التطبيق</div>';
+  document.body.appendChild(_overlay);
+  
+  setTimeout(function(){
+  try{
+  const _dedupCount = deduplicateFlourTypes();
+  let fixedQty=0,fixedSold=0,restoredDep=0,respectedManual=0;
+  db.deposits.forEach(d=>{
+  if(d.originalAmount!==undefined&&d.amount!==d.originalAmount){
+    if(!d._usedMoney || d._usedMoney === 0){
+      d.amount=d.originalAmount;
+    }
+    restoredDep++;
+  }
+  if(d.originalQty!==undefined&&d.qty!==d.originalQty){
+    if(!d._usedQty || d._usedQty === 0){
+      d.qty=d.originalQty;
+    }
+  }
+  if(d._usedQty === undefined) d._usedQty = 0;
+  if(d._usedMoney === undefined) d._usedMoney = 0;
+  });
+  
+  if(!db._manualOverrides) db._manualOverrides={};
+  
+  db.flourTypes.forEach(t=>{
+  if(!t._visibleFrom){
+  const firstDate = (t.additions && t.additions[0] && t.additions[0].date) || t.updatedAt || nowISO();
+  t._visibleFrom = firstDate;
+  }
+  
+  const oldQty=t.qty;
+  const oldSold=t.totalSold||0;
+  
+  const _cleanName = _cleanType(t.name);
+  const _mo = db._manualOverrides[_cleanName];
+  let hasManual = false;
+  let manualOriginal = 0;
+  let manualSold = null;
+  let manualQty = null;
+  
+  // ✅ 1. إذا في تعديل يدوي في _manualOverrides → استخدمه
+  if(_mo && _mo.original !== undefined && _mo.original !== null){
+    manualOriginal = +_mo.original || 0;
+    manualSold = (_mo.sold !== undefined && _mo.sold !== null) ? +_mo.sold : null;
+    manualQty = (_mo.remaining !== undefined && _mo.remaining !== null) ? +_mo.remaining : null;
+    hasManual = true;
+    respectedManual++;
+  } 
+  // ✅ 2. إذا في تعديل يدوي محفوظ في t → استخدمه وارفعه للـ _manualOverrides
+  else if(t._manualOverride && t._manualOriginal !== undefined && t._manualOriginal !== null){
+    manualOriginal = +t._manualOriginal || 0;
+    manualSold = (t._manualSold !== undefined && t._manualSold !== null) ? +t._manualSold : null;
+    manualQty = (t._manualQty !== undefined && t._manualQty !== null) ? +t._manualQty : null;
+    db._manualOverrides[_cleanName] = {
+      original: manualOriginal,
+      sold: manualSold,
+      remaining: manualQty,
+      timestamp: t._manualOverride
+    };
+    hasManual = true;
+    respectedManual++;
+  }
+  
+  if(hasManual){
+    // ✅ تعديل يدوي → نحترمه (ما نغير شي)
+    t._manualOverride = t._manualOverride || (_mo && _mo.timestamp) || Date.now();
+    t._manualOriginal = manualOriginal;
+    if(manualSold !== null) t._manualSold = manualSold;
+    if(manualQty !== null) t._manualQty = manualQty;
+    
+    if(manualSold !== null){
+      t.totalSold = manualSold;
+    }
+    if(manualQty !== null){
+      t.qty = manualQty;
+    } else {
+      t.qty = Math.max(0, manualOriginal - t.totalSold);
+    }
+  } else {
+    // ✅ لا يوجد تعديل يدوي → احسب عادي
+    let newSold=0;
+    db.sales.forEach(s=>{
+      if(s.items){s.items.forEach(it=>{if(it.typeName===t.name)newSold+=it.qty;});}
+      else if(s.typeName===t.name)newSold+=(s.qty||0);
+    });
+    (db.exchanges||[]).forEach(e=>{
+      (e.swapItems||[]).forEach(si=>{if(si.typeName===t.name)newSold+=si.qty;});
+      (e.returnItems||[]).forEach(ri=>{if(ri.typeName===t.name)newSold-=ri.qty;});
+    });
+    newSold=Math.max(0,newSold);
+    t.totalSold = newSold;
+    
+    const originalQty = (t.additions||[]).reduce((a,x)=>a+(x.qty||0),0);
+    t.qty = Math.max(0, originalQty - newSold);
+  }
+  
+  t._editedAt=Date.now();
+  if(oldQty!==t.qty)fixedQty++;
+  if(oldSold!==t.totalSold)fixedSold++;
+  });
+  
+  db.buyers.forEach(b=>{const tr=db.sales.filter(s=>s.buyer===b.name);b.totalQty=tr.reduce((a,s)=>a+(s.qty||0),0);b.totalAmount=tr.reduce((a,s)=>a+(s.total||0),0);});
+  db.reservations.forEach(r=>{r.usedQty=Math.max(0,Math.min(r.usedQty||0,r.totalQty));});
+  
+  _pendingCategories = new Set(['flourTypes', 'buyers', 'deposits', 'reservations', 'sales', 'exchanges', 'debts', 'archive']);
+  
+  const now=Date.now();
+  db._lastSaved=now;
+  db._lastActionBy=_deviceId;
+  db._actionId=_deviceId+'_'+now+'_'+Math.random().toString(36).slice(2,7);
+  db._pendingUpload=true;
+  try{localStorage.setItem(DATA_PREFIX+currentUser,JSON.stringify(db));}catch(e){}
+  
+  if(typeof _doUpload==='function'){
+    setSyncStatus('loading','⏳ جاري الرفع...');
+    setTimeout(_doUpload, 100);
+  }
+  
+  renderHome();
+  renderFlour();
+  const activePage=document.querySelector('.page.active');
+  if(activePage){
+    const id=activePage.id;
+    if(id==='page-home'){}
+    else if(id==='page-flour')renderFlour();
+    else if(id==='page-sell'){renderSell();renderSaleItems();}
+    else if(id==='page-buyers')renderBuyers();
+    else if(id==='page-debt')renderDebt();
+    else if(id==='page-deposit'){renderDeposit();renderDepositTypes();}
+    else if(id==='page-pay')renderPay();
+    else if(id==='page-expense')renderExpense();
+    else if(id==='page-report')renderReport();
+    else if(id==='page-archive')renderArchive();
+    else if(id==='page-exchange'){renderExchanges();renderExItems();}
+    else if(id==='page-prices')renderCustomerPrices();
+  }
+  
+  let msg='✅ تم تحديث الأرقام';
+  const details=[];
+  if(restoredDep)details.push('إرجاع '+restoredDep);
+  if(fixedQty)details.push('تصحيح كمية '+fixedQty);
+  if(fixedSold)details.push('ضبط مباع '+fixedSold);
+  if(respectedManual)details.push('احترام '+respectedManual+' تعديل يدوي');
+  if(_dedupCount)details.push('دمج '+_dedupCount);
+  if(details.length)msg+=' ('+details.join(' + ')+')';
+  toast(msg);
+  
   }catch(e){
-    console.warn('fetch before recalc failed:', e);
+    console.error('recalc err:', e);
+    toast('❌ فشل التحديث', true);
+  }finally{
+    const el=document.getElementById('recalcLoading');
+    if(el) el.remove();
   }
-}
-
-const _overlay=document.createElement('div');
-_overlay.id='recalcLoading';
-_overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;font-family:inherit';
-_overlay.innerHTML='<div style="font-size:50px;margin-bottom:15px">⏳</div><div style="font-size:18px;font-weight:bold">جاري تحديث الأرقام...</div><div style="font-size:12px;margin-top:8px;opacity:0.8">لا تغلق التطبيق</div>';
-document.body.appendChild(_overlay);
-
-setTimeout(function(){
-try{
-const _dedupCount = deduplicateFlourTypes();
-let fixedQty=0,fixedSold=0,restoredDep=0,respectedManual=0;
-db.deposits.forEach(d=>{
-if(d.originalAmount!==undefined&&d.amount!==d.originalAmount){
-  if(!d._usedMoney || d._usedMoney === 0){
-    d.amount=d.originalAmount;
-  }
-  restoredDep++;
-}
-if(d.originalQty!==undefined&&d.qty!==d.originalQty){
-  if(!d._usedQty || d._usedQty === 0){
-    d.qty=d.originalQty;
-  }
-}
-if(d._usedQty === undefined) d._usedQty = 0;
-if(d._usedMoney === undefined) d._usedMoney = 0;
-});
-
-if(!db._manualOverrides) db._manualOverrides={};
-
-db.flourTypes.forEach(t=>{
-if(!t._visibleFrom){
-const firstDate = (t.additions && t.additions[0] && t.additions[0].date) || t.updatedAt || nowISO();
-t._visibleFrom = firstDate;
-}
-
-const oldQty=t.qty;const oldSold=t.totalSold||0;
-let newSold=0;
-db.sales.forEach(s=>{
-if(s.items){s.items.forEach(it=>{if(it.typeName===t.name)newSold+=it.qty;});}
-else if(s.typeName===t.name)newSold+=(s.qty||0);
-});
-(db.exchanges||[]).forEach(e=>{
-(e.swapItems||[]).forEach(si=>{if(si.typeName===t.name)newSold+=si.qty;});
-(e.returnItems||[]).forEach(ri=>{if(ri.typeName===t.name)newSold-=ri.qty;});
-});
-newSold=Math.max(0,newSold);
-t.totalSold=newSold;
-
-const _cleanName = _cleanType(t.name);
-const _mo = db._manualOverrides[_cleanName];
-let originalQty;
-if(_mo && _mo.original !== undefined && _mo.original !== null){
-  originalQty = +_mo.original || 0;
-  t._manualOverride = t._manualOverride || _mo.timestamp || Date.now();
-  t._manualOriginal = _mo.original;
-  respectedManual++;
-} else if(t._manualOverride && t._manualOriginal !== undefined && t._manualOriginal !== null){
-  originalQty = +t._manualOriginal || 0;
-  db._manualOverrides[_cleanName] = {original: t._manualOriginal, timestamp: t._manualOverride};
-  respectedManual++;
-} else {
-  originalQty = (t.additions||[]).reduce((a,x)=>a+(x.qty||0),0);
-}
-
-t.qty=Math.max(0, originalQty - newSold);
-t._editedAt=Date.now();
-if(oldQty!==t.qty)fixedQty++;
-if(oldSold!==newSold)fixedSold++;
-});
-
-db.buyers.forEach(b=>{const tr=db.sales.filter(s=>s.buyer===b.name);b.totalQty=tr.reduce((a,s)=>a+(s.qty||0),0);b.totalAmount=tr.reduce((a,s)=>a+(s.total||0),0);});
-db.reservations.forEach(r=>{r.usedQty=Math.max(0,Math.min(r.usedQty||0,r.totalQty));});
-
-_pendingCategories = new Set(['flourTypes', 'buyers', 'deposits', 'reservations', 'sales', 'exchanges', 'debts']);
-
-const now=Date.now();
-db._lastSaved=now;
-db._lastActionBy=_deviceId;
-db._actionId=_deviceId+'_'+now+'_'+Math.random().toString(36).slice(2,7);
-db._pendingUpload=true;
-try{localStorage.setItem(DATA_PREFIX+currentUser,JSON.stringify(db));}catch(e){}
-
-if(typeof _doUpload==='function'){
-  setSyncStatus('loading','⏳ جاري الرفع...');
-  setTimeout(_doUpload, 100);
-}
-
-renderHome();
-const activePage=document.querySelector('.page.active');
-if(activePage){
-  const id=activePage.id;
-  if(id==='page-home'){}
-  else if(id==='page-flour')renderFlour();
-  else if(id==='page-sell'){renderSell();renderSaleItems();}
-  else if(id==='page-buyers')renderBuyers();
-  else if(id==='page-debt')renderDebt();
-  else if(id==='page-deposit'){renderDeposit();renderDepositTypes();}
-  else if(id==='page-pay')renderPay();
-  else if(id==='page-expense')renderExpense();
-  else if(id==='page-report')renderReport();
-  else if(id==='page-archive')renderArchive();
-  else if(id==='page-exchange'){renderExchanges();renderExItems();}
-  else if(id==='page-prices')renderCustomerPrices();
-}
-
-let msg='✅ تم تحديث الأرقام';
-const details=[];
-if(restoredDep)details.push('إرجاع '+restoredDep);
-if(fixedQty)details.push('تصحيح كمية '+fixedQty);
-if(fixedSold)details.push('ضبط مباع '+fixedSold);
-if(respectedManual)details.push('احترام '+respectedManual+' تعديل يدوي');
-if(_dedupCount)details.push('دمج '+_dedupCount);
-if(details.length)msg+=' ('+details.join(' + ')+')';
-toast(msg);
-
-}catch(e){
-  console.error('recalc err:', e);
-  toast('❌ فشل التحديث', true);
-}finally{
-  const el=document.getElementById('recalcLoading');
-  if(el) el.remove();
-}
-}, 100);
+  }, 100);
 }
 
 function renderAll(){
@@ -8595,7 +9477,6 @@ console.log('📴 النت قطع');
 setSyncStatus('err','📱 محلي');
 });
 
-// ✅ الفحص الدوري كل 5 ثواني
 setInterval(async function(){
   if(!navigator.onLine || !currentUser || !cloudEnabled) return;
   if(_isReceivingUpdate) return;
@@ -8607,7 +9488,6 @@ setInterval(async function(){
         const metaDoc = await cloudMetaRef.get();
         if(metaDoc.exists){
           const meta = metaDoc.data();
-          // ✅ إذا في علامة مسح من جهاز ثاني
           if(meta._clearedAt && meta._clearedAt > (db._clearedAt || 0) && meta._clearedBy !== _deviceId){
             db = emptyDB();
             db._migratedToSplit = true;
@@ -8666,9 +9546,6 @@ document.addEventListener('input', function(e){
   }
 });
 
-// ═══════════════════════════════════════════════════════════
-// ✅ [مشكلة 1] init — تفريغ كامل + انتظار + منع التسريب
-// ═══════════════════════════════════════════════════════════
 (async function init(){
   db = null;
   currentUser = null;
@@ -8753,4 +9630,4 @@ document.addEventListener('input', function(e){
 })();
 </script>
 </body>
-  </html>
+                                      </html>
