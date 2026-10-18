@@ -579,7 +579,6 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <div class="sub" id="authSub">سجّل دخولك للمتابعة</div>
 <div class="auth-error" id="authError"></div>
 
-<!-- ===== نموذج الدخول ===== -->
 <div id="loginForm">
 
 <div class="field">
@@ -608,7 +607,6 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 
 </div>
 
-<!-- ===== نموذج التسجيل ===== -->
 <div id="registerForm" class="hidden">
 
 <div id="adminRegMode" class="hidden">
@@ -862,7 +860,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 💡 <b>آلية الحساب التلقائي:</b><br>
 🔹 <b>المبلغ</b> = النقد اللي انطاك الزبون<br>
 🔹 <b>الباقي نقد</b> = المبلغ − قيمة الأنواع<br>
-🔹 <b>يخصم الدين</b> من الباقي (إذا موجود)<br>
+🔹 <b>يخصم الدين</b> من الباقي (إذا موجود + الزر مفعّل)<br>
 🔹 <b>الباقي</b> يصير إيداع حر تلقائياً<br>
 🔹 إذا الباقي <b>سالب</b> → يروح للمطلوبين
 </div>
@@ -885,11 +883,19 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 </div>
 <div class="row"><input id="dRemaining" type="number" placeholder="💰 الباقي الكلي (اختياري)" min="0" style="background:#fff3e0;border-color:#f39c12"></div>
 
+<!-- ✅ [جديد] زر خصم الدين التلقائي -->
+<div class="row" style="margin-bottom:8px">
+<label style="display:flex;align-items:center;gap:8px;font-size:13px;min-width:auto;background:#f0f9f2;padding:10px 14px;border-radius:8px;border:2px solid #27ae60;cursor:pointer;font-weight:bold;color:#1e8449">
+<input type="checkbox" id="dDeductDebt" style="width:auto;min-width:auto;cursor:pointer;transform:scale(1.3)">
+💳 خصم الدين تلقائياً من المبلغ
+</label>
+</div>
+
 <div style="background:#f0f9f2;border:2px solid #27ae60;border-radius:10px;padding:10px;margin-top:8px;font-size:12px;color:#1e8449;text-align:center;font-weight:bold">
-💳 الخصم تلقائي — يُحسب من المبلغ بعد الأنواع
+💳 الخصم اختياري — يُحسب فقط إذا الزر ✅ مفعّل
 </div>
 <div style="font-size:11px;color:#888;text-align:center;margin-bottom:8px;margin-top:6px">
-💡 الدين يُخصم تلقائياً من الباقي — والباقي يصير إيداع حر
+💡 إذا الزر ✅ مفعّل: يُخصم الدين — إذا موقّف: الإيداع يبقى كرصيد كامل
 </div>
 
 <div class="row"><label style="display:flex;align-items:center;gap:8px;font-size:13px;min-width:auto;background:#fff3e0;padding:8px 12px;border-radius:8px;border:2px solid #f39c12"><input type="checkbox" id="dLegacy" style="width:auto;min-width:auto"> 📜 رصيد قديم</label></div>
@@ -1188,7 +1194,6 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 
 <div class="card"><h2>🚪 تسجيل الخروج</h2><button onclick="doLogout()" class="gray" style="width:100%;padding:12px;font-size:15px">🚪 تسجيل الخروج</button></div>
 
-<!-- ✅ [تعديل] منطقة الخطر — 3 أزرار حذف -->
 <div class="card" style="background:#fff5f5;border:2px solid #c0392b"><h2>⚠️ منطقة الخطر</h2>
 <div style="font-size:11px;color:#666;margin-bottom:10px;text-align:center;line-height:1.7">
 اختر نوع الحذف المناسب:<br>
@@ -1243,7 +1248,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><script>
 // ===== التحديث التلقائي =====
-const APP_VERSION = "1.12";
+const APP_VERSION = "1.8";
 const APP_UPDATE_URL = "https://aliyuoohoogoogl-cmyk.github.io/flour/latest.json";
 const MAX_UPDATE_POSTPONES = 3;
 let _updateBlocked = false;
@@ -1970,7 +1975,7 @@ async function markAllRead(){ if(!db||!db._notifications) return; db._notificati
 async function clearAllNotif(){ if(!db||!db._notifications) return; if(!confirm('حذف كل الإشعارات؟')) return; db._notifications = db._notifications.filter(n => n.type !== 'offer'); save(); renderNotifications(); _updateNotifBadge(); }
 </script><script>
 // ═══════════════════════════════════════════════════════════
-// ✅ [إصلاح] دوال مساعدة — تُستخدم في كل مكان
+// ✅ دوال مساعدة
 // ═══════════════════════════════════════════════════════════
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function nowISO(){return new Date().toISOString();}
@@ -1980,15 +1985,45 @@ function fmtTime(dt){if(!dt)return '-';const d=new Date(dt);const now=new Date()
 function money(n){return Number(n||0).toLocaleString('en-US');}
 function toast(m,e){const t=document.getElementById('toast');t.textContent=m;t.className='toast show'+(e?' err':'');setTimeout(()=>t.className='toast',2500);}
 
-// ═══════════════════════════════════════════════════════════
-// ✅ [إصلاح] دوال الحماية من الاقتباسات في onclick
-// ═══════════════════════════════════════════════════════════
 function _escJs(s){ return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/\n/g,' '); }
 function _escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function getArchiveTime(){if(db && db._archiveCutoff) return db._archiveCutoff;if(db && db._lastArchiveAt) return db._lastArchiveAt;if(db && db.archive && db.archive.length > 0 && db.archive[0].archivedAt){db._lastArchiveAt = db.archive[0].archivedAt;return db._lastArchiveAt;}return null;}
 
-function _isArchivedItem(item){ if(!item || !item.date) return false; const cutoff = db._archiveCutoff || db._lastArchiveAt || 0; if(!cutoff) return false; try{ return new Date(item.date).getTime() <= new Date(cutoff).getTime(); }catch(e){ return false; } }
+function _isArchivedItem(item){ if(!item || !item.date) return false; const cutoff = db._archiveCutoff || db._lastArchiveAt || 0; if(!cutoff) return false; if(item._addedAfterArchive === true) return false; try{ return new Date(item.date).getTime() <= new Date(cutoff).getTime(); }catch(e){ return false; } }
+
+// ═══════════════════════════════════════════════════════════
+// ✅ [جديد] دالة تعليم العناصر المضافة بعد الأرشفة
+//    حتى لو تاريخها قديم — تُحسب في المطابقة والصندوق
+// ═══════════════════════════════════════════════════════════
+function _markAsNewAfterArchive(item){
+  if(!item) return item;
+  const cutoff = db._archiveCutoff || db._lastArchiveAt || 0;
+  if(cutoff && item.date){
+    try{
+      if(new Date(item.date).getTime() <= new Date(cutoff).getTime()){
+        item._addedAfterArchive = true;
+      }
+    }catch(e){}
+  }
+  return item;
+}
+
+// ✅ دالة تعليم كل مصفوفة (تُستدعى بعد الإضافة)
+function _markAllAsNewAfterArchive(arr){
+  if(!Array.isArray(arr)) return;
+  const cutoff = db._archiveCutoff || db._lastArchiveAt || 0;
+  if(!cutoff) return;
+  arr.forEach(item => {
+    if(!item || item._addedAfterArchive) return;
+    if(!item.date) return;
+    try{
+      if(new Date(item.date).getTime() <= new Date(cutoff).getTime()){
+        item._addedAfterArchive = true;
+      }
+    }catch(e){}
+  });
+}
 
 function promptDateTime(cur){
 const d=new Date(cur);const curStr=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
@@ -2000,12 +2035,19 @@ try{const p=new Date(inp.trim().replace(' ','T'));if(isNaN(p.getTime()))throw ne
 
 function _getOriginalQty(t){
   if(!t) return 0;
-  if(t._manualOverride && t._manualOriginal !== undefined && t._manualOriginal !== null){ return +t._manualOriginal || 0; }
-  if(db && db._manualOverrides){ const cleanName = _cleanType(t.name); const mo = db._manualOverrides[cleanName]; if(mo && mo.original !== undefined && mo.original !== null){ return +mo.original || 0; } }
-  return (t.additions||[]).reduce((a,x)=>a+(+x.qty||0), 0);
+  const currentQty = +t.qty || 0;
+  const sold = +t.totalSold || 0;
+  const computed = currentQty + sold;
+  const addsSum = (t.additions||[]).reduce((a,x)=>a+(+x.qty||0), 0);
+  return Math.max(computed, addsSum);
 }
 
-function _fixFlourType(t){ if(!t) return; if(!t.additions) t.additions = []; if(t.totalSold === undefined) t.totalSold = 0; if(t.qty === undefined) t.qty = 0; const original = _getOriginalQty(t); const sold = +t.totalSold || 0; const expectedRemaining = Math.max(0, original - sold); if(Math.abs((+t.qty||0) - expectedRemaining) > 0.001){ t.qty = expectedRemaining; } }
+function _fixFlourType(t){
+  if(!t) return;
+  if(!t.additions) t.additions = [];
+  if(t.totalSold === undefined) t.totalSold = 0;
+  if(t.qty === undefined) t.qty = 0;
+}
 
 function _recalcFlourType(t){ if(!t) return; const original = _getOriginalQty(t); const sold = +t.totalSold || 0; t.qty = Math.max(0, original - sold); t._editedAt = Date.now(); }
 
@@ -2083,9 +2125,6 @@ const allPayments=db.payments.filter(x=>x.person===p).reduce((a,x)=>a+x.amount,0
 return Math.max(0,debtSum-allPayments);
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ [إصلاح] دوال البيع — editSale, delSale, editDateTime
-// ═══════════════════════════════════════════════════════════
 function editDateTime(type,id){
 let coll=null;
 if(type==='payment')coll=db.payments;
@@ -2100,6 +2139,7 @@ const item=coll.find(x=>x.id===id);if(!item){toast('❌ ما وجدت السجل
 const nd=promptDateTime(item.date);
 if(nd===undefined)return;
 item.date=nd;item._editedAt=Date.now();
+_markAsNewAfterArchive(item);
 save();renderAll();renderArchive();toast('✅ تم تعديل الوقت');
 }
 
@@ -2133,7 +2173,8 @@ if(!newItems.length){toast('❌ لم تُدخل أي نوع',true);save();render
 const newTotal=newItems.reduce((a,i)=>a+i.total,0);
 newItems.forEach(it=>{const t=db.flourTypes.find(x=>x.name===it.typeName);if(t){t.qty-=it.qty;t.totalSold=(t.totalSold||0)+it.qty;t._editedAt=Date.now();}});
 s.buyer=nb;s.method=nm;s.carrier=nc;s.items=newItems;s.qty=newItems.reduce((a,i)=>a+i.qty,0);s.grossTotal=newTotal;s.total=newTotal;s._editedAt=Date.now();
-if(nm==='دين'){newItems.forEach(it=>{db.debts.push({id:uid(),person:nb,amount:it.total,typeName:it.typeName,qty:it.qty,unitPrice:it.unitPrice||0,date:s.date,carrier:nc,fromSale:true,saleId:s.id,_editedAt:Date.now()});});}
+_markAsNewAfterArchive(s);
+if(nm==='دين'){newItems.forEach(it=>{const _newDebt = {id:uid(),person:nb,amount:it.total,typeName:it.typeName,qty:it.qty,unitPrice:it.unitPrice||0,date:s.date,carrier:nc,fromSale:true,saleId:s.id,_editedAt:Date.now()}; _markAsNewAfterArchive(_newDebt); db.debts.push(_newDebt);});}
 save();renderAll();toast('✅ تم تعديل البيع');
 }
 
@@ -2156,15 +2197,13 @@ save();renderFlour();renderAll();
 toast('✅ تم الحذف — الكمية رجعت للمخزون');
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ [إصلاح] دوال الصرفيات — editExpense, delExpense
-// ═══════════════════════════════════════════════════════════
 function editExpense(id){
 const e=db.expenses.find(x=>x.id===id);if(!e){toast('❌ ما وجدت الصرفية',true);return;}
 const ndi=prompt('📝 الوصف:',e.desc);if(ndi===null)return;
 const nai=prompt('💰 المبلغ:',e.amount);if(nai===null)return;
 const ndt=promptDateTime(e.date);if(ndt===undefined)return;
 e.desc=ndi.trim();e.amount=+nai;e.date=ndt;e._editedAt=Date.now();
+_markAsNewAfterArchive(e);
 save();renderAll();toast('✅ تم تعديل الصرفية');
 }
 
@@ -2180,7 +2219,9 @@ const d=document.getElementById('eDesc').value.trim();
 const a=+document.getElementById('eAmount').value;
 if(!d)return toast('اكتب الوصف',true);
 if(!a||a<=0)return toast('اكتب المبلغ',true);
-db.expenses.push({id:uid(),desc:d,amount:a,date:nowISO(),_editedAt:Date.now()});
+const _newExp = {id:uid(),desc:d,amount:a,date:nowISO(),_editedAt:Date.now()};
+_markAsNewAfterArchive(_newExp);
+db.expenses.push(_newExp);
 save();renderAll();
 document.getElementById('eDesc').value='';
 document.getElementById('eAmount').value='';
@@ -2198,9 +2239,6 @@ h+=`<tr><td style="font-size:11px">${fmt(e.date)}</td><td>${_escHtml(e.desc)}</t
 el.innerHTML=h+'</table>';
 }
 
-// ═══════════════════════════════════════════════════════════
-// ✅ [إصلاح] دوال المشترين — delBuyerCompletely
-// ═══════════════════════════════════════════════════════════
 function delBuyerCompletely(n){
 if(!confirm('⚠️ حذف المبيعات والديون والتسديدات والحجوزات عن "'+n+'"؟\n\n✅ سيتم الاحتفاظ بالإيداعات والأرصدة المالية'))return;
 if(!confirm('تأكيد نهائي؟'))return;
@@ -2724,7 +2762,16 @@ function removeDepositItem(id){if(_depositItems.length===1){_depositItems=[{id:u
 function addDepositTypeRow(){_depositItems.push({id:uid(),typeId:'',qty:'',price:''});renderDepositTypes();}
 function updateMultiDepSum(){const sum=_depositItems.reduce((a,it)=>a+((+it.qty||0)*(+it.price||0)),0);const el=document.getElementById('multiDepSum');if(el)el.textContent=money(sum)+' د.ع';}
 
+// ═══════════════════════════════════════════════════════════
+// ✅ [نسخة نهائية محصّنة] addDeposit — الخصم اختياري فقط
+// ═══════════════════════════════════════════════════════════
 function addDeposit(){
+// ✅ [حماية 1] قراءة الزر — لازم checkbox موجود و checked === true
+const _deductCheck = document.getElementById('dDeductDebt');
+const shouldDeductDebt = !!(_deductCheck && _deductCheck.checked === true);
+
+console.log('🔍 [addDeposit] حالة الزر:', shouldDeductDebt ? '☑️ مفعّل (سيتم الخصم)' : '☐ موقّف (لن يتم الخصم)');
+
 const p=document.getElementById('dPerson').value.trim();
 const carrier=document.getElementById('dCarrier')?document.getElementById('dCarrier').value.trim():'';
 let amountEntered=+document.getElementById('dAmount').value||0;
@@ -2733,54 +2780,183 @@ let remainingDiscount=_discEl?+_discEl.value||0:0;
 const originalDiscount=remainingDiscount;
 const rem=+document.getElementById('dRemaining').value||0;
 const isLegacy=document.getElementById('dLegacy')&&document.getElementById('dLegacy').checked;
-const shouldDeductDebt = true;
+
 if(!p)return toast('اكتب اسم الشخص',true);
 const flourNames = new Set((db.flourTypes||[]).map(t => _cleanType(t.name)));
 if(flourNames.has(_cleanPerson(p)) || flourNames.has(_cleanType(p)))return toast('❌ هذا اسم نوع طحين، وليس اسم شخص',true);
+
 let d=nowISO();
 const dtInput=document.getElementById('dDateTime');
 if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(parsed.getTime())){d=parsed.toISOString();}}catch(e){}}
+
 const validItems=_depositItems.filter(it=>it.typeId&&(+it.qty>0));
 if(amountEntered<=0 && validItems.length===0 && rem<=0){ return toast('اكتب مبلغ أو كمية',true); }
+
 const bC = _cleanPerson(p);
+
 let itemsValue = 0;
 const itemsList = [];
-validItems.forEach(it => { const t = db.flourTypes.find(x => x.id === it.typeId); if(!t) return; const qty = +it.qty || 0; const price = +it.price || 0; const total = qty * price; itemsValue += total; itemsList.push({ name: t.name, qty: qty, price: price, total: total }); });
+validItems.forEach(it => {
+  const t = db.flourTypes.find(x => x.id === it.typeId);
+  if(!t) return;
+  const qty = +it.qty || 0;
+  const price = +it.price || 0;
+  const total = qty * price;
+  itemsValue += total;
+  itemsList.push({ name: t.name, qty: qty, price: price, total: total });
+});
+
 const debtBefore = debtBalance(p);
-let debtDeducted = 0; let freeDisplay = 0; let newDebtAmount = 0;
-if(shouldDeductDebt && debtBefore > 0){ const cashRemaining = amountEntered - itemsValue; if(cashRemaining > 0){ debtDeducted = Math.min(debtBefore, cashRemaining); freeDisplay = cashRemaining - debtDeducted; } else if(cashRemaining < 0){ newDebtAmount = Math.abs(cashRemaining); } } else { freeDisplay = amountEntered; }
+
+let debtDeducted = 0;
+let freeDisplay = 0;
+let newDebtAmount = 0;
+
+// ✅ [حماية 2] الخصم فقط إذا الزر مفعّل بالضبط
+if(shouldDeductDebt === true && debtBefore > 0){
+  const cashRemaining = amountEntered - itemsValue;
+  if(cashRemaining > 0){
+    debtDeducted = Math.min(debtBefore, cashRemaining);
+    freeDisplay = cashRemaining - debtDeducted;
+    console.log('🔍 [addDeposit] سيتم خصم دين:', debtDeducted, 'من', debtBefore);
+  } else if(cashRemaining < 0){
+    newDebtAmount = Math.abs(cashRemaining);
+    console.log('🔍 [addDeposit] الزر مفعّل لكن الباقي سالب — دين جديد:', newDebtAmount);
+  }
+} else {
+  // ❌ الزر موقّف → ما نخصم أي دين
+  freeDisplay = amountEntered;
+  if(amountEntered - itemsValue < 0){
+    newDebtAmount = Math.abs(amountEntered - itemsValue);
+  }
+  console.log('🔍 [addDeposit] الزر موقّف — لا خصم. freeDisplay:', freeDisplay, 'debtDeducted:', 0);
+}
+
 if(rem > 0){ newDebtAmount += rem; }
+
 if(amountEntered > 0){
   let amountToRegister = amountEntered;
-  if(remainingDiscount > 0){ const applied = Math.min(amountToRegister, remainingDiscount); amountToRegister -= applied; remainingDiscount -= applied; }
+  if(remainingDiscount > 0){
+    const applied = Math.min(amountToRegister, remainingDiscount);
+    amountToRegister -= applied;
+    remainingDiscount -= applied;
+  }
   const totalUsedMoney = itemsValue + debtDeducted;
-  const depositInfo = { _itemsList: itemsList, _itemsValue: itemsValue, _debtBefore: debtBefore, _debtDeducted: debtDeducted, _freeRemaining: freeDisplay, _fullAmount: amountEntered, _usedMoney: totalUsedMoney, _date: d };
-  const newFreeDep = { id:uid(), person:p, carrier:carrier, amount:freeDisplay, originalAmount:amountToRegister, _usedMoney:totalUsedMoney, typeName:'', qty:0, originalQty:0, unitPrice:0, totalPrice:0, date:d, legacy:isLegacy, note:debtDeducted > 0 ? '💵 المبلغ (خصم دين)' : '💵 المبلغ', _usedQty:0, _editedAt:Date.now(), _lastDepositInfo: depositInfo, _countedInCashbox: false };
+  const depositInfo = {
+    _itemsList: itemsList,
+    _itemsValue: itemsValue,
+    _debtBefore: debtBefore,
+    _debtDeducted: debtDeducted,
+    _freeRemaining: freeDisplay,
+    _fullAmount: amountEntered,
+    _usedMoney: totalUsedMoney,
+    _date: d
+  };
+  const newFreeDep = {
+    id:uid(), person:p, carrier:carrier,
+    amount:freeDisplay, originalAmount:amountToRegister,
+    _usedMoney:totalUsedMoney,
+    typeName:'', qty:0, originalQty:0,
+    unitPrice:0, totalPrice:0, date:d, legacy:isLegacy,
+    note:debtDeducted > 0 ? '💵 المبلغ (خصم دين)' : '💵 المبلغ',
+    _usedQty:0, _editedAt:Date.now(),
+    _lastDepositInfo: depositInfo,
+    _countedInCashbox: false
+  };
+  _markAsNewAfterArchive(newFreeDep);
   db.deposits.push(newFreeDep);
 }
+
 validItems.forEach(it=>{
-  const t=db.flourTypes.find(x=>x.id===it.typeId); if(!t)return;
-  const qty=+it.qty||0; const price=+it.price||0;
+  const t=db.flourTypes.find(x=>x.id===it.typeId);
+  if(!t)return;
+  const qty=+it.qty||0;
+  const price=+it.price||0;
   let total=qty*price;
-  if(remainingDiscount > 0 && total > 0){ const applied = Math.min(total, remainingDiscount); total -= applied; remainingDiscount -= applied; }
+  if(remainingDiscount > 0 && total > 0){
+    const applied = Math.min(total, remainingDiscount);
+    total -= applied;
+    remainingDiscount -= applied;
+  }
   const tC = _cleanType(t.name);
   let dep = db.deposits.find(x => _cleanPerson(x.person) === bC && _cleanType(x.typeName) === tC && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished && x.originalQty !== undefined && !!x.legacy === !!isLegacy);
-  if(dep){ dep.originalQty = (+dep.originalQty || 0) + qty; dep.qty = (+dep.qty || 0) + qty; if(total > 0){ dep.originalAmount = (+dep.originalAmount || 0) + total; dep.amount = (+dep.amount || 0) + total; } if(price > 0) dep.unitPrice = price; dep._editedAt = Date.now(); }
-  else { db.deposits.push({ id:uid(), person:p, carrier:carrier, amount:total, originalAmount:total, typeName:t.name, qty:qty, originalQty:qty, unitPrice:price, totalPrice:total, date:d, legacy:isLegacy, note:total>0?'💰+🌾':'📦 كمية فقط', _usedQty:0, _usedMoney:0, _editedAt:Date.now(), _partOfFreeDeposit: amountEntered > 0 && total > 0, _countedInCashbox: false }); }
+  if(dep){
+    dep.originalQty = (+dep.originalQty || 0) + qty;
+    dep.qty = (+dep.qty || 0) + qty;
+    if(total > 0){ dep.originalAmount = (+dep.originalAmount || 0) + total; dep.amount = (+dep.amount || 0) + total; }
+    if(price > 0) dep.unitPrice = price;
+    dep._editedAt = Date.now();
+    _markAsNewAfterArchive(dep);
+  } else {
+    const _newTypeDep = {
+      id:uid(), person:p, carrier:carrier,
+      amount:total, originalAmount:total,
+      typeName:t.name, qty:qty, originalQty:qty,
+      unitPrice:price, totalPrice:total,
+      date:d, legacy:isLegacy,
+      note:total>0?'💰+🌾':'📦 كمية فقط',
+      _usedQty:0, _usedMoney:0, _editedAt:Date.now(),
+      _partOfFreeDeposit: amountEntered > 0 && total > 0,
+      _countedInCashbox: false
+    };
+    _markAsNewAfterArchive(_newTypeDep);
+    db.deposits.push(_newTypeDep);
+  }
   let r = db.reservations.find(x => _cleanPerson(x.person) === bC && _cleanType(x.typeName) === tC && (x.totalQty - x.usedQty) > 0);
-  if(r){ r.totalQty += qty; r.lastDate = d; r._editedAt = Date.now(); }
-  else { db.reservations.push({ id: uid(), person: p, typeName: t.name, totalQty: qty, usedQty: 0, date: d, lastDate: d, _editedAt: Date.now() }); }
+  if(r){ r.totalQty += qty; r.lastDate = d; r._editedAt = Date.now(); _markAsNewAfterArchive(r); }
+  else { const _newRsv = { id: uid(), person: p, typeName: t.name, totalQty: qty, usedQty: 0, date: d, lastDate: d, _editedAt: Date.now() }; _markAsNewAfterArchive(_newRsv); db.reservations.push(_newRsv); }
 });
-if(rem > 0){ db.debts.push({ id: uid(), person: p, amount: rem, typeName: '(الباقي من إيداع)', qty: 0, date: d, manual: true, fromDeposit: true, _editedAt: Date.now() }); }
+
+if(rem > 0){ const _newDebt = { id: uid(), person: p, amount: rem, typeName: '(الباقي من إيداع)', qty: 0, date: d, manual: true, fromDeposit: true, _editedAt: Date.now() }; _markAsNewAfterArchive(_newDebt); db.debts.push(_newDebt); }
+
+// ✅ [حماية 3] دفع الخصم فقط إذا debtDeducted > 0 (يعني الزر كان مفعّل)
 if(debtDeducted > 0){
   const sortedDebts = db.debts.filter(x => _cleanPerson(x.person) === bC).sort((a,b) => a.date.localeCompare(b.date));
   let remaining = debtDeducted;
-  sortedDebts.forEach(dbt => { if(remaining <= 0) return; const deduct = Math.min(remaining, +dbt.amount || 0); dbt.amount = Math.max(0, (+dbt.amount || 0) - deduct); dbt._editedAt = Date.now(); remaining -= deduct; });
+  sortedDebts.forEach(dbt => {
+    if(remaining <= 0) return;
+    const deduct = Math.min(remaining, +dbt.amount || 0);
+    dbt.amount = Math.max(0, (+dbt.amount || 0) - deduct);
+    dbt._editedAt = Date.now();
+    remaining -= deduct;
+  });
   db.debts = db.debts.filter(x => _cleanPerson(x.person) !== bC || +x.amount > 0.01);
-  db.payments.push({ id: uid(), person: p, amount: debtDeducted, typeName: '💳 خصم تلقائي', qty: 0, details: `أنواع: ${money(itemsValue)} — مطلوب: ${money(debtBefore)} — باقي: ${money(freeDisplay)}`, date: d, _fromDeposit: true, _debtBefore: debtBefore, _debtDeducted: debtDeducted, _debtAfter: Math.max(0, debtBefore - debtDeducted), _editedAt: Date.now() });
+  const _newPay = {
+    id: uid(), person: p, amount: debtDeducted,
+    typeName: '💳 خصم تلقائي', qty: 0,
+    details: `أنواع: ${money(itemsValue)} — مطلوب: ${money(debtBefore)} — باقي: ${money(freeDisplay)}`,
+    date: d, _fromDeposit: true,
+    _debtBefore: debtBefore, _debtDeducted: debtDeducted,
+    _debtAfter: Math.max(0, debtBefore - debtDeducted),
+    _editedAt: Date.now()
+  };
+  _markAsNewAfterArchive(_newPay);
+  db.payments.push(_newPay);
+  console.log('🔍 [addDeposit] ✅ تم تسجيل خصم دين:', debtDeducted);
+} else {
+  console.log('🔍 [addDeposit] ⛔ لا خصم دين — الزر موقّف أو ما في دين');
 }
-if(newDebtAmount > 0){ db.debts.push({ id: uid(), person: p, amount: newDebtAmount, typeName: '💳 باقي', qty: 0, unitPrice: 0, date: d, manual: true, _fromDeposit: true, _note: amountEntered - itemsValue < 0 ? 'الباقي سالب' : 'باقي كلي', _editedAt: Date.now() }); }
+
+if(newDebtAmount > 0){
+  const _newDebt2 = {
+    id: uid(), person: p, amount: newDebtAmount,
+    typeName: '💳 باقي', qty: 0, unitPrice: 0,
+    date: d, manual: true, _fromDeposit: true,
+    _note: amountEntered - itemsValue < 0 ? 'الباقي سالب' : 'باقي كلي',
+    _editedAt: Date.now()
+  };
+  _markAsNewAfterArchive(_newDebt2);
+  db.debts.push(_newDebt2);
+}
+
+_markAllAsNewAfterArchive(db.deposits);
+_markAllAsNewAfterArchive(db.reservations);
+_markAllAsNewAfterArchive(db.debts);
+_markAllAsNewAfterArchive(db.payments);
+
 if(document.getElementById('dLegacy'))document.getElementById('dLegacy').checked=false;
+if(_deductCheck) _deductCheck.checked = false;
+
 save();renderAll();
 document.getElementById('dPerson').value='';
 if(document.getElementById('dCarrier'))document.getElementById('dCarrier').value='';
@@ -2790,6 +2966,7 @@ document.getElementById('dRemaining').value='';
 if(document.getElementById('dDateTime'))document.getElementById('dDateTime').value='';
 _depositItems=[{id:uid(),typeId:'',qty:'',price:''}];
 renderDepositTypes();
+
 let msg = '✅ تم الإيداع: ' + money(amountEntered);
 if(itemsValue > 0) msg += ` — أنواع: ${money(itemsValue)}`;
 if(debtDeducted > 0) msg += ` — خصم دين: ${money(debtDeducted)}`;
@@ -2811,6 +2988,7 @@ const nupI=prompt('💵 السعر:',d.unitPrice||0);if(nupI===null)return;const
 const naI=prompt('💰 المبلغ:',d.originalAmount||d.amount||0);if(naI===null)return;const na=+naI||0;
 const ndt=promptDateTime(d.date);if(ndt===undefined)return;
 d.person=np;d.carrier=nc;d.typeName=nt;d.qty=nAdd;d.originalQty=nAdd;d.unitPrice=nup;d.totalPrice=nAdd*nup;d.amount=na;d.originalAmount=na;d.date=ndt;d._editedAt=Date.now();
+_markAsNewAfterArchive(d);
 save();renderAll();toast('✅');
 }
 
@@ -2824,8 +3002,16 @@ let h='';
 pl.forEach(p=>{
 const liveDeps = db.deposits.filter(d=>_cleanPerson(d.person)===_cleanPerson(p) && !d.isWithdrawal && !d.isCarry && !d.cashPayment && !d._finished);
 if(!liveDeps.length) return;
-let totalMoney = 0; let totalQty = 0;
-liveDeps.forEach(d=>{ const origQty = +d.originalQty || +d.qty || 0; const origAmt = +d.originalAmount || +d.amount || 0; const usedQty = +d._usedQty || 0; const usedAmt = +d._usedMoney || 0; totalQty += Math.max(0, origQty - usedQty); totalMoney += Math.max(0, origAmt - usedAmt); });
+let totalMoney = 0;
+let totalQty = 0;
+liveDeps.forEach(d=>{
+const origQty = +d.originalQty || +d.qty || 0;
+const origAmt = +d.originalAmount || +d.amount || 0;
+const usedQty = +d._usedQty || 0;
+const usedAmt = +d._usedMoney || 0;
+totalQty += Math.max(0, origQty - usedQty);
+totalMoney += Math.max(0, origAmt - usedAmt);
+});
 const isFinished = (totalMoney <= 0 && totalQty <= 0);
 h+=`<div class="buyer-group" style="${isFinished?'opacity:0.7':''}"><div class="buyer-head" onclick="toggleBuyer('depP_${p.replace(/[^a-zA-Z0-9]/g,'')}')"><div class="name">👤 <b>${_escHtml(p)}</b> <span style="font-size:11px;color:#888">(${liveDeps.length} إيداع)</span></div><div style="display:flex;gap:6px;flex-wrap:wrap">${totalMoney>0?`<span class="total" style="background:#27ae60">💰 ${money(totalMoney)}</span>`:''}${totalQty>0?`<span class="total" style="background:#2980b9">📦 ${money(totalQty)} كيس</span>`:''}<button class="blue small" onclick="event.stopPropagation();editPersonDepositBalance('${_escJs(p)}')">✏️</button><button class="danger small" onclick="event.stopPropagation();delPersonDeposits('${_escJs(p)}')">🗑️</button></div></div><div class="buyer-body open" id="depP_${p.replace(/[^a-zA-Z0-9]/g,'')}">`;
 h+=`<table style="font-size:11px;margin:6px"><tr><th>النوع</th><th>📦 الأصلي</th><th>📦 المستخدم</th><th>📦 المتبقي</th><th>💰 الأصلي</th><th>💰 المستخدم</th><th>💰 المتبقي</th><th>💵 السعر</th><th>📅 التاريخ</th><th>الحالة</th><th></th></tr>`;
@@ -2838,7 +3024,8 @@ const usedAmt = +dep._usedMoney || 0;
 const remQty = Math.max(0, origQty - usedQty);
 const remAmt = Math.max(0, origAmt - usedAmt);
 const depFinished = (remQty <= 0 && remAmt <= 0);
-let qtyCells = ''; let moneyCells = '';
+let qtyCells = '';
+let moneyCells = '';
 if(origQty > 0){qtyCells = `<td style="color:#2980b9;font-weight:bold">${money(origQty)}</td><td style="color:#e67e22;font-weight:bold">${money(usedQty)}</td><td style="color:${remQty<=0?'#8b0000':'#c0392b'};font-weight:bold">${remQty<=0?'<span style="background:#8b0000;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px">انتهى</span>':money(remQty)}</td>`;}
 else { qtyCells = `<td style="color:#ccc">—</td><td style="color:#ccc">—</td><td style="color:#ccc">—</td>`; }
 if(origAmt > 0){moneyCells = `<td style="color:#2980b9;font-weight:bold">${money(origAmt)}</td><td style="color:#e67e22;font-weight:bold">${money(usedAmt)}</td><td style="color:${remAmt<=0?'#8b0000':'#c0392b'};font-weight:bold">${remAmt<=0?'<span style="background:#8b0000;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px">انتهى</span>':money(remAmt)}</td>`;}
@@ -2853,8 +3040,15 @@ renderReservations();
 const el=document.getElementById('depositList');
 if(!db.deposits.length){el.innerHTML='<div class="empty">لا يوجد سجل</div>';return;}
 const groups={};
-db.deposits.forEach(d=>{ if(d._finished === true && !d.isWithdrawal) return; if(!groups[d.person])groups[d.person]=[]; groups[d.person].push(d); });
-Object.keys(groups).forEach(person=>{ const hasActive = groups[person].some(d => !d._finished || d.isWithdrawal); if(!hasActive) delete groups[person]; });
+db.deposits.forEach(d=>{
+  if(d._finished === true && !d.isWithdrawal) return;
+  if(!groups[d.person])groups[d.person]=[];
+  groups[d.person].push(d);
+});
+Object.keys(groups).forEach(person=>{
+  const hasActive = groups[person].some(d => !d._finished || d.isWithdrawal);
+  if(!hasActive) delete groups[person];
+});
 let h2='';let idx=0;
 Object.keys(groups).forEach(person=>{
 const items=[...groups[person]].sort((a,b)=>b.date.localeCompare(a.date));
@@ -2908,7 +3102,7 @@ h+=`</table></div></div>`;
 rv.innerHTML=h;
 }
 
-function editRsv(id){const r=db.reservations.find(x=>x.id===id);if(!r)return;const npi=prompt('👤 الاسم:',r.person);if(npi===null)return;const nti=prompt('🌾 النوع:',r.typeName);if(nti===null)return;const ntqi=prompt('📦 الأصلية:',r.totalQty);if(ntqi===null)return;const nui=prompt('📤 المستخدمة:',r.usedQty||0);if(nui===null)return;r.person=npi.trim();r.typeName=nti.trim();r.totalQty=+ntqi||0;r.usedQty=Math.max(0,Math.min(+nui||0,r.totalQty));r.lastDate=nowISO();r._editedAt=Date.now();save();renderAll();toast('✅');}
+function editRsv(id){const r=db.reservations.find(x=>x.id===id);if(!r)return;const npi=prompt('👤 الاسم:',r.person);if(npi===null)return;const nti=prompt('🌾 النوع:',r.typeName);if(nti===null)return;const ntqi=prompt('📦 الأصلية:',r.totalQty);if(ntqi===null)return;const nui=prompt('📤 المستخدمة:',r.usedQty||0);if(nui===null)return;r.person=npi.trim();r.typeName=nti.trim();r.totalQty=+ntqi||0;r.usedQty=Math.max(0,Math.min(+nui||0,r.totalQty));r.lastDate=nowISO();r._editedAt=Date.now();_markAsNewAfterArchive(r);save();renderAll();toast('✅');}
 
 // ═══════════════════════════════════════════════════════════
 // ✅ التسديد
@@ -2928,16 +3122,22 @@ const debtBefore = debtBalance(p);
 if(a > debtBefore && debtBefore > 0){
   const paymentAmount = debtBefore;
   const excess = a - debtBefore;
-  db.payments.push({id:uid(),person:p,amount:paymentAmount,typeName:tn||'',qty:q,details:(det||'')+' (فائض '+money(excess)+' للإيداع)',date:d,_editedAt:Date.now()});
+  const _newPay = {id:uid(),person:p,amount:paymentAmount,typeName:tn||'',qty:q,details:(det||'')+' (فائض '+money(excess)+' للإيداع)',date:d,_editedAt:Date.now()};
+  _markAsNewAfterArchive(_newPay);
+  db.payments.push(_newPay);
   const bC = _cleanPerson(p);
   let freeDep = db.deposits.find(x => _cleanPerson(x.person) === bC && (!x.typeName || x.typeName === '') && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished);
-  if(freeDep){ freeDep.amount = (+freeDep.amount || 0) + excess; freeDep.originalAmount = (+freeDep.originalAmount || 0) + excess; freeDep._editedAt = Date.now(); }
-  else { db.deposits.push({id:uid(),person:p,carrier:'',amount:excess,originalAmount:excess,_usedMoney:0,typeName:'',qty:0,originalQty:0,unitPrice:0,totalPrice:0,date:d,note:'💵 فائض تسديد',_usedQty:0,_editedAt:Date.now(),_countedInCashbox:false}); }
+  if(freeDep){ freeDep.amount = (+freeDep.amount || 0) + excess; freeDep.originalAmount = (+freeDep.originalAmount || 0) + excess; freeDep._editedAt = Date.now(); _markAsNewAfterArchive(freeDep); }
+  else { const _newFree = {id:uid(),person:p,carrier:'',amount:excess,originalAmount:excess,_usedMoney:0,typeName:'',qty:0,originalQty:0,unitPrice:0,totalPrice:0,date:d,note:'💵 فائض تسديد',_usedQty:0,_editedAt:Date.now(),_countedInCashbox:false}; _markAsNewAfterArchive(_newFree); db.deposits.push(_newFree); }
   toast(`✅ تسديد ${money(paymentAmount)} — الفائض ${money(excess)} ذهب للإيداع`);
 } else {
-  db.payments.push({id:uid(),person:p,amount:a,typeName:tn||'',qty:q,details:det,date:d,_editedAt:Date.now()});
+  const _newPay2 = {id:uid(),person:p,amount:a,typeName:tn||'',qty:q,details:det,date:d,_editedAt:Date.now()};
+  _markAsNewAfterArchive(_newPay2);
+  db.payments.push(_newPay2);
   toast('تم التسديد ✅');
 }
+_markAllAsNewAfterArchive(db.payments);
+_markAllAsNewAfterArchive(db.deposits);
 save();renderAll();
 document.getElementById('pPerson').value='';document.getElementById('pType').value='';document.getElementById('pQty').value='';document.getElementById('pAmount').value='';
 if(document.getElementById('pDetails'))document.getElementById('pDetails').value='';
@@ -2956,7 +3156,7 @@ h+=`<tr${isAuto?' style="background:#fff8e6"':''}><td style="font-size:11px">${f
 el.innerHTML=h+'</table>';
 }
 
-function editPayment(id){const p=db.payments.find(x=>x.id===id);if(!p)return;const npi=prompt('👤 الاسم:',p.person);if(npi===null)return;const nti=prompt('🌾 النوع:',p.typeName||'');if(nti===null)return;const nqi=prompt('📦 الكمية:',p.qty||0);if(nqi===null)return;const nai=prompt('💰 المبلغ:',p.amount);if(nai===null)return;const ndi=prompt('📝 التفاصيل:',p.details||'');if(ndi===null)return;const ndt=promptDateTime(p.date);if(ndt===undefined)return;p.person=npi.trim();p.typeName=nti.trim();p.qty=+nqi||0;p.amount=+nai;p.details=ndi.trim();p.date=ndt;p._editedAt=Date.now();save();renderAll();toast('✅');}
+function editPayment(id){const p=db.payments.find(x=>x.id===id);if(!p)return;const npi=prompt('👤 الاسم:',p.person);if(npi===null)return;const nti=prompt('🌾 النوع:',p.typeName||'');if(nti===null)return;const nqi=prompt('📦 الكمية:',p.qty||0);if(nqi===null)return;const nai=prompt('💰 المبلغ:',p.amount);if(nai===null)return;const ndi=prompt('📝 التفاصيل:',p.details||'');if(ndi===null)return;const ndt=promptDateTime(p.date);if(ndt===undefined)return;p.person=npi.trim();p.typeName=nti.trim();p.qty=+nqi||0;p.amount=+nai;p.details=ndi.trim();p.date=ndt;p._editedAt=Date.now();_markAsNewAfterArchive(p);save();renderAll();toast('✅');}
 
 // ═══════════════════════════════════════════════════════════
 // ✅ الطحين
@@ -2970,8 +3170,16 @@ if(!q||q<=0)return toast('اكتب الكمية',true);
 const d=nowISO();
 const nC=_cleanType(n);
 let t=db.flourTypes.find(x=>_cleanType(x.name)===nC);
-if(t){ if(!t.additions) t.additions=[]; t.additions.push({qty:q,date:d,note:'حمولة جديدة'}); _recalcFlourType(t); t.updatedAt=d; t._editedAt=Date.now(); if(!t._visibleFrom) t._visibleFrom = d; }
-else{ db.flourTypes.push({id:uid(),name:n,qty:q,totalSold:0,unitPrice:0,updatedAt:d,additions:[{qty:q,date:d,note:'الكمية الأولى'}],_visibleFrom:d,_editedAt:Date.now()}); }
+if(t){
+  if(!t.additions) t.additions=[];
+  t.additions.push({qty:q,date:d,note:'حمولة جديدة'});
+  _recalcFlourType(t);
+  t.updatedAt=d;
+  t._editedAt=Date.now();
+  if(!t._visibleFrom) t._visibleFrom = d;
+}else{
+  db.flourTypes.push({id:uid(),name:n,qty:q,totalSold:0,unitPrice:0,updatedAt:d,additions:[{qty:q,date:d,note:'الكمية الأولى'}],_visibleFrom:d,_editedAt:Date.now()});
+}
 save();renderAll();
 document.getElementById('ftName').value='';
 document.getElementById('ftQty').value='';
@@ -3000,8 +3208,16 @@ function delFlourType(id){
 if(!confirm('تأكيد الحذف؟'))return;
 _matchedFlourIds.clear();
 const t=db.flourTypes.find(x=>x.id===id);
-if(t){ const tC=_cleanType(t.name); if(db._manualOverrides) delete db._manualOverrides[tC]; const otherDups=db.flourTypes.filter(x=>x.id!==id && _cleanType(x.name)===tC); otherDups.forEach(x=>markDeleted('flourTypes',x.id)); db.flourTypes=db.flourTypes.filter(x=>x.id!==id && _cleanType(x.name)!==tC); }
-else{ markDeleted('flourTypes',id); db.flourTypes=db.flourTypes.filter(x=>x.id!==id); }
+if(t){
+  const tC=_cleanType(t.name);
+  if(db._manualOverrides) delete db._manualOverrides[tC];
+  const otherDups=db.flourTypes.filter(x=>x.id!==id && _cleanType(x.name)===tC);
+  otherDups.forEach(x=>markDeleted('flourTypes',x.id));
+  db.flourTypes=db.flourTypes.filter(x=>x.id!==id && _cleanType(x.name)!==tC);
+}else{
+  markDeleted('flourTypes',id);
+  db.flourTypes=db.flourTypes.filter(x=>x.id!==id);
+}
 save();renderAll();
 }
 
@@ -3025,10 +3241,8 @@ if(db._manualOverrides) delete db._manualOverrides[_cleanType(t.name)];
 }
 const now = nowISO();
 t.name=nn;t.qty=nQty;t.totalSold=nSold;t.unitPrice=nup;t.updatedAt=now;t._editedAt=Date.now();
-t._manualOverride = Date.now(); t._manualQty = nQty; t._manualOriginal = nAdd;
+t._manualOverride = null; t._manualQty = null; t._manualOriginal = null; t._manualSold = null;
 if(!t._visibleFrom) t._visibleFrom = now;
-if(!db._manualOverrides) db._manualOverrides = {};
-db._manualOverrides[_cleanType(nn)] = { original: nAdd, timestamp: Date.now() };
 save();renderAll();toast('✅ تم');
 }
 
@@ -3089,7 +3303,13 @@ let _lastCashboxValue=0;
 function renderHome(){
 var _archT = db._archiveCutoff || getArchiveTime();
 let reportTotal=0;
-const _isArch = (item) => { if(!item || !item.date || !_archT) return false; try{ return new Date(item.date).getTime() <= new Date(_archT).getTime(); }catch(e){ return false; } };
+
+// ✅ [تعديل] _isArch يتجاهل العناصر المضافة بعد الأرشفة
+const _isArch = (item) => {
+  if(!item || !item.date || !_archT) return false;
+  if(item._addedAfterArchive === true) return false;
+  try{ return new Date(item.date).getTime() <= new Date(_archT).getTime(); }catch(e){ return false; }
+};
 
 db.sales.forEach(s=>{ if(_isArch(s)) return; const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}]; const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0); const disc=s.discount||0; items.forEach(it=>{ const ratio=grossTotal>0?(it.total/grossTotal):0; const discountedTotal=Math.max(0,it.total-disc*ratio); let paid=discountedTotal; if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);} else if(s.method==='واصل'){paid=0;} else if(s.method==='هدية'){paid=0;} reportTotal += paid; }); });
 
@@ -3142,9 +3362,9 @@ toast('✅ تم تعديل الصندوق إلى ' + money(newVal) + ' د.ع');
 
 function resetCashboxOffset(){ if(!db._cashboxOffset){ toast('ما يوجد', true); return; } if(!confirm('إلغاء؟')) return; db._cashboxOffset=0; _skipNextMerge=true; save();renderHome();toast('✅'); }
 
-function addCashAmount(){ if(!db.cashAdditions)db.cashAdditions=[]; const a=+document.getElementById('caAmount').value; const n=document.getElementById('caNote').value.trim(); if(!a||a<=0)return toast('اكتب المبلغ',true); db.cashAdditions.push({id:uid(),amount:a,note:n,date:nowISO(),_editedAt:Date.now()}); save();renderAll(); document.getElementById('caAmount').value=''; document.getElementById('caNote').value=''; toast('✅'); }
+function addCashAmount(){ if(!db.cashAdditions)db.cashAdditions=[]; const a=+document.getElementById('caAmount').value; const n=document.getElementById('caNote').value.trim(); if(!a||a<=0)return toast('اكتب المبلغ',true); const _newCash = {id:uid(),amount:a,note:n,date:nowISO(),_editedAt:Date.now()}; _markAsNewAfterArchive(_newCash); db.cashAdditions.push(_newCash); save();renderAll(); document.getElementById('caAmount').value=''; document.getElementById('caNote').value=''; toast('✅'); }
 
-function editCashAmount(id){ if(!db.cashAdditions)db.cashAdditions=[]; const c=db.cashAdditions.find(x=>x.id===id);if(!c)return; const nai=prompt('💰 المبلغ:',c.amount);if(nai===null)return; const nni=prompt('📝 الوصف:',c.note||'');if(nni===null)return; const ndt=promptDateTime(c.date);if(ndt===undefined)return; c.amount=+nai;c.note=nni.trim();c.date=ndt;c._editedAt=Date.now();save();renderAll();toast('✅'); }
+function editCashAmount(id){ if(!db.cashAdditions)db.cashAdditions=[]; const c=db.cashAdditions.find(x=>x.id===id);if(!c)return; const nai=prompt('💰 المبلغ:',c.amount);if(nai===null)return; const nni=prompt('📝 الوصف:',c.note||'');if(nni===null)return; const ndt=promptDateTime(c.date);if(ndt===undefined)return; c.amount=+nai;c.note=nni.trim();c.date=ndt;c._editedAt=Date.now(); _markAsNewAfterArchive(c); save();renderAll();toast('✅'); }
 
 // ═══════════════════════════════════════════════════════════
 // ✅ المطابقة
@@ -3171,7 +3391,14 @@ function _aggregateFreeDeposits(deposits){
 
 function renderReport(){
 var _archT = db._archiveCutoff || getArchiveTime();
-const _isArch = (item) => { if(!item || !item.date || !_archT) return false; try{ return new Date(item.date).getTime() <= new Date(_archT).getTime(); }catch(e){ return false; } };
+
+// ✅ [تعديل] _isArch يتجاهل العناصر المضافة بعد الأرشفة
+const _isArch = (item) => {
+  if(!item || !item.date || !_archT) return false;
+  if(item._addedAfterArchive === true) return false;
+  try{ return new Date(item.date).getTime() <= new Date(_archT).getTime(); }catch(e){ return false; }
+};
+
 const wasselBals=computeWasselBalances();
 const rows=[];
 db.sales.forEach(s=>{ if(_isArch(s)) return; const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}]; const grossTotal=s.grossTotal||items.reduce((a,i)=>a+(i.total||0),0); const disc=s.discount||0; items.forEach(it=>{ const ratio=grossTotal>0?(it.total/grossTotal):0; const itemDisc=disc*ratio; const discountedTotal=Math.max(0,it.total-itemDisc); const discountedUnitPrice=it.qty>0?Math.round((discountedTotal/it.qty)*100)/100:0; let rB=null; if(s.method==='واصل'){const wKey=s.id + '|' + it.typeName;if(wasselBals[wKey]) rB=wasselBals[wKey];else rB=getSaleRemaining(s.buyer, it.typeName, s.date, s.id);} if(s.method==='واصل' && s.remByType && s.remByType[it.typeName]){const rb = s.remByType[it.typeName];rB = {mode: rb.mode, qty: rb.qty, money: rb.money, hasQtyDeposit: rb.hasQtyDeposit, hasMoneyDeposit: rb.hasMoneyDeposit};} let paidAmount=discountedTotal; let remAfterPaid=0; if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;remAfterPaid=debtPart;paidAmount=Math.max(0, discountedTotal - debtPart);} else if(s.method==='واصل'){paidAmount=0;remAfterPaid=rB ? (rB.money>0 ? rB.money : 0) : 0;} else if(s.method==='هدية'){paidAmount=0;remAfterPaid=0;} rows.push({date:s.date,type:it.typeName,qty:it.qty,unitPrice:discountedUnitPrice,buyer:s.buyer,carrier:s.carrier||'—',amount:paidAmount,displayAmount:paidAmount,method:s.method,remQty:rB?rB.qty:(it.remQty!==undefined?it.remQty:null),remMoney:rB?rB.money:(it.remMoney!==undefined?it.remMoney:remAfterPaid),hasQtyDeposit:rB?rB.hasQtyDeposit:(it.remQty>0),hasMoneyDeposit:rB?rB.hasMoneyDeposit:(remAfterPaid>0)}); }); });
@@ -3287,7 +3514,29 @@ async function doArchive(){
   db._archiveToken = _deviceId + '_' + _archiveTime + '_' + Math.random().toString(36).slice(2,8);
   db._permanentCarry = currentCashbox;
   db._cashboxOffset = 0;
-  db.flourTypes.forEach(t=>{ const currentQty = +t.qty || 0; t.additions = [{ qty: currentQty, date: _archiveTime, note: '📦 بعد الأرشفة' }]; t.qty = currentQty; t.totalSold = 0; t._manualOverride = Date.now(); t._manualOriginal = currentQty; t._manualQty = currentQty; t._manualSold = 0; if(!db._manualOverrides) db._manualOverrides = {}; db._manualOverrides[_cleanType(t.name)] = { original: currentQty, sold: 0, remaining: currentQty, timestamp: Date.now() }; t._visibleFrom = _archiveTime; t._editedAt = Date.now(); });
+  
+  // ═══════════════════════════════════════════════════════════
+  // ✅ [تعديل جذري] الأرشفة لا تثبّت الأصلية ولا تصفّر المباعة
+  //    الأصلية تظل = qty + totalSold (محسوبة ديناميكياً)
+  // ═══════════════════════════════════════════════════════════
+  db.flourTypes.forEach(t=>{
+    // نحافظ على qty و totalSold كما هما (لا نصفّر ولا نثبت)
+    // فقط نضيف إضافة "ما بعد الأرشفة" لتوثيق بداية مرحلة جديدة
+    const currentQty = +t.qty || 0;
+    if(!t.additions) t.additions = [];
+    t.additions.push({ qty: currentQty, date: _archiveTime, note: '📦 بعد الأرشفة' });
+    
+    // ✅ حذف أي تعديل يدوي سابق — الأصلية تُحسب ديناميكياً الآن
+    t._manualOverride = null;
+    t._manualOriginal = null;
+    t._manualQty = null;
+    t._manualSold = null;
+    if(db._manualOverrides) delete db._manualOverrides[_cleanType(t.name)];
+    
+    t._visibleFrom = _archiveTime;
+    t._editedAt = Date.now();
+  });
+  
   db.sales=[]; db.payments=[]; db.expenses=[]; db.buyers=[]; db.cashAdditions=[]; db.exchanges=[];
   db.deposits=keptDeposits;
   db.debts = db.debts.filter(d => +d.amount > 0.01);
@@ -4475,4 +4724,4 @@ document.addEventListener('input', function(e){ if(e.target && e.target.id === '
 })();
 </script>
 </body>
-                                         </html>
+                                                               </html>
