@@ -3719,7 +3719,7 @@ if(dn){if(diff>0)dn.textContent='⬆️ مطلوب من الزبون';else if(di
 function setExMethod(m){ currentExMethod=m; document.querySelectorAll('#exPayMethodsWrap button[data-em]').forEach(b=>{ b.classList.toggle('active',b.dataset.em===m); b.removeAttribute('style'); b.style.flex='1'; }); }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [تعديل جذري] doExchange — الاسترجاع يزيد الباقية وينقص المباعة (دون المساس بالأصلية)
+// ✅ [تعديل] doExchange — المرتجع للمخزن فقط (لا إيداع ولا حجز)
 // ═══════════════════════════════════════════════════════════
 function doExchange(){
 const buyer=document.getElementById('exPerson').value.trim();
@@ -3736,37 +3736,21 @@ const dtInput=document.getElementById('exDateTime');
 if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(parsed.getTime())){d=parsed.toISOString();}}catch(e){}}
 let retTotal=0,swpTotal=0;
 const retItems=[],swpItems=[];
-const bC=_cleanPerson(buyer);
 
+// ✅ الاسترجاع: يزيد الباقية وينقص المباعة فقط (بدون إيداع أو حجز)
 validRet.forEach(it=>{ 
   const t=db.flourTypes.find(x=>x.id===it.typeId); 
   const qty=+it.qty; 
   const price=+it.price||0; 
   const total=qty*price; 
   retTotal+=total; 
-  
-  // ✅ التعديل هنا: زيادة الباقية، نقصان المباعة، ولا نلمس additions
   t.qty=(+t.qty||0)+qty; 
   t.totalSold=Math.max(0, (+t.totalSold||0) - qty); 
   t._editedAt=Date.now(); 
   retItems.push({typeName:t.name,qty,unitPrice:price,total}); 
-  
-  const tC=_cleanType(t.name); 
-  let dep = db.deposits.find(x => _cleanPerson(x.person) === bC && _cleanType(x.typeName) === tC && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished); 
-  if(dep){ 
-    dep.originalQty = (+dep.originalQty || 0) + qty; 
-    dep.qty = (+dep.qty || 0) + qty; 
-    dep._editedAt = Date.now(); 
-  } else { 
-    db.deposits.push({ id:uid(), person:buyer, carrier:carrier, amount:0, originalAmount:0, typeName:t.name, qty:qty, originalQty:qty, unitPrice:0, totalPrice:0, date:d, note:'↩️ استرجاع من الزبون', _fromExchangeReturn:true, _usedQty:0, _usedMoney:0, _editedAt:Date.now() }); 
-  }
-  
-  // إضافة الحجز
-  let rRet = db.reservations.find(x => _cleanPerson(x.person) === bC && _cleanType(x.typeName) === tC);
-  if(rRet){ rRet.totalQty = (+rRet.totalQty || 0) + qty; rRet.lastDate = d; rRet._editedAt = Date.now(); }
-  else { db.reservations.push({ id: uid(), person: buyer, typeName: t.name, totalQty: qty, usedQty: 0, date: d, lastDate: d, _editedAt: Date.now() }); }
 });
 
+// ✅ التبديل: ينقص الباقية ويزيد المباعة
 validSwp.forEach(it=>{ 
   const t=db.flourTypes.find(x=>x.id===it.typeId); 
   const qty=+it.qty; 
@@ -3828,38 +3812,23 @@ el.innerHTML=h;
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [تعديل جذري] delExchange — يعكس الاسترجاع (ينقص الباقية، يزيد المباعة)
+// ✅ [تعديل] delExchange — عكس العملية (بدون إيداع أو حجز)
 // ═══════════════════════════════════════════════════════════
 function delExchange(id){
 if(!confirm('حذف هذه العملية؟'))return;
 const e=db.exchanges.find(x=>x.id===id);if(!e)return;
 
+// عكس الاسترجاع (نقصان الباقية، زيادة المباعة)
 (e.returnItems||[]).forEach(ri=>{ 
   const t=db.flourTypes.find(x=>x.name===ri.typeName); 
   if(t){ 
-    // ✅ عكس الاسترجاع: نقصان الباقية، زيادة المباعة (بدون لمس additions)
     t.qty=Math.max(0,(+t.qty||0)-ri.qty); 
     t.totalSold=(+t.totalSold||0)+ri.qty; 
     t._editedAt=Date.now(); 
   } 
-  const bC=_cleanPerson(e.buyer); 
-  const tC=_cleanType(ri.typeName); 
-  
-  const dep=db.deposits.find(d=>_cleanPerson(d.person)===bC && _cleanType(d.typeName)===tC && d._fromExchangeReturn); 
-  if(dep){ 
-    dep.originalQty=Math.max(0,(dep.originalQty||0)-ri.qty); 
-    dep.qty=Math.max(0,(dep.qty||0)-ri.qty); 
-    if(dep.originalQty<=0 && dep.qty<=0){ markDeleted('deposits',dep.id); db.deposits=db.deposits.filter(d=>d.id!==dep.id); } 
-  }
-  
-  const rRet = db.reservations.find(r => _cleanPerson(r.person) === bC && _cleanType(r.typeName) === tC);
-  if(rRet){ 
-    rRet.totalQty = Math.max(0, (rRet.totalQty || 0) - ri.qty); 
-    rRet._editedAt = Date.now(); 
-    if(rRet.totalQty <= 0){ markDeleted('reservations', rRet.id); db.reservations = db.reservations.filter(r => r.id !== rRet.id); } 
-  }
 });
 
+// عكس التبديل (زيادة الباقية، نقصان المباعة)
 (e.swapItems||[]).forEach(si=>{ 
   const t=db.flourTypes.find(x=>x.name===si.typeName); 
   if(t){ 
@@ -3877,7 +3846,7 @@ db.cashAdditions=db.cashAdditions.filter(c=>c.exchangeId!==id);
 db.expenses=db.expenses.filter(x=>x.exchangeId!==id);
 markDeleted('exchanges',id);
 db.exchanges=db.exchanges.filter(x=>x.id!==id);
-save();renderAll();toast('✅ تم الحذف — كل شي رجع لطبيعته');
+save();renderAll();toast('✅ تم الحذف — المخزن رجع طبيعي');
 }
 </script><script>
 // ═══════════════════════════════════════════════════════════
