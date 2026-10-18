@@ -2763,14 +2763,15 @@ function addDepositTypeRow(){_depositItems.push({id:uid(),typeId:'',qty:'',price
 function updateMultiDepSum(){const sum=_depositItems.reduce((a,it)=>a+((+it.qty||0)*(+it.price||0)),0);const el=document.getElementById('multiDepSum');if(el)el.textContent=money(sum)+' د.ع';}
 
 // ═══════════════════════════════════════════════════════════
-// ✅ [نسخة نهائية محصّنة] addDeposit — الخصم اختياري فقط
+// ✅ [النسخة النهائية] addDeposit
+//    - الخصم اختياري بالزر
+//    - الأنواع تُسجّل إيداع فقط (لا دين تلقائي)
+//    - الدين فقط من "الباقي الكلي" (حقل dRemaining)
 // ═══════════════════════════════════════════════════════════
 function addDeposit(){
-// ✅ [حماية 1] قراءة الزر — لازم checkbox موجود و checked === true
+// ✅ قراءة حالة الزر
 const _deductCheck = document.getElementById('dDeductDebt');
 const shouldDeductDebt = !!(_deductCheck && _deductCheck.checked === true);
-
-console.log('🔍 [addDeposit] حالة الزر:', shouldDeductDebt ? '☑️ مفعّل (سيتم الخصم)' : '☐ موقّف (لن يتم الخصم)');
 
 const p=document.getElementById('dPerson').value.trim();
 const carrier=document.getElementById('dCarrier')?document.getElementById('dCarrier').value.trim():'';
@@ -2810,30 +2811,20 @@ const debtBefore = debtBalance(p);
 
 let debtDeducted = 0;
 let freeDisplay = 0;
-let newDebtAmount = 0;
 
-// ✅ [حماية 2] الخصم فقط إذا الزر مفعّل بالضبط
-if(shouldDeductDebt === true && debtBefore > 0){
+// ✅ الخصم فقط إذا الزر مفعّل
+if(shouldDeductDebt && debtBefore > 0){
   const cashRemaining = amountEntered - itemsValue;
   if(cashRemaining > 0){
     debtDeducted = Math.min(debtBefore, cashRemaining);
     freeDisplay = cashRemaining - debtDeducted;
-    console.log('🔍 [addDeposit] سيتم خصم دين:', debtDeducted, 'من', debtBefore);
-  } else if(cashRemaining < 0){
-    newDebtAmount = Math.abs(cashRemaining);
-    console.log('🔍 [addDeposit] الزر مفعّل لكن الباقي سالب — دين جديد:', newDebtAmount);
   }
 } else {
-  // ❌ الزر موقّف → ما نخصم أي دين
   freeDisplay = amountEntered;
-  if(amountEntered - itemsValue < 0){
-    newDebtAmount = Math.abs(amountEntered - itemsValue);
-  }
-  console.log('🔍 [addDeposit] الزر موقّف — لا خصم. freeDisplay:', freeDisplay, 'debtDeducted:', 0);
 }
+// ✅ ملاحظة: حذفنا newDebtAmount من هنا — الأنواع لا تُسجّل كدين
 
-if(rem > 0){ newDebtAmount += rem; }
-
+// ✅ المبلغ الحر (الإيداع النقدي)
 if(amountEntered > 0){
   let amountToRegister = amountEntered;
   if(remainingDiscount > 0){
@@ -2863,10 +2854,11 @@ if(amountEntered > 0){
     _lastDepositInfo: depositInfo,
     _countedInCashbox: false
   };
-  _markAsNewAfterArchive(newFreeDep);
+  if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(newFreeDep);
   db.deposits.push(newFreeDep);
 }
 
+// ✅ الأنواع (إيداع فقط — لا دين)
 validItems.forEach(it=>{
   const t=db.flourTypes.find(x=>x.id===it.typeId);
   if(!t)return;
@@ -2886,7 +2878,7 @@ validItems.forEach(it=>{
     if(total > 0){ dep.originalAmount = (+dep.originalAmount || 0) + total; dep.amount = (+dep.amount || 0) + total; }
     if(price > 0) dep.unitPrice = price;
     dep._editedAt = Date.now();
-    _markAsNewAfterArchive(dep);
+    if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(dep);
   } else {
     const _newTypeDep = {
       id:uid(), person:p, carrier:carrier,
@@ -2899,17 +2891,28 @@ validItems.forEach(it=>{
       _partOfFreeDeposit: amountEntered > 0 && total > 0,
       _countedInCashbox: false
     };
-    _markAsNewAfterArchive(_newTypeDep);
+    if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(_newTypeDep);
     db.deposits.push(_newTypeDep);
   }
+  // الحجز (reservation) — يظل عادي
   let r = db.reservations.find(x => _cleanPerson(x.person) === bC && _cleanType(x.typeName) === tC && (x.totalQty - x.usedQty) > 0);
-  if(r){ r.totalQty += qty; r.lastDate = d; r._editedAt = Date.now(); _markAsNewAfterArchive(r); }
-  else { const _newRsv = { id: uid(), person: p, typeName: t.name, totalQty: qty, usedQty: 0, date: d, lastDate: d, _editedAt: Date.now() }; _markAsNewAfterArchive(_newRsv); db.reservations.push(_newRsv); }
+  if(r){ r.totalQty += qty; r.lastDate = d; r._editedAt = Date.now(); if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(r); }
+  else { const _newRsv = { id: uid(), person: p, typeName: t.name, totalQty: qty, usedQty: 0, date: d, lastDate: d, _editedAt: Date.now() }; if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(_newRsv); db.reservations.push(_newRsv); }
 });
 
-if(rem > 0){ const _newDebt = { id: uid(), person: p, amount: rem, typeName: '(الباقي من إيداع)', qty: 0, date: d, manual: true, fromDeposit: true, _editedAt: Date.now() }; _markAsNewAfterArchive(_newDebt); db.debts.push(_newDebt); }
+// ✅ الدين الجديد — فقط من "الباقي الكلي" (dRemaining) اللي يكتبه المستخدم
+if(rem > 0){
+  const _newDebt = {
+    id: uid(), person: p, amount: rem,
+    typeName: '(الباقي من إيداع)',
+    qty: 0, date: d, manual: true,
+    fromDeposit: true, _editedAt: Date.now()
+  };
+  if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(_newDebt);
+  db.debts.push(_newDebt);
+}
 
-// ✅ [حماية 3] دفع الخصم فقط إذا debtDeducted > 0 (يعني الزر كان مفعّل)
+// ✅ خصم الدين القديم (إذا الزر مفعّل فقط)
 if(debtDeducted > 0){
   const sortedDebts = db.debts.filter(x => _cleanPerson(x.person) === bC).sort((a,b) => a.date.localeCompare(b.date));
   let remaining = debtDeducted;
@@ -2930,30 +2933,19 @@ if(debtDeducted > 0){
     _debtAfter: Math.max(0, debtBefore - debtDeducted),
     _editedAt: Date.now()
   };
-  _markAsNewAfterArchive(_newPay);
+  if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(_newPay);
   db.payments.push(_newPay);
-  console.log('🔍 [addDeposit] ✅ تم تسجيل خصم دين:', debtDeducted);
-} else {
-  console.log('🔍 [addDeposit] ⛔ لا خصم دين — الزر موقّف أو ما في دين');
 }
 
-if(newDebtAmount > 0){
-  const _newDebt2 = {
-    id: uid(), person: p, amount: newDebtAmount,
-    typeName: '💳 باقي', qty: 0, unitPrice: 0,
-    date: d, manual: true, _fromDeposit: true,
-    _note: amountEntered - itemsValue < 0 ? 'الباقي سالب' : 'باقي كلي',
-    _editedAt: Date.now()
-  };
-  _markAsNewAfterArchive(_newDebt2);
-  db.debts.push(_newDebt2);
+// ✅ تعليم العناصر المضافة بعد الأرشفة
+if(typeof _markAllAsNewAfterArchive === 'function'){
+  _markAllAsNewAfterArchive(db.deposits);
+  _markAllAsNewAfterArchive(db.reservations);
+  _markAllAsNewAfterArchive(db.debts);
+  _markAllAsNewAfterArchive(db.payments);
 }
 
-_markAllAsNewAfterArchive(db.deposits);
-_markAllAsNewAfterArchive(db.reservations);
-_markAllAsNewAfterArchive(db.debts);
-_markAllAsNewAfterArchive(db.payments);
-
+// تصفير الحقول
 if(document.getElementById('dLegacy'))document.getElementById('dLegacy').checked=false;
 if(_deductCheck) _deductCheck.checked = false;
 
@@ -2967,11 +2959,12 @@ if(document.getElementById('dDateTime'))document.getElementById('dDateTime').val
 _depositItems=[{id:uid(),typeId:'',qty:'',price:''}];
 renderDepositTypes();
 
-let msg = '✅ تم الإيداع: ' + money(amountEntered);
+let msg = '✅ تم الإيداع';
+if(amountEntered > 0) msg += `: ${money(amountEntered)}`;
 if(itemsValue > 0) msg += ` — أنواع: ${money(itemsValue)}`;
 if(debtDeducted > 0) msg += ` — خصم دين: ${money(debtDeducted)}`;
 if(freeDisplay > 0) msg += ` — باقي حر: ${money(freeDisplay)}`;
-if(newDebtAmount > 0) msg += ` — دين جديد: ${money(newDebtAmount)}`;
+if(rem > 0) msg += ` — دين جديد (باقي): ${money(rem)}`;
 if(originalDiscount > 0) msg += ` — خصم: ${money(originalDiscount)}`;
 if(isLegacy) msg += ` 📜 قديم`;
 toast(msg);
@@ -2988,7 +2981,7 @@ const nupI=prompt('💵 السعر:',d.unitPrice||0);if(nupI===null)return;const
 const naI=prompt('💰 المبلغ:',d.originalAmount||d.amount||0);if(naI===null)return;const na=+naI||0;
 const ndt=promptDateTime(d.date);if(ndt===undefined)return;
 d.person=np;d.carrier=nc;d.typeName=nt;d.qty=nAdd;d.originalQty=nAdd;d.unitPrice=nup;d.totalPrice=nAdd*nup;d.amount=na;d.originalAmount=na;d.date=ndt;d._editedAt=Date.now();
-_markAsNewAfterArchive(d);
+if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(d);
 save();renderAll();toast('✅');
 }
 
@@ -3102,7 +3095,7 @@ h+=`</table></div></div>`;
 rv.innerHTML=h;
 }
 
-function editRsv(id){const r=db.reservations.find(x=>x.id===id);if(!r)return;const npi=prompt('👤 الاسم:',r.person);if(npi===null)return;const nti=prompt('🌾 النوع:',r.typeName);if(nti===null)return;const ntqi=prompt('📦 الأصلية:',r.totalQty);if(ntqi===null)return;const nui=prompt('📤 المستخدمة:',r.usedQty||0);if(nui===null)return;r.person=npi.trim();r.typeName=nti.trim();r.totalQty=+ntqi||0;r.usedQty=Math.max(0,Math.min(+nui||0,r.totalQty));r.lastDate=nowISO();r._editedAt=Date.now();_markAsNewAfterArchive(r);save();renderAll();toast('✅');}
+function editRsv(id){const r=db.reservations.find(x=>x.id===id);if(!r)return;const npi=prompt('👤 الاسم:',r.person);if(npi===null)return;const nti=prompt('🌾 النوع:',r.typeName);if(nti===null)return;const ntqi=prompt('📦 الأصلية:',r.totalQty);if(ntqi===null)return;const nui=prompt('📤 المستخدمة:',r.usedQty||0);if(nui===null)return;r.person=npi.trim();r.typeName=nti.trim();r.totalQty=+ntqi||0;r.usedQty=Math.max(0,Math.min(+nui||0,r.totalQty));r.lastDate=nowISO();r._editedAt=Date.now();if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(r);save();renderAll();toast('✅');}
 
 // ═══════════════════════════════════════════════════════════
 // ✅ التسديد
@@ -3123,21 +3116,20 @@ if(a > debtBefore && debtBefore > 0){
   const paymentAmount = debtBefore;
   const excess = a - debtBefore;
   const _newPay = {id:uid(),person:p,amount:paymentAmount,typeName:tn||'',qty:q,details:(det||'')+' (فائض '+money(excess)+' للإيداع)',date:d,_editedAt:Date.now()};
-  _markAsNewAfterArchive(_newPay);
+  if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(_newPay);
   db.payments.push(_newPay);
   const bC = _cleanPerson(p);
   let freeDep = db.deposits.find(x => _cleanPerson(x.person) === bC && (!x.typeName || x.typeName === '') && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished);
-  if(freeDep){ freeDep.amount = (+freeDep.amount || 0) + excess; freeDep.originalAmount = (+freeDep.originalAmount || 0) + excess; freeDep._editedAt = Date.now(); _markAsNewAfterArchive(freeDep); }
-  else { const _newFree = {id:uid(),person:p,carrier:'',amount:excess,originalAmount:excess,_usedMoney:0,typeName:'',qty:0,originalQty:0,unitPrice:0,totalPrice:0,date:d,note:'💵 فائض تسديد',_usedQty:0,_editedAt:Date.now(),_countedInCashbox:false}; _markAsNewAfterArchive(_newFree); db.deposits.push(_newFree); }
+  if(freeDep){ freeDep.amount = (+freeDep.amount || 0) + excess; freeDep.originalAmount = (+freeDep.originalAmount || 0) + excess; freeDep._editedAt = Date.now(); if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(freeDep); }
+  else { const _newFree = {id:uid(),person:p,carrier:'',amount:excess,originalAmount:excess,_usedMoney:0,typeName:'',qty:0,originalQty:0,unitPrice:0,totalPrice:0,date:d,note:'💵 فائض تسديد',_usedQty:0,_editedAt:Date.now(),_countedInCashbox:false}; if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(_newFree); db.deposits.push(_newFree); }
   toast(`✅ تسديد ${money(paymentAmount)} — الفائض ${money(excess)} ذهب للإيداع`);
 } else {
   const _newPay2 = {id:uid(),person:p,amount:a,typeName:tn||'',qty:q,details:det,date:d,_editedAt:Date.now()};
-  _markAsNewAfterArchive(_newPay2);
+  if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(_newPay2);
   db.payments.push(_newPay2);
   toast('تم التسديد ✅');
 }
-_markAllAsNewAfterArchive(db.payments);
-_markAllAsNewAfterArchive(db.deposits);
+if(typeof _markAllAsNewAfterArchive === 'function'){ _markAllAsNewAfterArchive(db.payments); _markAllAsNewAfterArchive(db.deposits); }
 save();renderAll();
 document.getElementById('pPerson').value='';document.getElementById('pType').value='';document.getElementById('pQty').value='';document.getElementById('pAmount').value='';
 if(document.getElementById('pDetails'))document.getElementById('pDetails').value='';
@@ -3156,7 +3148,7 @@ h+=`<tr${isAuto?' style="background:#fff8e6"':''}><td style="font-size:11px">${f
 el.innerHTML=h+'</table>';
 }
 
-function editPayment(id){const p=db.payments.find(x=>x.id===id);if(!p)return;const npi=prompt('👤 الاسم:',p.person);if(npi===null)return;const nti=prompt('🌾 النوع:',p.typeName||'');if(nti===null)return;const nqi=prompt('📦 الكمية:',p.qty||0);if(nqi===null)return;const nai=prompt('💰 المبلغ:',p.amount);if(nai===null)return;const ndi=prompt('📝 التفاصيل:',p.details||'');if(ndi===null)return;const ndt=promptDateTime(p.date);if(ndt===undefined)return;p.person=npi.trim();p.typeName=nti.trim();p.qty=+nqi||0;p.amount=+nai;p.details=ndi.trim();p.date=ndt;p._editedAt=Date.now();_markAsNewAfterArchive(p);save();renderAll();toast('✅');}
+function editPayment(id){const p=db.payments.find(x=>x.id===id);if(!p)return;const npi=prompt('👤 الاسم:',p.person);if(npi===null)return;const nti=prompt('🌾 النوع:',p.typeName||'');if(nti===null)return;const nqi=prompt('📦 الكمية:',p.qty||0);if(nqi===null)return;const nai=prompt('💰 المبلغ:',p.amount);if(nai===null)return;const ndi=prompt('📝 التفاصيل:',p.details||'');if(ndi===null)return;const ndt=promptDateTime(p.date);if(ndt===undefined)return;p.person=npi.trim();p.typeName=nti.trim();p.qty=+nqi||0;p.amount=+nai;p.details=ndi.trim();p.date=ndt;p._editedAt=Date.now();if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(p);save();renderAll();toast('✅');}
 
 // ═══════════════════════════════════════════════════════════
 // ✅ الطحين
@@ -4724,4 +4716,4 @@ document.addEventListener('input', function(e){ if(e.target && e.target.id === '
 })();
 </script>
 </body>
-                                                               </html>
+  </html>
