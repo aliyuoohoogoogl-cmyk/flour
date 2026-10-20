@@ -1282,18 +1282,56 @@ function showUpdateNotification(version, notes, url, isForced, postponedCount){
   if(isForced){ _updateBlocked = true; document.body.style.pointerEvents = 'none'; }
   const oldBox = document.getElementById('updateNotificationBox');
   if(oldBox) oldBox.remove();
-  const remainingBeforeForce = MAX_UPDATE_POSTPONES - (postponedCount || 0);
+  
   const box = document.createElement('div');
   box.id = 'updateNotificationBox';
   box.dataset.forced = isForced ? 'true' : 'false';
   box.dataset.version = version;
   box.style.pointerEvents = 'auto';
+
   if(isForced){
+    // ✅ الشكل الإجباري (أحمر)
     box.style.cssText += 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;direction:rtl';
     box.innerHTML = `<div style="background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;padding:24px 22px;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.5);max-width:420px;width:100%;text-align:center"><div style="font-size:60px;margin-bottom:12px">⚠️</div><div style="font-size:18px;font-weight:bold;margin-bottom:8px">يجب تحديث البرنامج!</div><div style="font-size:13px;opacity:.9;margin-bottom:14px">النسخة: ${version}</div><div style="font-size:12px;background:rgba(255,255,255,.15);padding:10px 12px;border-radius:10px;margin-bottom:16px">📝 ${notes || 'تحسينات وإصلاحات'}</div><div style="font-size:12px;color:#FFD700;margin-bottom:14px;font-weight:bold">🔒 لقد تم تأجيل التحديث 3 مرات — يجب التحديث الآن للمتابعة</div><button onclick="window.location.href='${url}'" style="width:100%;background:#fff;color:#c0392b;border:none;padding:14px;border-radius:10px;font-weight:bold;font-size:15px;cursor:pointer">⬇️ تحديث الآن</button></div>`;
   } else {
-    box.style.cssText += 'position:fixed;bottom:20px;right:20px;left:20px;max-width:400px;margin:0 auto;background:linear-gradient(135deg,#3498db,#2980b9);color:#fff;padding:16px 18px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);z-index:99997;direction:rtl';
-    box.innerHTML = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div style="font-size:22px">🔔</div><div style="flex:1"><div style="font-size:14px;font-weight:bold">في تحديث جديد للبرنامج!</div><div style="font-size:11px;opacity:.9;margin-top:2px">النسخة: ${version}</div></div><button onclick="this.parentElement.parentElement.remove()" style="background:rgba(255,255,255,.2);color:#fff;border:none;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer">×</button></div><div style="font-size:12px;background:rgba(255,255,255,.15);padding:8px 10px;border-radius:8px;margin-bottom:10px">📝 ${notes}</div><div style="display:flex;gap:8px"><button onclick="window.location.href='${url}'" style="flex:1;background:#fff;color:#2980b9;border:none;padding:10px;border-radius:8px;font-weight:bold;font-size:13px;cursor:pointer">⬇️ حمّل التحديث</button><button onclick="postponeUpdate('${version}')" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-size:13px;cursor:pointer">⏰ بعدين (${remainingBeforeForce})</button></div>`;
+    // ✅ الشكل الجديد (شاشة كاملة مثل Google Play)
+    box.style.cssText += 'position:fixed;inset:0;background:#fff;z-index:999999;display:flex;flex-direction:column;direction:rtl;padding:0;overflow:auto';
+    box.innerHTML = `
+      <!-- الهيدر العلوي -->
+      <div style="padding:18px 20px;display:flex;align-items:center;gap:15px;border-bottom:1px solid #f0f0f0">
+        <button onclick="postponeUpdate('${version}')" style="background:none;border:none;font-size:26px;cursor:pointer;color:#444;padding:0;width:36px;height:36px;display:flex;align-items:center;justify-content:center">✕</button>
+        <div style="font-size:19px;font-weight:bold;color:#202124;flex:1;text-align:right">يتوفر تحديث</div>
+        <div style="font-size:15px;color:#5f6368;font-weight:bold">Google Play</div>
+      </div>
+
+      <!-- المحتوى الأوسط -->
+      <div style="padding:30px 22px;flex:1">
+        <div style="font-size:15px;color:#202124;margin-bottom:32px;text-align:right;line-height:1.7">
+          لاستخدام هذا التطبيق، يُرجى تنزيل أحدث إصدار.
+        </div>
+
+        <!-- أيقونة واسم التطبيق -->
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:32px">
+          <div style="width:85px;height:85px;border-radius:18px;background:linear-gradient(135deg,#8B4513,#D2691E);display:flex;align-items:center;justify-content:center;font-size:44px;box-shadow:0 6px 18px rgba(139,69,19,0.35);flex-shrink:0">🌾</div>
+          <div style="flex:1;text-align:right">
+            <div style="font-size:18px;font-weight:bold;color:#202124;margin-bottom:5px">حسابات الطحين</div>
+            <div style="font-size:13px;color:#5f6368">الإصدار: ${version}</div>
+          </div>
+        </div>
+
+        <!-- قسم ما الجديد -->
+        <div style="font-size:15px;color:#202124;font-weight:bold;margin-bottom:12px;text-align:right">ما الجديد؟</div>
+        <div style="font-size:14px;color:#444;line-height:1.9;text-align:right;background:#f8f9fa;padding:16px 18px;border-radius:12px;border:1px solid #e8eaed">
+          ${notes || 'تحسينات وإصلاحات عامة في التطبيق لتحسين الأداء وتجربة المستخدم.'}
+        </div>
+      </div>
+
+      <!-- الأزرار السفلية -->
+      <div style="padding:18px 20px;display:flex;gap:12px;border-top:1px solid #f0f0f0;background:#fff">
+        <button onclick="window.location.href='${url}'" style="flex:1;background:#1a73e8;color:#fff;border:none;padding:14px;border-radius:25px;font-weight:bold;font-size:16px;cursor:pointer;box-shadow:0 2px 8px rgba(26,115,232,0.3)">تحديث</button>
+        <button onclick="postponeUpdate('${version}')" style="flex:1;background:#fff;color:#1a73e8;border:1.5px solid #dadce0;padding:14px;border-radius:25px;font-weight:bold;font-size:16px;cursor:pointer">مزيد من المعلومات</button>
+      </div>
+    `;
   }
   document.body.appendChild(box);
 }
@@ -2365,6 +2403,8 @@ let wasselWithdrawals=[];
 if(currentMethod==='واصل'){const result = _calculateAndApplyWasselDeductions(buyer, saleItems, null, d);wasselRemByType = result.wasselRemByType;wasselWithdrawals = result.wasselWithdrawals;}
 const saleRecord={id:uid(),buyer,items:saleItems,qty:saleItems.reduce((a,i)=>a+i.qty,0),grossTotal,discount,netTotal,total:tt,method:currentMethod,date:d,carrier,remaining,remQty:null,remMoney:null,_editedAt:Date.now()};
 if(wasselRemByType){saleRecord.remByType=wasselRemByType;}
+if(!saleRecord._addedAt) saleRecord._addedAt = nowISO();
+saleRecord._addedAfterArchive = true;
 db.sales.push(saleRecord);
 wasselWithdrawals.forEach(w=>{w.saleId=saleRecord.id;db.deposits.push(w);});
 if(currentMethod==='دين'){saleItems.forEach(it=>{const ratio=grossTotal>0?(it.total/grossTotal):0;const itemDebt=netTotal*ratio;db.debts.push({id:uid(),person:buyer,amount:itemDebt,typeName:it.typeName,qty:it.qty,unitPrice:it.unitPrice||0,date:d,carrier:carrier,fromSale:true,saleId:saleRecord.id,_editedAt:Date.now()});});}
@@ -3262,11 +3302,44 @@ el.innerHTML=h+`</table><div style="background:linear-gradient(135deg,#D2691E,#8
 }
 
 function fixAllFlour(){
-if(!confirm('سيتم إصلاح الكميات لكل الأنواع.\n\nمتابعة؟'))return;
+if(!confirm('🔄 سيتم إصلاح المخزن بناءً على المبيعات الحالية (سجل المطابقة فقط).\n\nمتابعة؟'))return;
 let fixed=0;
-db.flourTypes.forEach(t=>{const before=+t.qty||0;_fixFlourType(t);const after=+t.qty||0;if(Math.abs(before-after)>0.001) fixed++;});
+
+db.flourTypes.forEach(t=>{
+  // 1️⃣ نجيب المباع من المبيعات الحالية (سجل المطابقة)
+  let realSold = 0;
+  db.sales.forEach(sale => {
+    if(sale.items) {
+      sale.items.forEach(it => { if(_cleanType(it.typeName) === _cleanType(t.name)) realSold += (+it.qty || 0); });
+    } else if(_cleanType(sale.typeName) === _cleanType(t.name)) {
+      realSold += (+sale.qty || 0);
+    }
+  });
+  
+  // 2️⃣ نطرح الاسترجاع ونضيف التبديل (نفس منطق المطابقة)
+  (db.exchanges||[]).forEach(e=>{
+    (e.swapItems||[]).forEach(si=>{ if(_cleanType(si.typeName) === _cleanType(t.name)) realSold += (+si.qty || 0); });
+    (e.returnItems||[]).forEach(ri=>{ if(_cleanType(ri.typeName) === _cleanType(t.name)) realSold -= (+ri.qty || 0); });
+  });
+
+  // 3️⃣ نحسب الأصلية والباقية
+  const originalQty = (t.additions||[]).reduce((a,x)=>a+(+x.qty||0),0);
+  const finalSold = Math.max(0, realSold);
+  const newQty = Math.max(0, originalQty - finalSold);
+  
+  if((+t.totalSold||0) !== finalSold || (+t.qty||0) !== newQty) fixed++;
+  
+  t.totalSold = finalSold;
+  t.qty = newQty;
+  t._editedAt = Date.now();
+  
+  // 4️⃣ نحفظ التعديل كـ "تعديل يدوي" عشان زر (تحديث الكل) ما يمسحه بعدين
+  if(!db._manualOverrides) db._manualOverrides = {};
+  db._manualOverrides[_cleanType(t.name)] = { original: originalQty, sold: finalSold, remaining: newQty, timestamp: Date.now() };
+});
+
 save();renderAll();
-toast(fixed>0 ? `✅ تم إصلاح ${fixed} نوع` : '✅ كل الكميات مضبوطة');
+toast(fixed>0 ? `✅ تم إصلاح ${fixed} نوع — المباع انضبط من المطابقة` : '✅ كل الكميات مضبوطة');
 }
 
 function refreshFlourView(){ _matchedFlourIds.clear(); renderFlour(); toast('✅ تم تحديث الكميات'); }
@@ -3507,9 +3580,24 @@ async function doArchive(){
   });
   
   db.sales=[]; db.payments=[]; db.expenses=[]; db.buyers=[]; db.cashAdditions=[]; db.exchanges=[];
+  // ✅ تنظيف أنواع الطحين اللي كميتها صفر (بعد الأرشفة)
+const _deadFlourIds = [];
+db.flourTypes.forEach(t => {
+  if((+t.qty || 0) <= 0){
+    _deadFlourIds.push(t.id);
+    markDeleted('flourTypes', t.id);
+  }
+});
+if(_deadFlourIds.length){
+  db.flourTypes = db.flourTypes.filter(t => !_deadFlourIds.includes(t.id));
+  console.log('🧹 حذف ' + _deadFlourIds.length + ' نوع طحين منتهي');
+}
+
   db.deposits=keptDeposits;
   db.debts = db.debts.filter(d => +d.amount > 0.01);
   _skipNextMerge = true;
+// ✅ إجبار السحابة على استبدال البيانات بالكامل بدل الدمج
+if(cloudMetaRef){ try{ await cloudMetaRef.set({ _lastActionBy: _deviceId, _archiveToken: db._archiveToken, _lastArchiveAt: _archiveTime, _archiveCutoff: _archiveTime, _permanentCarry: db._permanentCarry, _cashboxOffset: 0 }, { merge: true }); }catch(e){} }
   db._lastActionBy = _deviceId;
   db._actionId = _deviceId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
   db._lastSaved = Date.now();
@@ -3517,7 +3605,26 @@ async function doArchive(){
   try { localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); } catch(e) {}
   setSyncStatus('loading','⏳ جاري رفع الأرشيف...');
   if(cloudMetaRef){ try{ await cloudMetaRef.set({ _lastArchiveAt: _archiveTime, _archiveCutoff: _archiveTime, _archiveToken: db._archiveToken, _permanentCarry: db._permanentCarry, _cashboxOffset: 0, _lastActionBy: _deviceId }, { merge: true }); }catch(e){} }
-  if(cloudEnabled && _firestoreDB){ const catsToClear = ['sales','payments','expenses','buyers','cashAdditions','exchanges']; for(const cat of catsToClear){ const ref = _getCategoryRef(cat); if(!ref) continue; try{ const snap = await ref.get(); if(snap.size > 0){ const docs = []; snap.forEach(doc => docs.push(doc.ref)); for(let i = 0; i < docs.length; i += 400){ const batch = _firestoreDB.batch(); docs.slice(i, i + 400).forEach(r => batch.delete(r)); await batch.commit(); } } }catch(e){} } }
+  // ✅ مسح شامل للسحابة (كأنه حذف كلي للعمليات)
+if(cloudEnabled && _firestoreDB){ 
+  const catsToClear = ['sales','payments','expenses','buyers','cashAdditions','exchanges','debts','reservations','archive']; 
+  for(const cat of catsToClear){ 
+    const ref = _getCategoryRef(cat); 
+    if(!ref) continue; 
+    try{ 
+      const snap = await ref.get(); 
+      if(snap.size > 0){ 
+        const docs = []; 
+        snap.forEach(doc => docs.push(doc.ref)); 
+        for(let i = 0; i < docs.length; i += 400){ 
+          const batch = _firestoreDB.batch(); 
+          docs.slice(i, i + 400).forEach(r => batch.delete(r)); 
+          await batch.commit(); 
+        } 
+      } 
+    }catch(e){} 
+  } 
+}
   if(!_pendingCategories) _pendingCategories = new Set();
   _pendingCategories.add('archive'); _pendingCategories.add('deposits'); _pendingCategories.add('flourTypes');
   _pendingCategories.add('debts'); _pendingCategories.add('reservations'); _pendingCategories.add('sales');
@@ -3567,6 +3674,86 @@ db._actionId = _deviceId + '_' + Date.now() + '_' + Math.random().toString(36).s
 save(); renderArchive(); renderHome();
 toast('✅ تم حذف الوثيقة — البيانات الحالية سليمة');
 }
+function _buildArchiveReportHTML(a){
+  const sales = a.sales || [];
+  const payments = a.payments || [];
+  const expenses = a.expenses || [];
+  const deposits = a.deposits || [];
+  const cashAdditions = a.cashAdditions || [];
+  const exchanges = a.exchanges || [];
+  const dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+  const archDate = a.dateKey ? new Date(a.dateKey + 'T12:00:00') : new Date(a.archivedAt);
+  let totalSales = 0;
+  sales.forEach(s=>{
+    const items = s.items || [{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
+    const grossTotal = s.grossTotal || items.reduce((x,i)=>x+(i.total||0),0);
+    const disc = s.discount || 0;
+    items.forEach(it=>{
+      const ratio = grossTotal>0?(it.total/grossTotal):0;
+      const discountedTotal = Math.max(0, it.total - disc*ratio);
+      let paid = discountedTotal;
+      if(s.method==='دين'){ const debtPart=(s.remaining && s.remaining>0)?s.remaining:discountedTotal; paid=Math.max(0, discountedTotal-debtPart); }
+      else if(s.method==='واصل'||s.method==='هدية'){ paid=0; }
+      totalSales += paid;
+    });
+  });
+  payments.filter(p=>p._fromDeposit!==true).forEach(p=>totalSales+=p.amount);
+  exchanges.filter(e=>e.diff>0 && e.method!=='دين').forEach(e=>totalSales+=(+e.diff||0));
+  deposits.filter(d=>{ if(!(+d.amount>0)) return false; if(d.isWithdrawal||d.cashPayment||d.isCarry) return false; if(d.legacy && d._showInReport!==true) return false; return true; }).forEach(d=>{ totalSales += (+d.originalAmount!==undefined?+d.originalAmount:+d.amount); });
+  cashAdditions.filter(c=>!c.isCarry && !c.fromExchange).forEach(c=>totalSales+=c.amount);
+  const totalExpenses = expenses.reduce((s,e)=>s+(+e.amount||0),0);
+  if(!_finalTotal) _finalTotal = totalSales;
+  if(!_finalExpenses) _finalExpenses = totalExpenses;
+  if(!_finalCashbox) _finalCashbox = totalSales - totalExpenses;
+  let h = `<div class="card" style="background:#fff8e6;border:2px solid #f39c12;padding:12px">`;
+  h += `<div style="text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #f39c12"><div style="font-size:15px;font-weight:bold;color:#8B4513;margin-bottom:6px">🛒 سجل البيع (أرشيف)</div><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px"><div><b>📅:</b> ${a.dateArabic || fmt(archDate)}</div><div><b>📆:</b> ${a.dayName || dayNames[archDate.getDay()]}</div></div></div>`;
+  h += `<table style="font-size:11px"><tr><th>#</th><th>النوع</th><th>العدد</th><th>المشتري</th><th>الناقل 🚛</th><th>سعر المفرد</th><th>المبلغ</th><th>الدفع</th><th class="time-cell">الوقت</th></tr>`;
+  let rowIdx = 0;
+  sales.forEach(s=>{
+    const items = s.items || [{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}];
+    const grossTotal = s.grossTotal || items.reduce((x,i)=>x+(i.total||0),0);
+    const disc = s.discount || 0;
+    items.forEach(it=>{
+      rowIdx++;
+      const ratio = grossTotal>0?(it.total/grossTotal):0;
+      const discountedTotal = Math.max(0, it.total - disc*ratio);
+      const discountedUnitPrice = it.qty>0 ? Math.round((discountedTotal/it.qty)*100)/100 : 0;
+      let amt = discountedTotal;
+      if(s.method==='دين'){ const dp=(s.remaining && s.remaining>0)?s.remaining:discountedTotal; amt=Math.max(0,discountedTotal-dp); }
+      else if(s.method==='واصل'||s.method==='هدية'){ amt=0; }
+      const amtShow = s.method==='واصل' ? '<span style="color:#ccc">—</span>' : money(amt);
+      h += `<tr><td style="text-align:center">${rowIdx}</td><td>${_escHtml(it.typeName)}</td><td style="color:#2980b9;font-weight:bold">${money(it.qty)}</td><td>${_escHtml(s.buyer)}</td><td style="font-size:10px">${_escHtml(s.carrier||'—')}</td><td style="color:#27ae60;font-weight:bold">${discountedUnitPrice?money(discountedUnitPrice):'—'}</td><td style="color:#8B4513;font-weight:bold">${amtShow}</td><td><span class="badge b-${s.method}">${s.method}</span></td><td class="time-cell">${fmtTime(s.date)}</td></tr>`;
+    });
+  });
+  payments.filter(p=>p._fromDeposit!==true).forEach(p=>{
+    rowIdx++;
+    h += `<tr><td style="text-align:center">${rowIdx}</td><td>${_escHtml(p.typeName||'—')}</td><td>${p.qty?money(p.qty):'—'}</td><td>${_escHtml(p.person)}</td><td>—</td><td>—</td><td style="color:#27ae60;font-weight:bold">${money(p.amount)}</td><td><span style="background:#27ae60;color:#fff;padding:3px 9px;border-radius:11px;font-size:10px;font-weight:bold">✅ تسديد</span></td><td class="time-cell">${fmtTime(p.date)}</td></tr>`;
+  });
+  deposits.filter(d=>{ if(!(+d.amount>0)) return false; if(d.isWithdrawal||d.cashPayment||d.isCarry) return false; if(d.legacy && d._showInReport!==true) return false; return true; }).forEach(d=>{
+    rowIdx++;
+    const amt = (+d.originalAmount!==undefined?+d.originalAmount:+d.amount);
+    h += `<tr><td style="text-align:center">${rowIdx}</td><td>${_escHtml(d.typeName||'💵 مبلغ حر')}</td><td>${d.originalQty?money(d.originalQty):'—'}</td><td>${_escHtml(d.person)}</td><td>${_escHtml(d.carrier||'—')}</td><td>${d.unitPrice?money(d.unitPrice):'—'}</td><td style="color:#8B4513;font-weight:bold">${money(amt)}</td><td><span style="background:#3498db;color:#fff;padding:3px 9px;border-radius:11px;font-size:10px;font-weight:bold">💰 إيداع</span></td><td class="time-cell">${fmtTime(d.date)}</td></tr>`;
+  });
+  cashAdditions.filter(c=>!c.isCarry && !c.fromExchange).forEach(c=>{
+    rowIdx++;
+    h += `<tr><td style="text-align:center">${rowIdx}</td><td>—</td><td>—</td><td>${_escHtml(c.note||'إضافة صندوق')}</td><td>—</td><td>—</td><td style="color:#8B4513;font-weight:bold">${money(c.amount)}</td><td><span style="background:#f39c12;color:#fff;padding:3px 9px;border-radius:11px;font-size:10px;font-weight:bold">💵 إضافات</span></td><td class="time-cell">${fmtTime(c.date)}</td></tr>`;
+  });
+  exchanges.forEach(e=>{
+    (e.returnItems||[]).forEach(ri=>{ rowIdx++; h += `<tr><td style="text-align:center">${rowIdx}</td><td>${_escHtml(ri.typeName)}</td><td>${money(ri.qty)}</td><td>${_escHtml(e.buyer)}</td><td>${_escHtml(e.carrier||'—')}</td><td>${ri.unitPrice?money(ri.unitPrice):'—'}</td><td>—</td><td><span class="badge b-استرجاع">↩️ استرجاع</span></td><td class="time-cell">${fmtTime(e.date)}</td></tr>`; });
+    (e.swapItems||[]).forEach(si=>{ rowIdx++; h += `<tr><td style="text-align:center">${rowIdx}</td><td>${_escHtml(si.typeName)}</td><td>${money(si.qty)}</td><td>${_escHtml(e.buyer)}</td><td>${_escHtml(e.carrier||'—')}</td><td>${si.unitPrice?money(si.unitPrice):'—'}</td><td>—</td><td><span class="badge b-تبديل">🔄 تبديل</span></td><td class="time-cell">${fmtTime(e.date)}</td></tr>`; });
+    if(e.diff!==0){ rowIdx++; const isNeg = e.diff<0; h += `<tr><td style="text-align:center">${rowIdx}</td><td>—</td><td>—</td><td>${_escHtml(e.buyer)}</td><td>—</td><td>—</td><td style="color:#8B4513;font-weight:bold">${(isNeg?'-':'+')}${money(Math.abs(e.diff))}</td><td><span class="badge b-فرق">💱 فرق</span></td><td class="time-cell">${fmtTime(e.date)}</td></tr>`; }
+  });
+  if(rowIdx === 0){ h += `<tr><td colspan="9" style="text-align:center;color:#888;padding:12px">لا توجد حركات</td></tr>`; }
+  h += `<tr style="background:#faf0e6;font-weight:bold"><td colspan="6" style="text-align:center">المجموع</td><td style="color:#8B4513;font-size:14px">${money(totalSales)}</td><td colspan="2"></td></tr>`;
+  h += `</table></div>`;
+  if(expenses.length){
+    const totalExp = expenses.reduce((s,e)=>s+(+e.amount||0),0);
+    h += `<div class="card" style="background:#fff5f5;border:2px solid #c0392b;margin-top:10px;padding:10px"><div style="text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:2px dashed #c0392b"><b style="color:#c0392b;font-size:14px">💸 الصرفيات</b></div><table style="font-size:11px"><tr><th>الوصف</th><th>المبلغ</th><th class="time-cell">الوقت</th></tr>`;
+    expenses.forEach(e=>{ h += `<tr><td>${_escHtml(e.desc)}</td><td style="color:#c0392b;font-weight:bold">${money(e.amount)}</td><td class="time-cell">${fmtTime(e.date)}</td></tr>`; });
+    h += `<tr style="background:#ffe5e5;font-weight:bold"><td style="text-align:center">المجموع</td><td style="color:#c0392b">${money(totalExp)}</td><td></td></tr></table></div>`;
+  }
+  return h;
+}
 
 function viewArchive(){
 window._printRowLimit=25;window._autoFontSize=false;
@@ -3580,24 +3767,25 @@ function viewSingleArchive(id){
 window._printRowLimit=25;window._autoFontSize=false;
 const a=db.archive.find(x=>x.id===id);
 if(!a){toast('لا يوجد',true);return;}
-if(a.savedReportHTML && a.savedReportHTML.trim()){
-  _finalTotal = a.savedFinalTotal || 0;
-  _finalExpenses = a.savedFinalExpenses || 0;
-  _finalCashbox = a.savedFinalCashbox || 0;
-  let fullHTML = a.savedReportHTML;
-  const archDeposits = a.allDeposits || [];
-  if(archDeposits.length){ fullHTML += renderArchiveDepositsSection(archDeposits); }
-  const archDebts = a.allDebts || [];
-  if(archDebts.length){ fullHTML += renderArchiveDebtsSection(archDebts, a.payments || []); }
-  const archFlour = a.allFlourTypes || [];
-  if(archFlour.length){ fullHTML += renderArchiveFlourSection(archFlour); }
-  _currentViewHTML = fullHTML;
-  currentReportImages = [];
-  const title = a.dateArabic || ('أرشيف ' + fmt(a.archivedAt));
-  openOverlay('📦 ' + title, fullHTML, '#8e44ad');
-  return;
+_finalTotal = a.savedFinalTotal || 0;
+_finalExpenses = a.savedFinalExpenses || 0;
+_finalCashbox = a.savedFinalCashbox || 0;
+let fullHTML = '';
+if(a.savedReportHTML && a.savedReportHTML.trim() && a.savedReportHTML.includes('table')){
+  fullHTML = a.savedReportHTML;
+} else {
+  fullHTML = _buildArchiveReportHTML(a);
 }
-toast('لا توجد بيانات تفصيلية لهذا الأرشيف', true);
+const archDeposits = a.allDeposits || [];
+if(archDeposits.length){ fullHTML += renderArchiveDepositsSection(archDeposits); }
+const archDebts = a.allDebts || [];
+if(archDebts.length){ fullHTML += renderArchiveDebtsSection(archDebts, a.payments || []); }
+const archFlour = a.allFlourTypes || [];
+if(archFlour.length){ fullHTML += renderArchiveFlourSection(archFlour); }
+_currentViewHTML = fullHTML;
+currentReportImages = [];
+const title = a.dateArabic || ('أرشيف ' + fmt(a.archivedAt));
+openOverlay('📦 ' + title, fullHTML, '#8e44ad');
 }
 
 function renderArchiveDepositsSection(deps){
@@ -3854,9 +4042,52 @@ save();renderAll();toast('✅ تم الحذف — المخزن رجع طبيعي
 // ═══════════════════════════════════════════════════════════
 let _saveTimer = null;
 let _pendingCategories = new Set();
+// ✅ دالة تنظيف البيانات الميتة (إيداعات منتهية، ديون مسددة، طحين صفر)
+function _cleanupDeadData(){
+  if(!db) return;
+  if(!db._deleted) db._deleted = {};
+  
+  // 1️⃣ تنظيف الإيداعات المنتهية
+  const deadDeps = [];
+  db.deposits.forEach(d => {
+    if(d.isWithdrawal || d.isCarry || d.cashPayment) return;
+    const origQty = +d.originalQty || +d.qty || 0;
+    const origAmt = +d.originalAmount || +d.amount || 0;
+    const usedQty = +d._usedQty || 0;
+    const usedAmt = +d._usedMoney || 0;
+    const remQty = Math.max(0, origQty - usedQty);
+    const remAmt = Math.max(0, origAmt - usedAmt);
+    if(remQty <= 0 && remAmt <= 0){ deadDeps.push(d.id); }
+  });
+  if(deadDeps.length){
+    if(!db._deleted.deposits) db._deleted.deposits = [];
+    deadDeps.forEach(id => { if(!db._deleted.deposits.includes(id)) db._deleted.deposits.push(id); });
+    db.deposits = db.deposits.filter(d => !deadDeps.includes(d.id));
+    console.log('🧹 حذف ' + deadDeps.length + ' إيداع منتهي');
+  }
+  
+  // 2️⃣ تنظيف الديون المسددة بالكامل
+  const persons = [...new Set(db.debts.map(d=>d.person))];
+  const settledPersons = [];
+  persons.forEach(p => {
+    const debtSum = db.debts.filter(x => x.person === p).reduce((a,x) => a + (+x.amount || 0), 0);
+    const paySum = db.payments.filter(x => x.person === p).reduce((a,x) => a + (+x.amount || 0), 0);
+    if(debtSum - paySum <= 0.01){ settledPersons.push(p); }
+  });
+  if(settledPersons.length){
+    if(!db._deleted.debts) db._deleted.debts = [];
+    if(!db._deleted.payments) db._deleted.payments = [];
+    db.debts.filter(d => settledPersons.includes(d.person)).forEach(d => { if(!db._deleted.debts.includes(d.id)) db._deleted.debts.push(d.id); });
+    db.payments.filter(p => settledPersons.includes(p.person)).forEach(p => { if(!db._deleted.payments.includes(p.id)) db._deleted.payments.push(p.id); });
+    db.debts = db.debts.filter(d => !settledPersons.includes(d.person));
+    db.payments = db.payments.filter(p => !settledPersons.includes(p.person));
+    console.log('🧹 حذف ديون/تسديدات ' + settledPersons.length + ' شخص');
+  }
+}
 
 function save(){
   if(!currentUser) return;
+  if(db && db._migratedToSplit) _cleanupDeadData(); // ✅ تنظيف تلقائي قبل الحفظ
   const now = Date.now();
   ['sales','debts','deposits','payments','expenses','buyers','reservations','cashAdditions','customerPrices','exchanges','flourTypes','archive'].forEach(key=>{ if(Array.isArray(db[key])){ db[key].forEach(item=>{if(item && !item._editedAt) item._editedAt = now;}); } });
   db._lastSaved = now;
@@ -3868,7 +4099,7 @@ function save(){
   if(subStatus === 'expired'){ db._pendingUpload = false; setSyncStatus('warn','📱 محلي فقط'); return; }
   if(cloudEnabled && navigator.onLine){
     if(_saveTimer) clearTimeout(_saveTimer);
-    _saveTimer = setTimeout(_doUpload, 300);
+    _saveTimer = setTimeout(_doUpload, 50); // ✅ رفع فوري خلال 50 ملي ثانية
   } else {
     db._needsSync = true;
     setSyncStatus('warn','📱 محلي');
@@ -3879,10 +4110,11 @@ function saveCategory(category){ if(!currentUser) return; if(!_pendingCategories
 
 async function _doUpload(){
   if(!currentUser){ if(db) db._pendingUpload = false; return false; }
-  const _accsCheck = getAccounts();
-  if(!_accsCheck.find(x => x.username === currentUser)){ if(db) db._pendingUpload = false; return false; }
-  if(!cloudEnabled || !cloudDataRef){ let waited = 0; while((!cloudEnabled || !cloudDataRef) && waited < 50){ await new Promise(r => setTimeout(r, 100)); tryInitFirebase(); waited++; } }
-  if(!cloudEnabled || !cloudDataRef){ if(db) db._pendingUpload = false; setSyncStatus('warn','📱 محلي'); return false; }
+  if(db && db._ownerUser && db._ownerUser !== currentUser){ console.warn('⛔ db يخص مستخدم آخر — إلغاء الرفع'); db._pendingUpload = false; return false; }
+  
+  // ✅ حماية من ضعف النت: ما ننتظر، نتأكد بسرعة، وإذا مقطوع نحفظ محلياً ونرجع
+  if(!navigator.onLine){ if(db) db._pendingUpload = false; setSyncStatus('warn','📱 محلي'); return false; }
+  if(!cloudEnabled || !cloudDataRef){ tryInitFirebase(); if(!cloudEnabled){ if(db) db._pendingUpload = false; setSyncStatus('warn','📱 محلي'); return false; } }
   if(!navigator.onLine){ if(db) db._pendingUpload = false; setSyncStatus('warn','📱 محلي'); return false; }
   const subStatus = checkSubscription();
   if(subStatus === 'expired'){ if(db) db._pendingUpload = false; setSyncStatus('warn','⚠️ الاشتراك منتهي'); return false; }
@@ -3973,8 +4205,10 @@ async function _migrateToSplitDocs(){
 }
 
 async function _reloadFromSplitDocs(){
+  // ✅ نبدأ نجيب البيانات بالتوازي مع الـ meta (أسرع)
+  const _metaPromise = cloudMetaRef ? cloudMetaRef.get().catch(()=>null) : Promise.resolve(null);
   try{
-    const metaDoc = await cloudMetaRef.get();
+    const metaDoc = await _metaPromise;
     if(metaDoc.exists && metaDoc.data()){
       const meta = metaDoc.data();
       if(meta._clearedAt && meta._clearedAt > (db._clearedAt || 0) && meta._clearedBy !== _deviceId){
@@ -4494,7 +4728,18 @@ async function recalculateAll(){
       }
     }catch(e){}
   }
-  
+  // ✅ شبكة أمان: نحفظ الكميات المباعة من الشاشة قبل التحديث
+const _safetySold = {};
+document.querySelectorAll('tr[data-flour-id]').forEach(tr => {
+  const id = tr.getAttribute('data-flour-id');
+  const tds = tr.querySelectorAll('td');
+  if(tds.length > 2){
+    // المباعة دائماً تكون بالعمود الثالث (index 2)
+    const soldTxt = tds[2].innerText.replace(/,/g, '').trim();
+    _safetySold[id] = parseFloat(soldTxt) || 0;
+  }
+});
+
   const _overlay=document.createElement('div'); _overlay.id='recalcLoading';
   _overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;font-family:inherit';
   _overlay.innerHTML='<div style="font-size:50px;margin-bottom:15px">⏳</div><div style="font-size:18px;font-weight:bold">جاري تحديث الأرقام...</div>';
@@ -4563,7 +4808,7 @@ async function recalculateAll(){
         }
         else {
           // ✅ لا يوجد تعديل يدوي → نعيد الحساب من البيانات
-          let newSold = 0;
+          let newSold = +t.totalSold || 0;
           db.sales.forEach(s=>{
             if(s.items){ s.items.forEach(it=>{ if(it.typeName === t.name) newSold += it.qty; }); }
             else if(s.typeName === t.name) newSold += (s.qty || 0);
@@ -4592,7 +4837,15 @@ async function recalculateAll(){
       
       // إصلاح الحجوزات
       db.reservations.forEach(r=>{ r.usedQty = Math.max(0, Math.min(r.usedQty||0, r.totalQty)); });
-      
+      // ✅ نرجع الكميات المباعة اللي حفظناها من الشاشة (إذا كانت الأرقام الجديدة أقل)
+db.flourTypes.forEach(t => {
+  if(_safetySold[t.id] !== undefined && _safetySold[t.id] > (+t.totalSold || 0)){
+    t.totalSold = _safetySold[t.id];
+    const orig = (t.additions||[]).reduce((a,x)=>a+(+x.qty||0),0);
+    t.qty = Math.max(0, orig - t.totalSold);
+  }
+});
+
       _pendingCategories = new Set(['flourTypes', 'buyers', 'deposits', 'reservations', 'sales', 'exchanges', 'debts', 'archive']);
       
       const now = Date.now();
@@ -4811,25 +5064,49 @@ document.querySelectorAll('.tab').forEach(t=>{t.onclick=()=>{gotoPage(t.dataset.
 
 window.addEventListener('online', function(){ setSyncStatus('loading','☁️ رجع النت...'); setTimeout(autoSyncOnConnect, 1500); if(currentUser && cloudEnabled){setTimeout(()=>{if(!Object.keys(_listeners).length)startRealtimeListener();},2000);} });
 window.addEventListener('offline', function(){ setSyncStatus('err','📱 محلي'); });
-
+  
 setInterval(async function(){
-  if(!navigator.onLine || !currentUser || !cloudEnabled) return;
-  if(_isReceivingUpdate) return;
-  if(db && db._pendingUpload === true) return;
   try{
+    if(!navigator.onLine || !currentUser || !cloudEnabled) return;
+    if(_isReceivingUpdate) return;
+    if(db && db._pendingUpload === true) return;
     if(_migrated && db._migratedToSplit){
       if(cloudMetaRef){
         const metaDoc = await cloudMetaRef.get();
         if(metaDoc.exists){
           const meta = metaDoc.data();
-          if(meta._clearedAt && meta._clearedAt > (db._clearedAt || 0) && meta._clearedBy !== _deviceId){ db = emptyDB(); db._migratedToSplit = true; db._clearedAt = meta._clearedAt; try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){} renderAll();renderArchive(); showSyncNotification('🗑️ تم مسح البيانات من جهاز آخر','err'); return; }
-          if(meta._lastActionBy !== _deviceId){ const metaTime = +meta._lastSaved || 0; const localTime = +db._lastSaved || 0; if(metaTime > localTime){ _isReceivingUpdate = true; await _reloadFromSplitDocs(); renderAll();renderArchive();renderSettings(); _updateNotifBadge(); showSyncNotification('📥 تحديث من جهاز آخر','ok'); setSyncStatus('ok','☁️ متزامن'); _isReceivingUpdate = false; } }
+          if(meta._clearedAt && meta._clearedAt > (db._clearedAt || 0) && meta._clearedBy !== _deviceId){ 
+            db = emptyDB(); 
+            db._migratedToSplit = true; 
+            db._clearedAt = meta._clearedAt; 
+            try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){} 
+            renderAll();
+            renderArchive(); 
+            showSyncNotification('🗑️ تم مسح البيانات من جهاز آخر','err'); 
+            return; 
+          }
+          if(meta._lastActionBy !== _deviceId){ 
+            const metaTime = +meta._lastSaved || 0; 
+            const localTime = +db._lastSaved || 0; 
+            if(metaTime > localTime){ 
+              _isReceivingUpdate = true; 
+              await _reloadFromSplitDocs(); 
+              renderAll();
+              renderArchive();
+              renderSettings(); 
+              _updateNotifBadge(); 
+              showSyncNotification('📥 تحديث من جهاز آخر','ok'); 
+              setSyncStatus('ok','☁️ متزامن'); 
+              _isReceivingUpdate = false; 
+            } 
+          }
         }
       }
     }
-  }catch(e){ console.warn('periodic:', e); }
-}, 5000);
-
+  }catch(e){ 
+    console.warn('periodic:', e); 
+  }
+}, 3000);
 document.addEventListener('input', function(e){ if(e.target && e.target.id === 'exDiffTotal'){ e.target._userEdited = (String(e.target.value).trim() !== ''); } });
 
 // ═══════════════════════════════════════════════════════════
@@ -4872,4 +5149,4 @@ document.addEventListener('input', function(e){ if(e.target && e.target.id === '
 })();
 </script>
 </body>
-  </html>
+                                          </html>
