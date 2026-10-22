@@ -1250,7 +1250,7 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 // ===== التحديث التلقائي =====
 const APP_VERSION = "1.1";
 const APP_UPDATE_URL = https://flour-afk.pages.dev/
-const MAX_UPDATE_POSTPONES = 3;
+const MAX_UPDATE_POSTPONES = 5;
 let _updateBlocked = false;
 
 async function checkForUpdates(){
@@ -3434,13 +3434,13 @@ const _reportableDepsForHome = (db.deposits||[]).filter(d=>{ if(d._partOfFreeDep
 reportTotal += _reportableDepsForHome.reduce((a,d)=>{ const origAmt = +d.originalAmount || +d.amount || 0; return a + origAmt; }, 0);
 reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange && !_isArch(c)).reduce((a,c)=>a+c.amount,0);
 
-const gs=db.sales.filter(s=>s.method==='هدية' && !_isArch(s)).reduce((a,s)=>a+(s.qty||0),0);
+const gs=db.sales.filter(s=>s.method==='هدية').reduce((a,s)=>a+(s.qty||0),0);
 const _debtPersons=[...new Set(db.debts.map(d=>d.person))];
-const td=_debtPersons.reduce((sum,p)=>{ const debtSum=db.debts.filter(x=>x.person===p && !_isArch(x)).reduce((a,x)=>a+x.amount,0); const paySum=db.payments.filter(x=>x.person===p && !_isArch(x)).reduce((a,x)=>a+x.amount,0); return sum+Math.max(0,debtSum-paySum); },0);
-const tp=db.payments.filter(p=>!_isArch(p)).reduce((a,p)=>a+p.amount,0);
-const te=db.expenses.filter(e=>!_isArch(e)).reduce((a,e)=>a+e.amount,0);
+const td=_debtPersons.reduce((sum,p)=>{ const debtSum=db.debts.filter(x=>x.person===p).reduce((a,x)=>a+x.amount,0); const paySum=db.payments.filter(x=>x.person===p).reduce((a,x)=>a+x.amount,0); return sum+Math.max(0,debtSum-paySum); },0);
+const tp=db.payments.reduce((a,p)=>a+p.amount,0);
+const te=db.expenses.reduce((a,e)=>a+e.amount,0);
 if(!db.cashAdditions)db.cashAdditions=[];
-const caTotal=db.cashAdditions.filter(c=>!c.fromExchange && !_isArch(c)).reduce((a,x)=>a+x.amount,0);
+const caTotal=db.cashAdditions.filter(c=>!c.isCarry && !c.fromExchange).reduce((a,x)=>a+x.amount,0);
 let carryBalance=0;
 if(db._permanentCarry !== undefined && db._permanentCarry !== null){carryBalance=+db._permanentCarry || 0;}
 const cashboxTotal=reportTotal + carryBalance - te + (db._cashboxOffset || 0);
