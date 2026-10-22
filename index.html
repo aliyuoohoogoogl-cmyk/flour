@@ -1248,9 +1248,9 @@ input[id^="ship_"]{min-width:60px !important;max-width:70px !important;padding:5
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><script>
 // ===== التحديث التلقائي =====
-const APP_VERSION = "1.14";
+const APP_VERSION = "1.8";
 const APP_UPDATE_URL = "https://aliyuoohoogoogl-cmyk.github.io/flour/latest.json";
-const MAX_UPDATE_POSTPONES = 3;
+const MAX_UPDATE_POSTPONES = 300;
 let _updateBlocked = false;
 
 async function checkForUpdates(){
@@ -1917,12 +1917,9 @@ function _listenToCategory(category){
       try{
         if(snap.metadata.hasPendingWrites) return;
         if(_isReceivingUpdate) return;
-        if(db && db._pendingUpload === true) return;
         const archivedCats = ['sales','payments','expenses','buyers','cashAdditions','exchanges'];
         if(db._archiveLock === true && archivedCats.includes(category)) return;
         const cloudItems = []; snap.forEach(doc => { const item = doc.data(); if(item) cloudItems.push(item); });
-        const allFromMe = cloudItems.every(item => item._lastActionBy === _deviceId);
-        if(allFromMe) return;
         _isReceivingUpdate = true;
         const merged = new Map(); cloudItems.forEach(item => { if(item && item.id) merged.set(item.id, item); });
         (db[category] || []).forEach(localItem => { if(!localItem || !localItem.id) return; if(!merged.has(localItem.id)){ merged.set(localItem.id, localItem); } else { const cloudItem = merged.get(localItem.id); const cTime = +cloudItem._uploadedAt || +cloudItem._editedAt || 0; const lTime = +localItem._editedAt || 0; if(lTime > cTime) merged.set(localItem.id, localItem); } });
@@ -1974,11 +1971,18 @@ function startRealtimeListener(){
   if(!cloudEnabled || !currentUser) return;
   const subStatus = checkSubscription();
   if(subStatus === 'expired'){ setSyncStatus('err','⚠️ الاشتراك منتهي'); return; }
-  _initUserRefs(currentUser);
+  if(!cloudMetaRef) _initUserRefs(currentUser);
+  if(!cloudMetaRef){ setTimeout(startRealtimeListener, 2000); return; }
+  stopRealtimeListener();
   _listenToMeta();
   SPLIT_CATEGORIES.forEach(cat => _listenToCategory(cat));
   _listenToOffers();
 }
+setInterval(() => {
+  if(currentUser && cloudEnabled && navigator.onLine && Object.keys(_listeners).length === 0){
+    startRealtimeListener();
+  }
+}, 15000);
 
 function stopRealtimeListener(){ Object.keys(_listeners).forEach(k => { try{ _listeners[k](); }catch(e){} delete _listeners[k]; }); }
 
@@ -2191,9 +2195,20 @@ const oldItems=JSON.parse(JSON.stringify(items));
 oldItems.forEach(it=>{const t=db.flourTypes.find(x=>x.name===it.typeName);if(t){t.qty+=it.qty;t.totalSold=Math.max(0,(t.totalSold||0)-it.qty);t._editedAt=Date.now();}});
 if(s.method==='دين'){db.debts.filter(x=>x.saleId===s.id).forEach(x=>markDeleted('debts',x.id));db.debts=db.debts.filter(x=>x.saleId!==s.id);}
 if(s.method==='واصل'){
-const withdrawals = db.deposits.filter(x=>x.isWithdrawal && x.saleId===s.id);
-withdrawals.forEach(w=>{const dep = db.deposits.find(x => x.id === w.depositId);if(dep){const qtyBack = Math.abs(+w.originalQty || 0);const amtBack = Math.abs(+w.originalAmount || 0);dep._usedQty = Math.max(0, (dep._usedQty || 0) - qtyBack);dep._usedMoney = Math.max(0, (dep._usedMoney || 0) - amtBack);dep._finished = false;dep._editedAt = Date.now();}markDeleted('deposits', w.id);});
-db.deposits=db.deposits.filter(x=>!(x.isWithdrawal&&x.saleId===s.id));
+  // ✅ إرجاع الكميات القديمة للإيداع (لأننا ألغينا السحوبات)
+  const oldItems = s.items || [{typeName: s.typeName, qty: s.qty}];
+  oldItems.forEach(it => {
+    const dep = db.deposits.find(x => _cleanPerson(x.person) === _cleanPerson(s.buyer) && _cleanType(x.typeName) === _cleanType(it.typeName) && !x.isWithdrawal);
+    if(dep){
+      dep._usedQty = Math.max(0, (dep._usedQty || 0) - (+it.qty || 0));
+      const price = +it.unitPrice || 0;
+      dep._usedMoney = Math.max(0, (dep._usedMoney || 0) - ((+it.qty || 0) * price));
+      dep._editedAt = Date.now();
+      if(dep._usedQty < (+dep.originalQty || 0) && dep._usedMoney < (+dep.originalAmount || 0)) dep._finished = false;
+    }
+    const r = db.reservations.find(x => _cleanPerson(x.person) === _cleanPerson(s.buyer) && _cleanType(x.typeName) === _cleanType(it.typeName));
+    if(r) r.usedQty = Math.max(0, (r.usedQty || 0) - (+it.qty || 0));
+  });
 }
 if(s.remaining>0){db.debts.filter(x=>x.saleId===s.id&&String(x.typeName).includes('الباقي')).forEach(x=>markDeleted('debts',x.id));db.debts=db.debts.filter(x=>x.saleId!==s.id||!String(x.typeName).includes('الباقي'));}
 const newItems=[];let cont=true;
@@ -2406,7 +2421,6 @@ if(wasselRemByType){saleRecord.remByType=wasselRemByType;}
 if(!saleRecord._addedAt) saleRecord._addedAt = nowISO();
 saleRecord._addedAfterArchive = true;
 db.sales.push(saleRecord);
-wasselWithdrawals.forEach(w=>{w.saleId=saleRecord.id;db.deposits.push(w);});
 if(currentMethod==='دين'){saleItems.forEach(it=>{const ratio=grossTotal>0?(it.total/grossTotal):0;const itemDebt=netTotal*ratio;db.debts.push({id:uid(),person:buyer,amount:itemDebt,typeName:it.typeName,qty:it.qty,unitPrice:it.unitPrice||0,date:d,carrier:carrier,fromSale:true,saleId:saleRecord.id,_editedAt:Date.now()});});}
 if(remaining>0){db.debts.push({id:uid(),person:buyer,amount:remaining,typeName:'(الباقي)',qty:0,date:d,carrier:carrier,manual:true,fromSale:true,saleId:saleRecord.id,_editedAt:Date.now()});}
 recordBuyer(buyer,saleItems,currentMethod,d,carrier,tt);
@@ -3090,45 +3104,91 @@ function editRsv(id){const r=db.reservations.find(x=>x.id===id);if(!r)return;con
 // ✅ التسديد
 // ═══════════════════════════════════════════════════════════
 function addPayment(){
-const p=document.getElementById('pPerson').value.trim();
-const tn=document.getElementById('pType').value.trim();
-const q=+document.getElementById('pQty').value||0;
-const a=+document.getElementById('pAmount').value;
-const det=document.getElementById('pDetails')?document.getElementById('pDetails').value.trim():'';
-if(!p)return toast('اكتب اسم الزبون',true);
-if(!a||a<=0)return toast('اكتب المبلغ',true);
-let d=nowISO();
-const dtInput=document.getElementById('pDateTime');
-if(dtInput&&dtInput.value){try{const parsed=new Date(dtInput.value);if(!isNaN(parsed.getTime())){d=parsed.toISOString();}}catch(e){}}
-const debtBefore = debtBalance(p);
-if(a > debtBefore && debtBefore > 0){
-  const paymentAmount = debtBefore;
-  const excess = a - debtBefore;
-  const _newPay = {id:uid(),person:p,amount:paymentAmount,typeName:tn||'',qty:q,details:(det||'')+' (فائض '+money(excess)+' للإيداع)',date:d,_editedAt:Date.now()};
-  if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(_newPay);
-  db.payments.push(_newPay);
-  const bC = _cleanPerson(p);
-  let freeDep = db.deposits.find(x => _cleanPerson(x.person) === bC && (!x.typeName || x.typeName === '') && !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished);
-  if(freeDep){ freeDep.amount = (+freeDep.amount || 0) + excess; freeDep.originalAmount = (+freeDep.originalAmount || 0) + excess; freeDep._editedAt = Date.now(); if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(freeDep); }
-  else { const _newFree = {id:uid(),person:p,carrier:'',amount:excess,originalAmount:excess,_usedMoney:0,typeName:'',qty:0,originalQty:0,unitPrice:0,totalPrice:0,date:d,note:'💵 فائض تسديد',_usedQty:0,_editedAt:Date.now(),_countedInCashbox:false}; if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(_newFree); db.deposits.push(_newFree); }
-  toast(`✅ تسديد ${money(paymentAmount)} — الفائض ${money(excess)} ذهب للإيداع`);
-} else {
-  const _newPay2 = {id:uid(),person:p,amount:a,typeName:tn||'',qty:q,details:det,date:d,_editedAt:Date.now()};
-if(!_newPay2._addedAt) _newPay2._addedAt = nowISO();
-_newPay2._addedAfterArchive = true;
-if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(_newPay2);
-db.payments.push(_newPay2);
-// ✅ إجبار التحديث الفوري للسجلات
-save(); 
-renderAll(); 
-renderReport(); 
-toast('تم التسديد ✅');
-}
-if(typeof _markAllAsNewAfterArchive === 'function'){ _markAllAsNewAfterArchive(db.payments); _markAllAsNewAfterArchive(db.deposits); }
-save();renderAll();
-document.getElementById('pPerson').value='';document.getElementById('pType').value='';document.getElementById('pQty').value='';document.getElementById('pAmount').value='';
-if(document.getElementById('pDetails'))document.getElementById('pDetails').value='';
-if(document.getElementById('pDateTime'))document.getElementById('pDateTime').value='';
+  const p = document.getElementById('pPerson').value.trim();
+  const tn = document.getElementById('pType').value.trim();
+  const q = +document.getElementById('pQty').value || 0;
+  const a = +document.getElementById('pAmount').value;
+  const det = document.getElementById('pDetails')?.value.trim() || '';
+  if(!p) return toast('اكتب اسم الزبون', true);
+  if(!a || a <= 0) return toast('اكتب المبلغ', true);
+
+  let d = nowISO();
+  const dtInput = document.getElementById('pDateTime');
+  if(dtInput && dtInput.value){
+    try{ const parsed = new Date(dtInput.value); if(!isNaN(parsed.getTime())) d = parsed.toISOString(); }catch(e){}
+  }
+
+  const debtBefore = debtBalance(p);
+  let paymentAmount = a;
+  let excess = 0;
+  if(debtBefore > 0 && a > debtBefore){
+    paymentAmount = debtBefore;
+    excess = a - debtBefore;
+  }
+
+  const pay = {
+    id: uid(), person: p, amount: paymentAmount,
+    typeName: tn || '', qty: q,
+    details: det + (excess > 0 ? ` (فائض ${money(excess)} للإيداع)` : ''),
+    date: d, _editedAt: Date.now()
+  };
+  _markAsNewAfterArchive(pay);
+  db.payments.push(pay);
+
+  if(paymentAmount > 0 && debtBefore > 0){
+    let remaining = paymentAmount;
+    const debts = db.debts
+      .filter(x => _cleanPerson(x.person) === _cleanPerson(p) && +x.amount > 0)
+      .sort((a,b) => a.date.localeCompare(b.date));
+    debts.forEach(dbt => {
+      if(remaining <= 0) return;
+      const deduct = Math.min(remaining, +dbt.amount);
+      dbt.amount = +dbt.amount - deduct;
+      dbt._editedAt = Date.now();
+      remaining -= deduct;
+    });
+    db.debts = db.debts.filter(x => +x.amount > 0.01);
+  }
+
+  if(excess > 0){
+    const bC = _cleanPerson(p);
+    let freeDep = db.deposits.find(x =>
+      _cleanPerson(x.person) === bC &&
+      (!x.typeName || x.typeName === '') &&
+      !x.isWithdrawal && !x.isCarry && !x.cashPayment && !x._finished
+    );
+    if(freeDep){
+      freeDep.amount = (+freeDep.amount || 0) + excess;
+      freeDep.originalAmount = (+freeDep.originalAmount || 0) + excess;
+      freeDep._editedAt = Date.now();
+      _markAsNewAfterArchive(freeDep);
+    } else {
+      const newFree = {
+        id: uid(), person: p, carrier: '',
+        amount: excess, originalAmount: excess, _usedMoney: 0,
+        typeName: '', qty: 0, originalQty: 0, unitPrice: 0, totalPrice: 0,
+        date: d, note: '💵 فائض تسديد',
+        _usedQty: 0, _editedAt: Date.now(), _countedInCashbox: false
+      };
+      _markAsNewAfterArchive(newFree);
+      db.deposits.push(newFree);
+    }
+  }
+
+  save();
+  renderAll();
+  renderReport();
+
+  document.getElementById('pPerson').value = '';
+  document.getElementById('pType').value = '';
+  document.getElementById('pQty').value = '';
+  document.getElementById('pAmount').value = '';
+  if(document.getElementById('pDetails')) document.getElementById('pDetails').value = '';
+  if(document.getElementById('pDateTime')) document.getElementById('pDateTime').value = '';
+
+  let msg = `✅ تسديد ${money(paymentAmount)}`;
+  if(excess > 0) msg += ` — الفائض ${money(excess)} راح للإيداع`;
+  toast(msg);
 }
 
 function renderPay(){
@@ -3299,8 +3359,7 @@ grandTotal += lineTotal;
 let ah='';
 const _vF = t._visibleFrom || '';
 const _cutoff = _archT || _vF || '';
-const visAdds = _cutoff ? a.filter(x => String(x.date||'') > _cutoff) : a;
-if(visAdds.length){ah=`<div class="additions-info">`;visAdds.forEach((x,i)=>{ah+=`📅 إضافة ${i+1}: <b>${money(x.qty)}</b> كيس — ${fmtShort(x.date)}<br>`;});ah+=`</div>`;}
+const visAdds = _cutoff ? a.filter(x => String(x.date||'') > _cutoff && x.note && x.note.includes('حمولة جديدة')) : a.filter(x => x.note && x.note.includes('حمولة جديدة'));if(visAdds.length){ah=`<div class="additions-info">`;visAdds.forEach((x,i)=>{ah+=`📅 إضافة ${i+1}: <b>${money(x.qty)}</b> كيس — ${fmtShort(x.date)}<br>`;});ah+=`</div>`;}
 const reservedShow=reserved>0 ? `<span style="color:#e67e22;font-weight:bold">${money(reserved)}</span>` : `<span style="color:#ccc">—</span>`;
 h+=`<tr data-flour-id="${t.id}" data-net="${net}"${f?' style="background:#fff5f5"':''}><td><div><b>${_escHtml(t.name)}</b> ${m?'<span style="color:#27ae60;font-size:18px;font-weight:bold">✅</span>':''} ${f?'<span class="finished-badge">منتهي</span>':''}</div>${ah}</td><td style="color:#2980b9;font-weight:bold;vertical-align:top">${money(o)}</td><td style="color:#c0392b;font-weight:bold;vertical-align:top">${money(s)}</td><td style="color:${f?'#c0392b':'#27ae60'};font-weight:bold;vertical-align:top">${money(t.qty)}</td><td style="vertical-align:top">${reservedShow}</td><td style="color:#2980b9;font-weight:bold;vertical-align:top">${money(net)}</td><td style="vertical-align:top"><input type="number" min="0" placeholder="السعر" value="${up||''}" oninput="updateFlourPrice('${t.id}',this.value,false)" onchange="updateFlourPrice('${t.id}',this.value,true)" style="min-width:75px;max-width:100px;padding:6px 8px;font-size:12px;font-weight:bold;text-align:center;color:#8B4513;border:2px solid #f39c12;background:#fffdf5"></td><td class="flour-total" style="color:#8B4513;font-weight:bold;vertical-align:top;font-size:13px">${money(lineTotal)}</td><td style="vertical-align:top"><div style="display:flex;gap:5px"><input id="ship_${t.id}" type="number" placeholder="كمية"><button class="small" style="padding:5px 8px" onclick="addShipment('${t.id}')">➕</button></div></td><td style="vertical-align:top"><button class="blue small" onclick="editFlourType('${t.id}')">✏️</button> <button class="danger small" onclick="delFlourType('${t.id}')">🗑️</button></td></tr>`;
 });
@@ -3510,8 +3569,11 @@ let _reportTotal=0;
 db.sales.forEach(s=>{ if(_isArch(s)) return; const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}]; const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0); const disc=s.discount||0; items.forEach(it=>{ const ratio=grossTotal>0?(it.total/grossTotal):0; const discountedTotal=Math.max(0,it.total-disc*ratio); let paid=discountedTotal; if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);} else if(s.method==='واصل'){paid=0;} else if(s.method==='هدية'){paid=0;} _reportTotal += paid; }); });
 _reportTotal += db.payments.filter(p => p._fromDeposit !== true && !_isArch(p)).reduce((a,p)=>a+p.amount,0);
 _reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين' && !_isArch(e)).reduce((a,e)=>a+(+e.diff||0), 0);
-_reportTotal += _aggregatedDeps.reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0);
-_reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange && !_isArch(c)).reduce((a,c)=>a+c.amount,0);
+_reportTotal += _aggregatedDeps.reduce((a,d)=>{
+  const orig = +d.originalAmount !== undefined ? +d.originalAmount : +d.amount;
+  const used = +d._usedMoney || 0;
+  return a + Math.max(0, orig - used);
+}, 0);_reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange && !_isArch(c)).reduce((a,c)=>a+c.amount,0);
 const _te=db.expenses.filter(e=>!_isArch(e)).reduce((a,e)=>a+e.amount,0);
 let _carry=0;
 if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carry=+db._permanentCarry || 0;}
@@ -4104,9 +4166,9 @@ function save(){
   const subStatus = checkSubscription();
   if(subStatus === 'expired'){ db._pendingUpload = false; setSyncStatus('warn','📱 محلي فقط'); return; }
   if(cloudEnabled && navigator.onLine){
-    if(_saveTimer) clearTimeout(_saveTimer);
-    _saveTimer = setTimeout(_doUpload, 50); // ✅ رفع فوري خلال 50 ملي ثانية
-  } else {
+  if(_saveTimer) clearTimeout(_saveTimer);
+  _doUpload();
+} else {
     db._needsSync = true;
     setSyncStatus('warn','📱 محلي');
   }
