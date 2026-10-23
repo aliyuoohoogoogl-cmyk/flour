@@ -3434,14 +3434,14 @@ const _reportableDepsForHome = (db.deposits||[]).filter(d=>{ if(d._partOfFreeDep
 reportTotal += _reportableDepsForHome.reduce((a,d)=>{ const origAmt = +d.originalAmount || +d.amount || 0; return a + origAmt; }, 0);
 reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange && !_isArch(c)).reduce((a,c)=>a+c.amount,0);
 
-const gs=db.sales.filter(s=>s.method==='هدية').reduce((a,s)=>a+(s.qty||0),0);
-const _debtPersons=[...new Set(db.debts.map(d=>d.person))];
-const td=_debtPersons.reduce((sum,p)=>{ const debtSum=db.debts.filter(x=>x.person===p).reduce((a,x)=>a+x.amount,0); const paySum=db.payments.filter(x=>x.person===p).reduce((a,x)=>a+x.amount,0); return sum+Math.max(0,debtSum-paySum); },0);
-const tp=db.payments.reduce((a,p)=>a+p.amount,0);
-const te=db.expenses.reduce((a,e)=>a+e.amount,0);
-if(!db.cashAdditions)db.cashAdditions=[];
-const caTotal=db.cashAdditions.filter(c=>!c.isCarry && !c.fromExchange).reduce((a,x)=>a+x.amount,0);
-let carryBalance=0;
+function _aggregateFreeDeposits(deposits){
+  const result = [];
+  const freeGroups = new Map();
+  deposits.forEach(d => { if(d._accumulateId && (!d.typeName || d.typeName === '')){ if(!freeGroups.has(d._accumulateId)){ freeGroups.set(d._accumulateId, { id: d.id, _aggregatedIds: [d.id], _accumulateId: d._accumulateId, person: d.person, carrier: d.carrier || '', typeName: '', qty: 0, originalQty: 0, unitPrice: 0, totalPrice: 0, amount: 0, originalAmount: 0, _usedQty: 0, _usedMoney: 0, legacy: d.legacy, _showInReport: d._showInReport, date: d.date, note: d.note || '💵 مبلغ حر', _editedAt: d._editedAt, _dates: [d.date] }); } const agg = freeGroups.get(d._accumulateId); agg._aggregatedIds.push(d.id); agg.originalAmount = (+agg.originalAmount || 0) + (+d.originalAmount || +d.amount || 0); agg.amount = (+agg.amount || 0) + (+d.amount || 0); agg._usedMoney = (+agg._usedMoney || 0) + (+d._usedMoney || 0); agg.originalQty = (+agg.originalQty || 0) + (+d.originalQty || 0); agg.qty = (+agg.qty || 0) + (+d.qty || 0); agg._usedQty = (+agg._usedQty || 0) + (+d._usedQty || 0); agg._dates.push(d.date); if(String(d.date) > String(agg.date)) agg.date = d.date; if(!agg._showInReport && d._showInReport) agg._showInReport = true; if((+d._editedAt || 0) > (+agg._editedAt || 0)) agg._editedAt = d._editedAt; } else { result.push(d); } });
+  freeGroups.forEach(agg => { const remQty = Math.max(0, (+agg.originalQty || 0) - (+agg._usedQty || 0)); const remAmt = Math.max(0, (+agg.originalAmount || 0) - (+agg._usedMoney || 0)); if(remQty <= 0 && remAmt <= 0) return; result.push(agg); });
+  return result;
+}
+
 if(db._permanentCarry !== undefined && db._permanentCarry !== null){carryBalance=+db._permanentCarry || 0;}
 const cashboxTotal=reportTotal + carryBalance - te + (db._cashboxOffset || 0);
 _lastCashboxValue=cashboxTotal;
