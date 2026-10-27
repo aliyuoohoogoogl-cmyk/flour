@@ -1573,7 +1573,7 @@ function emptyDB(){return{
   _needsSync:false,_pendingUpload:false,_permanentCarry:0,_cashboxOffset:0,
   _deleted:{},myOffers:[],_migratedToSplit:false,_lastSync:0,
   _lastArchiveAt:null,_archiveCutoff:null,_archiveToken:null,_archiveLock:false,
-  _lastUploadedArchiveToken:null,_clearedAt:0,_clearedBy:null
+  _lastUploadedArchiveToken:null,_clearedAt:0,_clearedBy:null,_fullOverwriteAt:0
 };}
 
 function showError(m){const e=document.getElementById('authError');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),4000);}
@@ -1635,7 +1635,7 @@ async function _uploadSplitItem(category, item){
 async function _uploadMetaConfig(){
   if(!cloudEnabled || !cloudMetaRef) return false;
   try{
-    const meta = { _permanentCarry: db._permanentCarry || 0, _cashboxOffset: db._cashboxOffset || 0, _lastArchiveAt: db._lastArchiveAt || null, _archiveCutoff: db._archiveCutoff || db._lastArchiveAt || null, _archiveToken: db._archiveToken || null, _manualOverrides: db._manualOverrides || {}, _notifications: (db._notifications || []).slice(0, 20), _lastSaved: db._lastSaved, _lastActionBy: _deviceId, _actionId: db._actionId, _migratedToSplit: true, _migratedAt: db._migratedAt || null, _clearedAt: db._clearedAt || 0, _clearedBy: db._clearedBy || null, _uploadedAt: Date.now() };
+    const meta = { _permanentCarry: db._permanentCarry || 0, _cashboxOffset: db._cashboxOffset || 0, _lastArchiveAt: db._lastArchiveAt || null, _archiveCutoff: db._archiveCutoff || db._lastArchiveAt || null, _archiveToken: db._archiveToken || null, _manualOverrides: db._manualOverrides || {}, _notifications: (db._notifications || []).slice(0, 20), _lastSaved: db._lastSaved, _lastActionBy: _deviceId, _actionId: db._actionId, _migratedToSplit: true, _migratedAt: db._migratedAt || null, _clearedAt: db._clearedAt || 0, _clearedBy: db._clearedBy || null, _fullOverwriteAt: db._fullOverwriteAt || 0, _uploadedAt: Date.now() };
     await cloudMetaRef.set(meta);
     return true;
   }catch(e){ console.warn('upload meta failed:', e); return false; }
@@ -1968,9 +1968,29 @@ function _listenToMeta(){
         if(snap.metadata.hasPendingWrites) return;
         if(!snap.exists) return;
         const meta = snap.data();
-        if(meta._lastActionBy === _deviceId) return;
-        if(db && db._pendingUpload === true) return;
-        if(_isReceivingUpdate) return;
+if(meta._lastActionBy === _deviceId) return;
+if(db && db._pendingUpload === true) return;
+if(_isReceivingUpdate) return;
+
+// ✅ [جديد] إذا في جهاز ثاني ضغط "إرسال بياناتي"، نستقبل نسخته فوراً
+if(meta._fullOverwriteAt && meta._fullOverwriteAt > (db._fullOverwriteAt || 0)){
+  console.log('📥 تم استلام أمر استبدال كامل من جهاز آخر');
+  _isReceivingUpdate = true;
+  db = emptyDB();
+  db._migratedToSplit = true;
+  db._fullOverwriteAt = meta._fullOverwriteAt;
+  
+  _reloadFromSplitDocs().then(() => {
+      try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
+      renderAll();
+      renderArchive();
+      renderSettings();
+      showSyncNotification('📥 تم استلام نسخة كاملة من جهاز آخر', 'ok');
+      setSyncStatus('ok','☁️ متزامن');
+      _isReceivingUpdate = false;
+  });
+  return;
+}
         _isReceivingUpdate = true;
         const remoteArchiveToken = meta._archiveToken || null;
         const remoteArchiveAt = meta._lastArchiveAt || 0;
@@ -4300,7 +4320,8 @@ async function doArchive(){
   if(cloudMetaRef){ try{ await cloudMetaRef.set({ _lastActionBy: _deviceId, _archiveToken: db._archiveToken, _lastArchiveAt: _archiveTime, _archiveCutoff: _archiveTime, _permanentCarry: db._permanentCarry, _cashboxOffset: 0 }, { merge: true }); }catch(e){} }
   db._lastActionBy = _deviceId;
   db._actionId = _deviceId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
-  db._lastSaved = Date.now();
+  
+db._lastSaved = Date.now();
   db._pendingUpload = true;
   try { localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); } catch(e) {}
   setSyncStatus('loading','⏳ جاري رفع الأرشيف...');
@@ -5168,9 +5189,10 @@ async function sendMyData(){
       const snap = await ref.get();
       if(snap.size > 0){ const docs = []; snap.forEach(doc => docs.push(doc.ref)); for(let i = 0; i < docs.length; i += 400){ const batch = _firestoreDB.batch(); docs.slice(i, i + 400).forEach(r => batch.delete(r)); await batch.commit(); } }
     }
-    db._lastSaved = Date.now();
-    db._lastActionBy = _deviceId;
-    db._lastSync = 0;
+    db._fullOverwriteAt = Date.now(); // ✅ بصمة الاستبدال الكامل
+db._lastSaved = Date.now();
+db._lastActionBy = _deviceId;
+db._lastSync = 0;
     await _uploadMetaConfig();
     _pendingCategories = new Set(SPLIT_CATEGORIES);
     await _doUpload();
@@ -5186,8 +5208,16 @@ async function receiveFromCloud(){
   if(!confirm('📥 سيتم جلب البيانات من السحابة ومسح بياناتك المحلية الحالية.\n\n⚠️ راح تصير نسخة طبق الأصل من آخر جهاز أرسل بياناته.\n\nمتابعة؟')) return;
   try{
     setSyncStatus('loading','📥 جاري الاستقبال...');
-    db.sales = []; db.payments = []; db.expenses = []; db.buyers = []; db.cashAdditions = []; db.exchanges = []; db.deposits = []; db.debts = []; db.reservations = []; db.flourTypes = []; db.archive = [];
-    await _reloadFromSplitDocs();
+// ✅ تصفير الداتابيس بالكامل ومسح أي إعدادات أرشيف قديمة عشان ما يفلتر البيانات
+db = emptyDB();
+db._migratedToSplit = true;
+db._lastArchiveAt = null;
+db._archiveCutoff = null;
+db._archiveToken = null;
+db._lastUploadedArchiveToken = null;
+db._archiveLock = false;
+
+await _reloadFromSplitDocs();
     db._lastSync = Date.now();
     localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db));
     renderAll();renderArchive();renderSettings();renderSaleItems();renderExItems();renderDepositTypes();
@@ -5906,7 +5936,7 @@ let c=`<div style="text-align:center;margin-bottom:10px;background:#fff8e6;borde
 c+=`<table style="font-size:10px;line-height:1.3;width:100%"><tr><th>#</th><th>النوع</th><th>الأصلي</th><th>المباع</th><th>الباقية</th><th>المحجوزة</th><th>الصافي</th><th>💵 السعر</th><th>💰 الكلي</th><th>الإضافة</th></tr>`;
 const _sortedFT2 = [...db.flourTypes].sort((a,b)=>String(a._visibleFrom||'').localeCompare(String(b._visibleFrom||'')));
 const _archT3 = db._archiveCutoff || getArchiveTime();
-_sortedFT2.forEach((t,i)=>{ const s=t.totalSold||0; const o=_getOriginalQty(t); const f=t.qty<=0; const reserved=getReservedQty(t.name, null); const net=Math.max(0, (+t.qty||0) - reserved); const up=+t.unitPrice||0; const lineTotal=net * up; const _vF2 = t._visibleFrom || ''; const _cutoff2 = _archT3 || _vF2 || ''; const adds = _cutoff2 ? (t.additions||[]).filter(x => String(x.date||'') > _cutoff2) : (t.additions||[]); let addShow='<span style="color:#ccc">—</span>'; if(adds.length){addShow='';adds.forEach((a,idx)=>{addShow+=`➕ ${idx+1}: <b style="color:#2980b9">${money(a.qty)}</b> كيس<br><span style="font-size:7px;color:#999">${fmt(a.date)}</span><br>`;});} c+=`<tr${f?' style="background:#fff5f5"':''}><td style="text-align:center;font-weight:bold">${i+1}</td><td><b>${_escHtml(t.name)}</b>${f?' <span class="finished-badge">منتهي</span>':''}</td><td style="color:#2980b9;font-weight:bold">${money(o)}</td><td style="color:#c0392b;font-weight:bold">${money(s)}</td><td style="color:${f?'#c0392b':'#27ae60'};font-weight:bold">${money(t.qty)}</td><td>${reserved>0?`<span style="color:#e67e22;font-weight:bold">${money(reserved)}</span>`:'<span style="color:#ccc">—</span>'}</td><td style="color:#2980b9;font-weight:bold">${money(net)}</td><td style="color:#8B4513;font-weight:bold">${up?money(up):'—'}</td><td style="color:#8B4513;font-weight:bold">${money(lineTotal)}</td><td style="font-size:8px;color:#666;line-height:1.4;padding:4px">${addShow}</td></tr>`; });
+_sortedFT2.forEach((t,i)=>{ const s=t.totalSold||0; const o=_getOriginalQty(t); const f=t.qty<=0; const reserved=getReservedQty(t.name, null); const net=Math.max(0, (+t.qty||0) - reserved); const up=+t.unitPrice||0; const lineTotal=net * up; const _vF2 = t._visibleFrom || ''; const _cutoff2 = _archT3 || _vF2 || ''; const adds = _cutoff2 ? (t.additions||[]).filter(x => String(x.date||'') > _cutoff2 && x.note && x.note.includes('حمولة جديدة')) : (t.additions||[]).filter(x => x.note && x.note.includes('حمولة جديدة')); let addShow='<span style="color:#ccc">—</span>'; if(adds.length){addShow='';adds.forEach((a,idx)=>{addShow+=`➕ ${idx+1}: <b style="color:#2980b9">${money(a.qty)}</b> كيس<br><span style="font-size:7px;color:#999">${fmt(a.date)}</span><br>`;});} c+=`<tr${f?' style="background:#fff5f5"':''}><td style="text-align:center;font-weight:bold">${i+1}</td><td><b>${_escHtml(t.name)}</b>${f?' <span class="finished-badge">منتهي</span>':''}</td><td style="color:#2980b9;font-weight:bold">${money(o)}</td><td style="color:#c0392b;font-weight:bold">${money(s)}</td><td style="color:${f?'#c0392b':'#27ae60'};font-weight:bold">${money(t.qty)}</td><td>${reserved>0?`<span style="color:#e67e22;font-weight:bold">${money(reserved)}</span>`:'<span style="color:#ccc">—</span>'}</td><td style="color:#2980b9;font-weight:bold">${money(net)}</td><td style="color:#8B4513;font-weight:bold">${up?money(up):'—'}</td><td style="color:#8B4513;font-weight:bold">${money(lineTotal)}</td><td style="font-size:8px;color:#666;line-height:1.4;padding:4px">${addShow}</td></tr>`; });
 c+=`</table>`;
 c+=`<div style="background:#faf0e6;border-radius:8px;padding:8px;margin-top:8px;font-size:11px;text-align:center"><b>المجموع:</b> الأصلي: <b style="color:#2980b9">${money(to)}</b> | المباع: <b style="color:#c0392b">${money(ts)}</b> | الباقي: <b style="color:#27ae60">${money(tr)}</b> | المحجوز: <b style="color:#e67e22">${money(tReserved)}</b> | الصافي: <b style="color:#2980b9">${money(tNet)}</b></div>`;
 c+=`<div style="background:linear-gradient(135deg,#D2691E,#8B4513);color:#fff;padding:14px 20px;border-radius:10px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;font-weight:bold"><div style="font-size:14px">💰 المبلغ الكلي للمخزون</div><div style="font-size:22px">${money(grandTotal)} د.ع</div></div>`;
