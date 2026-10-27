@@ -4271,7 +4271,38 @@ async function doArchive(){
   db.reservations = db.reservations.filter(r => (r.totalQty || 0) > 0);
   const datesSorted = Object.keys(byDate).sort();
   const archivesCreated = [];
-  datesSorted.forEach(dateKey=>{ const dayData = byDate[dateKey]; const hasRealOps = dayData.sales.length||dayData.payments.length||dayData.expenses.length||dayData.cashAdditions.length||dayData.exchanges.length||(dayData.debts&&dayData.debts.length); if(!hasRealOps) return; let dayTotal = 0; dayData.sales.forEach(s=>{ const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}]; const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0); const disc=s.discount||0; items.forEach(it=>{ const ratio=grossTotal>0?(it.total/grossTotal):0; const discountedTotal=Math.max(0,it.total-disc*ratio); let paid=discountedTotal; if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);} else if(s.method==='واصل'){paid=0;} else if(s.method==='هدية'){paid=0;} dayTotal += paid; }); }); dayTotal += dayData.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0); dayTotal += dayData.exchanges.filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0); dayTotal += dayData.deposits.filter(d=>{if(!(+d.amount>0)) return false;if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.legacy && d._showInReport !== true) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0); dayTotal += dayData.cashAdditions.filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0); const dayExpenses = dayData.expenses.reduce((a,e)=>a+e.amount,0); const archiveDoc = { id: uid(), archivedAt: _archiveTime, archivedBy: currentUser, dateKey: dateKey, dateArabic: _formatDateArabic(dateKey), dayName: _getDayName(dateKey), periodStart: dateKey + 'T00:00:00.000Z', periodEnd: dateKey + 'T23:59:59.999Z', savedReportHTML: _savedReportHTML, savedFinalTotal: _savedFinalTotal, savedFinalExpenses: _savedFinalExpenses, savedFinalCashbox: _savedFinalCashbox, savedPermanentCarry: db._permanentCarry || 0, sales: dayData.sales, payments: dayData.payments, expenses: dayData.expenses, buyers: dayData.buyers, cashAdditions: dayData.cashAdditions, exchanges: dayData.exchanges, debts: dayData.debts || [], deposits: dayData.deposits, reservations: [], cashboxAtArchive: dayTotal - dayExpenses, allDeposits: JSON.parse(JSON.stringify(keptDeposits || [])), allDebts: JSON.parse(JSON.stringify(db.debts || [])), allFlourTypes: _archivedFlourSnapshot, _editedAt: Date.now() }; db.archive.unshift(archiveDoc); archivesCreated.push(dateKey); });
+  datesSorted.forEach(dateKey=>{ const dayData = byDate[dateKey]; const hasRealOps = dayData.sales.length||dayData.payments.length||dayData.expenses.length||dayData.cashAdditions.length||dayData.exchanges.length||(dayData.debts&&dayData.debts.length); if(!hasRealOps) return; let dayTotal = 0; dayData.sales.forEach(s=>{ const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}]; const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0); const disc=s.discount||0; items.forEach(it=>{ const ratio=grossTotal>0?(it.total/grossTotal):0; const discountedTotal=Math.max(0,it.total-disc*ratio); let paid=discountedTotal; if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);} else if(s.method==='واصل'){paid=0;} else if(s.method==='هدية'){paid=0;} dayTotal += paid; }); }); dayTotal += dayData.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0); dayTotal += dayData.exchanges.filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0); dayTotal += dayData.deposits.filter(d=>{if(!(+d.amount>0)) return false;if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.legacy && d._showInReport !== true) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0); dayTotal += dayData.cashAdditions.filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0); const dayExpenses = dayData.expenses.reduce((a,e)=>a+e.amount,0); // ✅ نبني أقسام الإيداعات/الديون/الطحين كـ HTML مباشرة عشان يصير حجم الأرشيف صغير ويرتقع بسرعة
+let _extraArchiveHTML = '';
+try { if(keptDeposits && keptDeposits.length) _extraArchiveHTML += renderArchiveDepositsSection(keptDeposits); } catch(e){ console.warn('dep html:', e); }
+try { if(db.debts && db.debts.length) _extraArchiveHTML += renderArchiveDebtsSection(db.debts, db.payments || []); } catch(e){ console.warn('debt html:', e); }
+try { if(_archivedFlourSnapshot && _archivedFlourSnapshot.length) _extraArchiveHTML += renderArchiveFlourSection(_archivedFlourSnapshot); } catch(e){ console.warn('flour html:', e); }
+
+const _finalArchiveHTML = _savedReportHTML + _extraArchiveHTML;
+
+const archiveDoc = { 
+  id: uid(), 
+  archivedAt: _archiveTime, 
+  archivedBy: currentUser, 
+  dateKey: dateKey, 
+  dateArabic: _formatDateArabic(dateKey), 
+  dayName: _getDayName(dateKey), 
+  periodStart: dateKey + 'T00:00:00.000Z', 
+  periodEnd: dateKey + 'T23:59:59.999Z', 
+  savedReportHTML: _finalArchiveHTML, 
+  savedFinalTotal: _savedFinalTotal, 
+  savedFinalExpenses: _savedFinalExpenses, 
+  savedFinalCashbox: _savedFinalCashbox, 
+  savedPermanentCarry: db._permanentCarry || 0, 
+  salesCount: dayData.sales.length,
+  paymentsCount: dayData.payments.length,
+  expensesCount: dayData.expenses.length,
+  exchangesCount: dayData.exchanges.length,
+  cashAdditionsCount: dayData.cashAdditions.length,
+  cashboxAtArchive: dayTotal - dayExpenses, 
+  _slim: true,
+  _editedAt: Date.now() 
+}; 
+db.archive.unshift(archiveDoc); archivesCreated.push(dateKey); });
   db.sales.forEach(x=>markDeleted('sales',x.id));
   db.payments.forEach(x=>markDeleted('payments',x.id));
   db.expenses.forEach(x=>markDeleted('expenses',x.id));
@@ -4329,7 +4360,7 @@ db._lastSaved = Date.now();
   
   // ✅ مسح شامل للسحابة (كأنه حذف كلي للعمليات)
   if(cloudEnabled && _firestoreDB){ 
-    const catsToClear = ['sales','payments','expenses','buyers','cashAdditions','exchanges','debts','reservations','archive']; 
+    const catsToClear = ['sales','payments','expenses','buyers','cashAdditions','exchanges','debts','reservations']; 
     for(const cat of catsToClear){ 
       const ref = _getCategoryRef(cat); 
       if(!ref) continue; 
@@ -4844,7 +4875,6 @@ async function _doUpload(){
   if(db && db._ownerUser && db._ownerUser !== currentUser){ console.warn('⛔ db يخص مستخدم آخر — إلغاء الرفع'); db._pendingUpload = false; return false; }
   if(!navigator.onLine){ if(db) db._pendingUpload = false; setSyncStatus('warn','📱 محلي'); return false; }
   if(!cloudEnabled || !cloudDataRef){ tryInitFirebase(); if(!cloudEnabled){ if(db) db._pendingUpload = false; setSyncStatus('warn','📱 محلي'); return false; } }
-  if(!navigator.onLine){ if(db) db._pendingUpload = false; setSyncStatus('warn','📱 محلي'); return false; }
   const subStatus = checkSubscription();
   if(subStatus === 'expired'){ if(db) db._pendingUpload = false; setSyncStatus('warn','⚠️ الاشتراك منتهي'); return false; }
   if(!cloudMetaRef) _initUserRefs(currentUser);
@@ -4888,61 +4918,68 @@ async function _doUpload(){
       return true;
     }
 
-    // ✅ [التعديل الجديد] نرفع كلشي بكل مرة (الطريقة القديمة)
-    // ✅ [تعديل السرعة] نرفع فقط العناصر الجديدة أو المعدلة
-let categoriesToUpload = new Set(SPLIT_CATEGORIES); 
-const catsArray = Array.from(categoriesToUpload);
+    let categoriesToUpload = new Set(SPLIT_CATEGORIES); 
+    const catsArray = Array.from(categoriesToUpload);
 
-for(const category of catsArray){
-  const items = db[category] || [];
-  const ref = _getCategoryRef(category);
-  if(!ref) continue;
-  
-  if(items.length === 0 && ['sales','payments','expenses','buyers','cashAdditions','exchanges'].includes(category)){
-    try{ const snap = await ref.get(); if(snap.size > 0){ const docs = []; snap.forEach(doc => docs.push(doc.ref)); for(let i = 0; i < docs.length; i += 400){ const batch = _firestoreDB.batch(); docs.slice(i, i + 400).forEach(r => batch.delete(r)); await batch.commit(); } } }catch(e){}
-    continue;
-  }
-  
-  // ✅ [تعديل] حذف مؤقت بدل نهائي (عشان يتزامن مع الأجهزة الثانية)
-const deletedItems = (db._deleted && db._deleted[category]) || [];
-if(deletedItems.length > 0){
-  let delBatchCount = 0;
-  let delBatch = _firestoreDB.batch();
-  for(const delId of deletedItems){
-    delBatch.set(ref.doc(delId), { 
-      id: delId, 
-      _deleted: true, 
-      _deletedAt: Date.now(),
-      _lastActionBy: _deviceId 
-    }, { merge: true });
-    delBatchCount++;
-    if(delBatchCount >= 400){ await delBatch.commit(); delBatch = _firestoreDB.batch(); delBatchCount = 0; }
-  }
-  if(delBatchCount > 0) await delBatch.commit();
-}
-  
-  // ✅ فلترة العناصر (بس الجديدة أو المعدلة)
-  const changedItems = items.filter(item => {
-    if(!item || !item.id) return false;
-    if(!item._uploadedAt) return true; 
-    if((+item._editedAt || 0) > (+item._uploadedAt || 0)) return true; 
-    return false;
-  });
-  
-  if(changedItems.length === 0 && deletedItems.length === 0) continue;
-  
-  let batchCount = 0;
-  let batch = _firestoreDB.batch();
-  const nowUpload = Date.now();
-  for(const item of changedItems){ 
-    if(!item || !item.id) continue; 
-    batch.set(ref.doc(item.id), { ...item, _lastActionBy: _deviceId, _uploadedAt: nowUpload }); 
-    item._uploadedAt = nowUpload; // ✅ تحديث محلياً عشان ما ينرفع مرة ثانية
-    batchCount++; 
-    if(batchCount >= 400){ await batch.commit(); batch = _firestoreDB.batch(); batchCount = 0; } 
-  }
-  if(batchCount > 0) await batch.commit();
-}
+    for(const category of catsArray){
+      const items = db[category] || [];
+      const ref = _getCategoryRef(category);
+      if(!ref) continue;
+      
+      if(items.length === 0 && ['sales','payments','expenses','buyers','cashAdditions','exchanges'].includes(category)){
+        try{ const snap = await ref.get(); if(snap.size > 0){ const docs = []; snap.forEach(doc => docs.push(doc.ref)); for(let i = 0; i < docs.length; i += 400){ const batch = _firestoreDB.batch(); docs.slice(i, i + 400).forEach(r => batch.delete(r)); await batch.commit(); } } }catch(e){}
+        continue;
+      }
+      
+      const deletedItems = (db._deleted && db._deleted[category]) || [];
+      if(deletedItems.length > 0){
+        let delBatchCount = 0;
+        let delBatch = _firestoreDB.batch();
+        for(const delId of deletedItems){
+          delBatch.set(ref.doc(delId), { 
+            id: delId, 
+            _deleted: true, 
+            _deletedAt: Date.now(),
+            _lastActionBy: _deviceId 
+          }, { merge: true });
+          delBatchCount++;
+          if(delBatchCount >= 400){ await delBatch.commit(); delBatch = _firestoreDB.batch(); delBatchCount = 0; }
+        }
+        if(delBatchCount > 0) await delBatch.commit();
+      }
+      
+      const changedItems = items.filter(item => {
+        if(!item || !item.id) return false;
+        if(!item._uploadedAt) return true; 
+        if((+item._editedAt || 0) > (+item._uploadedAt || 0)) return true; 
+        return false;
+      });
+      
+      if(changedItems.length === 0 && deletedItems.length === 0) continue;
+      
+      let batchCount = 0;
+      let batch = _firestoreDB.batch();
+      const nowUpload = Date.now();
+      const _pendingItems = [];
+
+      for(const item of changedItems){ 
+        if(!item || !item.id) continue; 
+        batch.set(ref.doc(item.id), { ...item, _lastActionBy: _deviceId, _uploadedAt: nowUpload }); 
+        _pendingItems.push(item);
+        batchCount++; 
+        if(batchCount >= 400){ 
+          await batch.commit(); 
+          _pendingItems.forEach(i => i._uploadedAt = nowUpload);
+          _pendingItems.length = 0;
+          batch = _firestoreDB.batch(); 
+          batchCount = 0; 
+        } 
+      }
+      if(batchCount > 0){ 
+        await batch.commit(); 
+        _pendingItems.forEach(i => i._uploadedAt = nowUpload);
+      }
+    }
     
     db._lastSync = Date.now();
     db._deleted = {};
@@ -4953,6 +4990,8 @@ if(deletedItems.length > 0){
     return true;
   }catch(e){ console.error('_doUpload error:', e); if(db) db._pendingUpload = false; setSyncStatus('err','⚠️ فشل الرفع'); return false; }
 }
+  
+  
 
 
 
@@ -5189,19 +5228,19 @@ async function sendMyData(){
       const snap = await ref.get();
       if(snap.size > 0){ const docs = []; snap.forEach(doc => docs.push(doc.ref)); for(let i = 0; i < docs.length; i += 400){ const batch = _firestoreDB.batch(); docs.slice(i, i + 400).forEach(r => batch.delete(r)); await batch.commit(); } }
     }
-    db._fullOverwriteAt = Date.now();
-db._lastSaved = Date.now();
-db._lastActionBy = _deviceId;
-db._lastSync = 0;
+    db._fullOverwriteAt = Date.now(); 
+    db._lastSaved = Date.now();
+    db._lastActionBy = _deviceId;
+    db._lastSync = 0;
+    
+    // ✅ السر هنا: نمسح علامة الرفع من كل العناصر عشان الدالة ترفعها كلها من جديد
+    SPLIT_CATEGORIES.forEach(cat => {
+      (db[cat] || []).forEach(item => { 
+        if(item && item.id) delete item._uploadedAt; 
+      });
+    });
 
-// ✅ [الحل السحري] مسح علامة الرفع من كل البيانات عشان البرنامج يضطر يرفعها كلها من جديد
-SPLIT_CATEGORIES.forEach(cat => {
-  (db[cat] || []).forEach(item => { if(item && item._uploadedAt) delete item._uploadedAt; });
-});
-db._lastUploadedArchiveToken = null;
-db._archiveLock = false;
-
-await _uploadMetaConfig();
+    await _uploadMetaConfig();
     _pendingCategories = new Set(SPLIT_CATEGORIES);
     await _doUpload();
     renderAll();renderArchive();renderSettings();
