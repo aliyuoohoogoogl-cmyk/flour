@@ -1402,7 +1402,20 @@ if('serviceWorker' in navigator){
 
       // ✅ كل 60 ثانية تحديث تلقائي
       setInterval(() => reg.update().catch(() => {}), 60 * 1000);
-        
+      reg.addEventListener('updatefound', () => {
+  const newWorker = reg.installing;
+  if(newWorker){
+    newWorker.addEventListener('statechange', () => {
+      if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
+        setTimeout(() => {
+          if(confirm('✅ تم تحميل تحديث جديد — هل تريد إعادة التحميل الآن؟')){
+            window.location.reload(true);
+          }
+        }, 1000);
+      }
+    });
+  }
+});  
     }catch(e){ console.warn('SW error:', e); }
   });
 }
@@ -2508,6 +2521,41 @@ db.deposits.forEach(d => {
   renderReport();
   renderDeposit();
   toast('✅ تم حذف البيع ورجع الإيداع لحالته');
+}
+function editExpense(id){
+  const e = db.expenses.find(x => x.id === id);
+  if(!e) return toast('❌ ما وجدت الصرفية', true);
+  
+  const nDescI = prompt('📝 الوصف:', e.desc);
+  if(nDescI === null) return;
+  
+  const nAmountI = prompt('💰 المبلغ:', e.amount);
+  if(nAmountI === null) return;
+  
+  const nDate = promptDateTime(e.date);
+  if(nDate === undefined) return;
+  
+  e.desc = nDescI.trim();
+  e.amount = +nAmountI;
+  e.date = nDate;
+  e._editedAt = Date.now();
+  
+  if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(e);
+  
+  save();
+  renderAll();
+  toast('✅ تم تعديل الصرفية');
+}
+
+function delExpense(id){
+  if(!confirm('هل أنت متأكد من حذف هذه الصرفية؟')) return;
+  
+  markDeleted('expenses', id);
+  db.expenses = db.expenses.filter(x => x.id !== id);
+  
+  save();
+  renderAll();
+  toast('✅ تم حذف الصرفية');
 }
 function renderExpense(){
 const el=document.getElementById('expenseList');
