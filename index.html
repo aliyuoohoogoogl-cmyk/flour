@@ -2519,7 +2519,32 @@ h+=`<tr><td style="font-size:11px">${fmt(e.date)}</td><td>${_escHtml(e.desc)}</t
 });
 el.innerHTML=h+'</table>';
 }
-
+function addExpense(){
+  const desc = document.getElementById('eDesc').value.trim();
+  const amount = +document.getElementById('eAmount').value;
+  
+  if(!desc) return toast('اكتب الوصف', true);
+  if(!amount || amount <= 0) return toast('اكتب المبلغ', true);
+  
+  const _newExpense = {
+    id: uid(),
+    desc: desc,
+    amount: amount,
+    date: nowISO(),
+    _editedAt: Date.now()
+  };
+  
+  if(typeof _markAsNewAfterArchive === 'function') _markAsNewAfterArchive(_newExpense);
+  
+  db.expenses.push(_newExpense);
+  
+  save(); // يحفظ ويرفع للسحابة
+  renderAll(); // يحدث الشاشات والسجل والصندوق
+  
+  document.getElementById('eDesc').value = '';
+  document.getElementById('eAmount').value = '';
+  toast('✅ تم إضافة الصرفية');
+    }
 function delBuyerCompletely(n){
 if(!confirm('⚠️ حذف المبيعات والديون والتسديدات والحجوزات عن "'+n+'"؟\n\n✅ سيتم الاحتفاظ بالإيداعات والأرصدة المالية'))return;
 if(!confirm('تأكيد نهائي؟'))return;
