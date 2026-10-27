@@ -1330,7 +1330,7 @@ body.dark-mode .notif-item { background-color: #2a2a2a !important; border-color:
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><script>
 // ===== التحديث التلقائي =====
-const APP_VERSION = "1.13";
+const APP_VERSION = "1.15";
 const APP_UPDATE_URL = "https://flour-afk.pages.dev/latest.json";
 const MAX_UPDATE_POSTPONES = 3;
 let _updateBlocked = false;
@@ -1402,23 +1402,7 @@ if('serviceWorker' in navigator){
 
       // ✅ كل 60 ثانية تحديث تلقائي
       setInterval(() => reg.update().catch(() => {}), 60 * 1000);
-
-      // ✅ لما يتغير الـ SW (نسخة جديدة نزلت) → حدّث الصفحة تلقائياً
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        if(newWorker){
-          newWorker.addEventListener('statechange', () => {
-            if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
-              // ✅ تم تنزيل نسخة جديدة → نبّه المستخدم
-              setTimeout(() => {
-                if(confirm('✅ تم تحميل تحديث جديد — هل تريد إعادة التحميل الآن؟')){
-                  window.location.reload(true);
-                }
-              }, 1000);
-            }
-          });
-        }
-      });
+        
     }catch(e){ console.warn('SW error:', e); }
   });
 }
