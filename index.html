@@ -1635,7 +1635,16 @@ async function _uploadSplitItem(category, item){
 async function _uploadMetaConfig(){
   if(!cloudEnabled || !cloudMetaRef) return false;
   try{
-    const meta = { _permanentCarry: db._permanentCarry || 0, _cashboxOffset: db._cashboxOffset || 0, _lastArchiveAt: db._lastArchiveAt || null, _archiveCutoff: db._archiveCutoff || db._lastArchiveAt || null, _archiveToken: db._archiveToken || null, _manualOverrides: db._manualOverrides || {}, _notifications: (db._notifications || []).slice(0, 20), _lastSaved: db._lastSaved, _lastActionBy: _deviceId, _actionId: db._actionId, _migratedToSplit: true, _migratedAt: db._migratedAt || null, _clearedAt: db._clearedAt || 0, _clearedBy: db._clearedBy || null, _fullOverwriteAt: db._fullOverwriteAt || 0, _uploadedAt: Date.now() };
+    // ✅ [جديد] تقليم قائمة المحذوفات عشان ما تكبر (نحتفظ بآخر 1000 عنصر)
+    const trimmedDeleted = {};
+    if(db._deleted){
+      Object.keys(db._deleted).forEach(cat => {
+        if(Array.isArray(db._deleted[cat])){
+          trimmedDeleted[cat] = db._deleted[cat].slice(-1000);
+        }
+      });
+    }
+    const meta = { _permanentCarry: db._permanentCarry || 0, _cashboxOffset: db._cashboxOffset || 0, _lastArchiveAt: db._lastArchiveAt || null, _archiveCutoff: db._archiveCutoff || db._lastArchiveAt || null, _archiveToken: db._archiveToken || null, _manualOverrides: db._manualOverrides || {}, _notifications: (db._notifications || []).slice(0, 20), _lastSaved: db._lastSaved, _lastActionBy: _deviceId, _actionId: db._actionId, _migratedToSplit: true, _migratedAt: db._migratedAt || null, _clearedAt: db._clearedAt || 0, _clearedBy: db._clearedBy || null, _fullOverwriteAt: db._fullOverwriteAt || 0, _uploadedAt: Date.now(), _deleted: trimmedDeleted };
     await cloudMetaRef.set(meta);
     return true;
   }catch(e){ console.warn('upload meta failed:', e); return false; }
@@ -1959,81 +1968,62 @@ function adminRemoveFree(username){
 }
 
 // ===== المستمعين =====
-function _listenToMeta(){
-  if(!cloudEnabled || !cloudMetaRef) return;
+function _listenToCategory(category){
+  if(!cloudEnabled) return;
+  const ref = _getCategoryRef(category); if(!ref) return;
   try{
-    if(_listeners.meta){ _listeners.meta(); }
-    _listeners.meta = cloudMetaRef.onSnapshot(snap => {
+    if(_listeners[category]){ _listeners[category](); }
+    _listeners[category] = ref.onSnapshot(snap => {
       try{
         if(snap.metadata.hasPendingWrites) return;
-        if(!snap.exists) return;
-        const meta = snap.data();
-        if(meta._lastActionBy === _deviceId) return;
         if(_isReceivingUpdate) return;
-
-        // ✅ [إصلاح هام] أولوية الأرشفة: لا نتجاهل الأرشفة حتى لو كان في رفع معلق
-        const remoteArchiveToken = meta._archiveToken || null;
-        const remoteArchiveAt = meta._lastArchiveAt || 0;
-        const localArchiveToken = db._archiveToken || null;
-        const localArchiveAt = db._lastArchiveAt || 0;
-        const isNewArchive = (remoteArchiveAt > localArchiveAt) || (remoteArchiveToken && remoteArchiveToken !== localArchiveToken);
+        const archivedCats = ['sales','payments','expenses','buyers','cashAdditions','exchanges'];
+        if(db._archiveLock === true && archivedCats.includes(category)) return;
         
-        if(isNewArchive){
-          console.log('📥 تم استلام أرشفة جديدة من جهاز آخر');
-          db._pendingUpload = false; // إيقاف أي رفع معلق عشان ما يطمس الأرشفة
-          const archivedCats = ['sales','payments','expenses','buyers','cashAdditions','exchanges'];
-          archivedCats.forEach(cat => { db[cat] = []; });
-          db._archiveCutoff = remoteArchiveAt || meta._archiveCutoff || remoteArchiveAt;
-          db._lastArchiveAt = remoteArchiveAt;
-          db._archiveToken = remoteArchiveToken;
-          db._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : db._permanentCarry;
-          db._cashboxOffset = 0;
-          db._archiveLock = true;
-          setTimeout(() => { db._archiveLock = false; }, 5000);
-          try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
-          renderAll();
-          renderArchive();
-          renderSettings();
-          showSyncNotification('📥 تم استلام أرشفة جديدة', 'ok');
-          return;
-        }
-
-        if(db && db._pendingUpload === true) return;
-
-        // ✅ [جديد] إذا في جهاز ثاني ضغط "إرسال بياناتي"، نستقبل نسخته فوراً
-        if(meta._fullOverwriteAt && meta._fullOverwriteAt > (db._fullOverwriteAt || 0)){
-          console.log('📥 تم استلام أمر استبدال كامل من جهاز آخر');
-          _isReceivingUpdate = true;
-          db = emptyDB();
-          db._migratedToSplit = true;
-          db._fullOverwriteAt = meta._fullOverwriteAt;
-          
-          _reloadFromSplitDocs().then(() => {
-              try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
-              renderAll();
-              renderArchive();
-              renderSettings();
-              showSyncNotification('📥 تم استلام نسخة كاملة من جهاز آخر', 'ok');
-              setSyncStatus('ok','☁️ متزامن');
-              _isReceivingUpdate = false;
-          });
-          return;
-        }
+        const deletedIds = new Set((db._deleted && db._deleted[category]) || []);
+        const cloudDeletedIds = new Set();
+        const cloudItems = []; 
         
+        snap.forEach(doc => { 
+            const item = doc.data(); 
+            if(!item || !item.id) return;
+            if(item._deleted === true){ cloudDeletedIds.add(item.id); return; }
+            
+            if(archivedCats.includes(category) && db._archiveCutoff && item.date){
+              try{ if(new Date(item.date).getTime() <= new Date(db._archiveCutoff).getTime()) return; }catch(e){}
+            }
+
+            if(!deletedIds.has(item.id)) cloudItems.push(item); 
+        });
+
         _isReceivingUpdate = true;
-        db._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : db._permanentCarry;
-        db._cashboxOffset = meta._cashboxOffset !== undefined ? meta._cashboxOffset : db._cashboxOffset;
-        db._lastArchiveAt = remoteArchiveAt || db._lastArchiveAt;
-        db._archiveCutoff = meta._archiveCutoff || db._archiveCutoff || db._lastArchiveAt;
-        db._archiveToken = remoteArchiveToken || db._archiveToken;
-        db._manualOverrides = meta._manualOverrides || db._manualOverrides;
-        _lastCloudServerTime = meta.updatedAt && meta.updatedAt.toMillis ? meta.updatedAt.toMillis() : Date.now();
+
+        if(cloudDeletedIds.size > 0){
+            db[category] = (db[category] || []).filter(x => !cloudDeletedIds.has(x.id));
+            // ✅ [جديد] نضيفها لقائمة المحذوفات المحلية عشان ما نرفعها بالغلط مرة ثانية
+            if(!db._deleted) db._deleted = {};
+            if(!db._deleted[category]) db._deleted[category] = [];
+            cloudDeletedIds.forEach(id => {
+                if(!db._deleted[category].includes(id)) db._deleted[category].push(id);
+            });
+        }
+
+        const merged = new Map(); 
+        cloudItems.forEach(item => { if(item && item.id) merged.set(item.id, item); });
+        (db[category] || []).forEach(localItem => { 
+            if(!localItem || !localItem.id) return; 
+            if(deletedIds.has(localItem.id)) return;
+            if(!merged.has(localItem.id)){ merged.set(localItem.id, localItem); } else { const cloudItem = merged.get(localItem.id); const cTime = +cloudItem._uploadedAt || +cloudItem._editedAt || 0; const lTime = +localItem._editedAt || 0; if(lTime > cTime) merged.set(localItem.id, localItem); } 
+        });
+        db[category] = Array.from(merged.values());
         try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
-        renderAll(); showSyncNotification('📥 تحديث meta', 'ok');
+        renderAll();
+        if(category === 'archive' && typeof renderArchive === 'function') renderArchive();
+        showSyncNotification('📥 تحديث في ' + category, 'ok');
         _isReceivingUpdate = false;
       }catch(err){ _isReceivingUpdate = false; }
-    }, err => { console.warn('meta listener err:', err); });
-  }catch(e){ console.warn('_listenToMeta error:', e); }
+    }, err => { console.warn(category + ' listener err:', err); });
+  }catch(e){ console.warn('_listenToCategory error:', e); }
 }
 
 function _listenToCategory(category){
@@ -2057,7 +2047,6 @@ function _listenToCategory(category){
             if(!item || !item.id) return;
             if(item._deleted === true){ cloudDeletedIds.add(item.id); return; }
             
-            // ✅ [إصلاح] فلترة العناصر القديمة اللي قبل الأرشفة
             if(archivedCats.includes(category) && db._archiveCutoff && item.date){
               try{ if(new Date(item.date).getTime() <= new Date(db._archiveCutoff).getTime()) return; }catch(e){}
             }
@@ -2069,6 +2058,12 @@ function _listenToCategory(category){
 
         if(cloudDeletedIds.size > 0){
             db[category] = (db[category] || []).filter(x => !cloudDeletedIds.has(x.id));
+            // ✅ [جديد] نضيفها لقائمة المحذوفات المحلية عشان ما نرفعها بالغلط مرة ثانية
+            if(!db._deleted) db._deleted = {};
+            if(!db._deleted[category]) db._deleted[category] = [];
+            cloudDeletedIds.forEach(id => {
+                if(!db._deleted[category].includes(id)) db._deleted[category].push(id);
+            });
         }
 
         const merged = new Map(); 
@@ -4990,6 +4985,9 @@ async function _doUpload(){
 
       for(const item of changedItems){ 
         if(!item || !item.id) continue; 
+        // ✅ [جديد] تخطي رفع العناصر المحذوفة محلياً
+        if(db._deleted && db._deleted[category] && db._deleted[category].includes(item.id)) continue;
+        
         batch.set(ref.doc(item.id), { ...item, _lastActionBy: _deviceId, _uploadedAt: nowUpload }); 
         _pendingItems.push(item);
         batchCount++; 
@@ -5008,7 +5006,8 @@ async function _doUpload(){
     }
     
     db._lastSync = Date.now();
-    db._deleted = {};
+    // ✅ [إصلاح] لا نمسح قائمة المحذوفات عشان ما ترجع البيانات المحذوفة
+    // db._deleted = {};
     _pendingCategories.clear();
     db._pendingUpload = false;
     setSyncStatus('ok','☁️ متزامن');
@@ -5016,12 +5015,6 @@ async function _doUpload(){
     return true;
   }catch(e){ console.error('_doUpload error:', e); if(db) db._pendingUpload = false; setSyncStatus('err','⚠️ فشل الرفع'); return false; }
 }
-  
-  
-
-
-
-
 
 async function _migrateToSplitDocs(){
   if(!cloudEnabled || !cloudMetaRef) return false;
@@ -5269,30 +5262,55 @@ async function forceSync(){
 async function sendMyData(){
   if(!currentUser) return;
   if(!cloudEnabled){ toast('❌ Firebase غير متصل', true); return; }
-  if(!confirm('📤 سيتم رفع بياناتك الحالية لتكون هي الأساس في السحابة.\n\n⚠️ سيتم مسح كل البيانات القديمة من السحابة.\n✅ الأجهزة الثانية راح تصير نسخة طبق الأصل من جهازك هذا.\n\nمتابعة؟')) return;
+  if(!confirm('📤 سيتم رفع بياناتك الحالية لتكون هي الأساس في السحابة.\n\n⚠️ سيتم حذف البيانات القديمة من السحابة واستبدالها ببياناتك الحالية.\n\nمتابعة؟')) return;
+  
   try{
     setSyncStatus('loading','🔀 جاري الرفع...');
-    for(const cat of ['sales','payments','expenses','buyers','cashAdditions','exchanges','deposits','debts','reservations','flourTypes','archive']){
-      const ref = _getCategoryRef(cat);
-      if(!ref) continue;
-      const snap = await ref.get();
-      if(snap.size > 0){ const docs = []; snap.forEach(doc => docs.push(doc.ref)); for(let i = 0; i < docs.length; i += 400){ const batch = _firestoreDB.batch(); docs.slice(i, i + 400).forEach(r => batch.delete(r)); await batch.commit(); } }
-    }
-    db._fullOverwriteAt = Date.now(); 
+    
     db._lastSaved = Date.now();
     db._lastActionBy = _deviceId;
     db._lastSync = 0;
     
-    // ✅ السر هنا: نمسح علامة الرفع من كل العناصر عشان الدالة ترفعها كلها من جديد
+    // 1. نجبر كل العناصر الموجودة بجهازك حالياً على الرفع من جديد
     SPLIT_CATEGORIES.forEach(cat => {
       (db[cat] || []).forEach(item => { 
         if(item && item.id) delete item._uploadedAt; 
       });
     });
 
-    await _uploadMetaConfig();
     _pendingCategories = new Set(SPLIT_CATEGORIES);
-    await _doUpload();
+    
+    // 2. نرفع بياناتك أولاً بأمان (بدون ما نمسح أي شي من السحابة)
+    const uploadOk = await _doUpload();
+    if(!uploadOk) throw new Error('Upload failed');
+
+    // 3. ✅ [الخطوة الآمنة] بعد ما تأكدنا إن بياناتك ارتفعت، نمسح العناصر الزائدة من السحابة اللي مو موجودة بجهازك
+    for(const cat of SPLIT_CATEGORIES){
+       const ref = _getCategoryRef(cat);
+       if(!ref) continue;
+       const snap = await ref.get();
+       const localIds = new Set((db[cat] || []).map(x => x.id));
+       const docsToDelete = [];
+       snap.forEach(doc => {
+          const cloudItem = doc.data();
+          // إذا العنصر بالسحابة مو موجود بجهازك، يعني لازم ينحذف
+          if(!localIds.has(doc.id) && !(cloudItem && cloudItem._deleted === true)) {
+             docsToDelete.push(doc.ref);
+          }
+       });
+       if(docsToDelete.length > 0){
+          for(let i = 0; i < docsToDelete.length; i += 400){
+             const batch = _firestoreDB.batch();
+             docsToDelete.slice(i, i + 400).forEach(r => batch.delete(r));
+             await batch.commit();
+          }
+       }
+    }
+
+    // 4. نرسل إشارة للأجهزة الثانية إن في نسخة جديدة (عشان تتزامن)
+    db._fullOverwriteAt = Date.now();
+    await _uploadMetaConfig();
+    
     renderAll();renderArchive();renderSettings();
     setSyncStatus('ok','☁️ متزامن');
     toast('✅ تم الرفع بنجاح — الأجهزة الثانية راح تتزامن');
