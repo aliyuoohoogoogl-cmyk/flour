@@ -5055,17 +5055,6 @@ async function _reloadFromSplitDocs(){
         try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
         return;
       }
-      
-      // ✅ [جديد] دمج المحذوفات من السحابة عشان ما ترجع
-      if(meta._deleted){
-          if(!db._deleted) db._deleted = {};
-          Object.keys(meta._deleted).forEach(cat => {
-              if(!db._deleted[cat]) db._deleted[cat] = [];
-              const combined = new Set([...db._deleted[cat], ...meta._deleted[cat]]);
-              db._deleted[cat] = Array.from(combined);
-          });
-      }
-
       const remoteArchiveAt = meta._lastArchiveAt || 0;
       const localArchiveAt = db._lastArchiveAt || 0;
       const remoteArchiveToken = meta._archiveToken || null;
@@ -5104,7 +5093,7 @@ async function _reloadFromSplitDocs(){
   const archivedCats = ['sales','payments','expenses','buyers','cashAdditions','exchanges'];
   const isLocked = db._archiveLock === true;
 
-  // جلب كل البيانات بنفس الوقت
+  // ✅ [تعديل السرعة] جلب كل البيانات بنفس الوقت (بالتوازي)
   const _loadedData = {};
   await Promise.all(SPLIT_CATEGORIES.map(async (cat) => {
     try { _loadedData[cat] = await _loadSplitCategory(cat); } catch(e) { _loadedData[cat] = []; }
@@ -5120,11 +5109,10 @@ async function _reloadFromSplitDocs(){
         db[category] = merged.length ? merged : db[category];
       } else {
         const rawCloudList = Array.isArray(items) ? items : [];
-        
-        // ✅ [الحل السحري] الفلتر ينطبق فقط على المبيعات (archivedCats) وما يقرب الإيداعات والديون
+        // ✅ [إصلاح] فلترة العناصر القادمة من السحابة إذا كانت أقدم من الأرشفة
         const cloudList = rawCloudList.filter(item => {
-          if(!item) return false;
-          if(archivedCats.includes(category) && db._archiveCutoff && item.date){
+          if(!item || !item.date) return true;
+          if(db._archiveCutoff){
             try{ if(new Date(item.date).getTime() <= new Date(db._archiveCutoff).getTime()) return false; }catch(e){}
           }
           return true;
@@ -5139,22 +5127,16 @@ async function _reloadFromSplitDocs(){
         const cloudIds = new Set(cloudList.map(x => x.id));
         const mergedList = [...cloudList];
         
-        // ✅ نجيب قائمة المحذوفات عشان ما نرجع العناصر المحذوفة محلياً
-        const deletedIds = new Set((db._deleted && db._deleted[category]) || []);
-
         localList.forEach(localItem => { 
           if(!localItem || !localItem.id) return; 
-          if(deletedIds.has(localItem.id)) return; // لا ترجع المحذوف
           if(cloudIds.has(localItem.id)) return; 
-          
-          // نفس الشي، الفلتر ينطبق بس على المبيعات
-          if(archivedCats.includes(category) && db._archiveCutoff && localItem.date){ 
+          if(db._archiveCutoff && localItem.date){ 
             try{ if(new Date(localItem.date).getTime() <= new Date(db._archiveCutoff).getTime()) return; }catch(e){} 
           } 
           mergedList.push(localItem); 
         });
         
-        if(['sales','payments','deposits','expenses','exchanges','cashAdditions'].includes(category)){ 
+        if(category === 'sales' || category === 'payments' || category === 'deposits' || category === 'expenses' || category === 'exchanges' || category === 'cashAdditions'){ 
           mergedList.sort((a,b) => String(a.date || '').localeCompare(String(b.date || ''))); 
         }
         db[category] = mergedList;
@@ -5258,19 +5240,38 @@ async function autoSyncOnConnect(){
   }catch(e){ setSyncStatus('err','⚠️ فشل'); }
 }
 
+async function forceSync(){
+  if(!currentUser) return;
+  if(!cloudEnabled || !cloudDataRef){ let waited = 0; while((!cloudEnabled || !cloudDataRef) && waited < 50){ await new Promise(r => setTimeout(r, 100)); tryInitFirebase(); waited++; } }
+  if(!cloudEnabled || !cloudDataRef){ toast('📱 Firebase غير متصل', true); return; }
+  if(!navigator.onLine){ toast('📱 ما يوجد إنترنت', true); return; }
+  const subStatus = checkSubscription();
+  if(subStatus === 'expired'){ toast('⚠️ اشترك أولاً للمزامنة', true); gotoPage('subscription'); return; }
+  toast('⏳ جاري المزامنة... يرجى الانتظار، لا تضغط أي زر آخر');
+  try{
+    if(_migrated && db._migratedToSplit){ await _reloadFromSplitDocs(); }
+    else { const doc = await cloudDataRef.doc(currentUser).get(); const cloudDb = (doc.exists&&doc.data()&&doc.data().data)?doc.data().data:null; if(cloudDb){ db = mergeSmart(db, cloudDb); _fixDBFields(db); } }
+    db._lastSync = Date.now();
+    localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db));
+    renderAll();renderArchive();renderSettings();
+    setSyncStatus('ok','☁️ متزامن');
+    toast('✅ تمت المزامنة');
+  }catch(e){ toast('❌ فشل', true); }
+}
+
 async function sendMyData(){
   if(!currentUser) return;
   if(!cloudEnabled){ toast('❌ Firebase غير متصل', true); return; }
   if(!confirm('📤 سيتم رفع بياناتك الحالية لتكون هي الأساس في السحابة.\n\n⚠️ سيتم حذف البيانات القديمة من السحابة واستبدالها ببياناتك الحالية.\n\nمتابعة؟')) return;
   
   try{
-    setSyncStatus('loading','⏳ جاري رفع بياناتك...');
+    setSyncStatus('loading','🔀 جاري الرفع...');
     
     db._lastSaved = Date.now();
     db._lastActionBy = _deviceId;
     db._lastSync = 0;
     
-    // 1. نجبر كل العناصر الموجودة بجهازك على الرفع
+    // 1. نجبر كل العناصر الموجودة بجهازك حالياً على الرفع من جديد
     SPLIT_CATEGORIES.forEach(cat => {
       (db[cat] || []).forEach(item => { 
         if(item && item.id) delete item._uploadedAt; 
@@ -5279,24 +5280,11 @@ async function sendMyData(){
 
     _pendingCategories = new Set(SPLIT_CATEGORIES);
     
-    // 🛑 [تعديل مهم] إخفاء توكن الأرشفة مؤقتاً عشان ما تطلع كلمة "تنظيف السحابة" وتلخبطنا
-    const oldToken = db._archiveToken;
-    const oldLastUploaded = db._lastUploadedArchiveToken;
-    db._archiveToken = null; 
-    db._lastUploadedArchiveToken = null;
-
-    // 2. نرفع بياناتك أولاً بأمان
+    // 2. نرفع بياناتك أولاً بأمان (بدون ما نمسح أي شي من السحابة)
     const uploadOk = await _doUpload();
-    
-    // نرجع توكن الأرشفة مثل ما كان
-    db._archiveToken = oldToken;
-    db._lastUploadedArchiveToken = oldLastUploaded;
-
     if(!uploadOk) throw new Error('Upload failed');
 
-    setSyncStatus('loading','🧹 تنظيف البيانات القديمة...');
-    
-    // 3. بعد ما تأكدنا إن بياناتك ارتفعت، نمسح أي عنصر زائد بالسحابة مو موجود بجهازك
+    // 3. ✅ [الخطوة الآمنة] بعد ما تأكدنا إن بياناتك ارتفعت، نمسح العناصر الزائدة من السحابة اللي مو موجودة بجهازك
     for(const cat of SPLIT_CATEGORIES){
        const ref = _getCategoryRef(cat);
        if(!ref) continue;
@@ -5305,6 +5293,7 @@ async function sendMyData(){
        const docsToDelete = [];
        snap.forEach(doc => {
           const cloudItem = doc.data();
+          // إذا العنصر بالسحابة مو موجود بجهازك، يعني لازم ينحذف
           if(!localIds.has(doc.id) && !(cloudItem && cloudItem._deleted === true)) {
              docsToDelete.push(doc.ref);
           }
@@ -5318,7 +5307,7 @@ async function sendMyData(){
        }
     }
 
-    // 4. نرسل إشارة للأجهزة الثانية
+    // 4. نرسل إشارة للأجهزة الثانية إن في نسخة جديدة (عشان تتزامن)
     db._fullOverwriteAt = Date.now();
     await _uploadMetaConfig();
     
