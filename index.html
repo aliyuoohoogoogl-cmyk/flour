@@ -5055,17 +5055,6 @@ async function _reloadFromSplitDocs(){
         try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
         return;
       }
-      
-      // ✅ [جديد] دمج المحذوفات من السحابة عشان ما ترجع
-      if(meta._deleted){
-          if(!db._deleted) db._deleted = {};
-          Object.keys(meta._deleted).forEach(cat => {
-              if(!db._deleted[cat]) db._deleted[cat] = [];
-              const combined = new Set([...db._deleted[cat], ...meta._deleted[cat]]);
-              db._deleted[cat] = Array.from(combined);
-          });
-      }
-
       const remoteArchiveAt = meta._lastArchiveAt || 0;
       const localArchiveAt = db._lastArchiveAt || 0;
       const remoteArchiveToken = meta._archiveToken || null;
@@ -5104,7 +5093,7 @@ async function _reloadFromSplitDocs(){
   const archivedCats = ['sales','payments','expenses','buyers','cashAdditions','exchanges'];
   const isLocked = db._archiveLock === true;
 
-  // جلب كل البيانات بنفس الوقت
+  // ✅ [تعديل السرعة] جلب كل البيانات بنفس الوقت (بالتوازي)
   const _loadedData = {};
   await Promise.all(SPLIT_CATEGORIES.map(async (cat) => {
     try { _loadedData[cat] = await _loadSplitCategory(cat); } catch(e) { _loadedData[cat] = []; }
@@ -5120,11 +5109,10 @@ async function _reloadFromSplitDocs(){
         db[category] = merged.length ? merged : db[category];
       } else {
         const rawCloudList = Array.isArray(items) ? items : [];
-        
-        // ✅ [الحل السحري] الفلتر ينطبق فقط على المبيعات (archivedCats) وما يقرب الإيداعات والديون
+        // ✅ [إصلاح] فلترة العناصر القادمة من السحابة إذا كانت أقدم من الأرشفة
         const cloudList = rawCloudList.filter(item => {
-          if(!item) return false;
-          if(archivedCats.includes(category) && db._archiveCutoff && item.date){
+          if(!item || !item.date) return true;
+          if(db._archiveCutoff){
             try{ if(new Date(item.date).getTime() <= new Date(db._archiveCutoff).getTime()) return false; }catch(e){}
           }
           return true;
@@ -5139,22 +5127,16 @@ async function _reloadFromSplitDocs(){
         const cloudIds = new Set(cloudList.map(x => x.id));
         const mergedList = [...cloudList];
         
-        // ✅ نجيب قائمة المحذوفات عشان ما نرجع العناصر المحذوفة محلياً
-        const deletedIds = new Set((db._deleted && db._deleted[category]) || []);
-
         localList.forEach(localItem => { 
           if(!localItem || !localItem.id) return; 
-          if(deletedIds.has(localItem.id)) return; // لا ترجع المحذوف
           if(cloudIds.has(localItem.id)) return; 
-          
-          // نفس الشي، الفلتر ينطبق بس على المبيعات
-          if(archivedCats.includes(category) && db._archiveCutoff && localItem.date){ 
+          if(db._archiveCutoff && localItem.date){ 
             try{ if(new Date(localItem.date).getTime() <= new Date(db._archiveCutoff).getTime()) return; }catch(e){} 
           } 
           mergedList.push(localItem); 
         });
         
-        if(['sales','payments','deposits','expenses','exchanges','cashAdditions'].includes(category)){ 
+        if(category === 'sales' || category === 'payments' || category === 'deposits' || category === 'expenses' || category === 'exchanges' || category === 'cashAdditions'){ 
           mergedList.sort((a,b) => String(a.date || '').localeCompare(String(b.date || ''))); 
         }
         db[category] = mergedList;
