@@ -2020,7 +2020,7 @@ if(meta._fullOverwriteAt && meta._fullOverwriteAt > (db._fullOverwriteAt || 0)){
         const remoteArchiveAt = meta._lastArchiveAt || 0;
         const localArchiveToken = db._archiveToken || null;
         const localArchiveAt = db._lastArchiveAt || 0;
-        const isNewArchive = (remoteArchiveAt > localArchiveAt) || (remoteArchiveToken && remoteArchiveToken !== localArchiveToken);
+        const isNewArchive = remoteArchiveAt > localArchiveAt;
         if(isNewArchive){ const archivedCats = ['sales','payments','expenses','buyers','cashAdditions','exchanges']; archivedCats.forEach(cat => { db[cat] = []; }); db._archiveLock = true; setTimeout(() => { db._archiveLock = false; }, 3000); }
         db._permanentCarry = meta._permanentCarry !== undefined ? meta._permanentCarry : db._permanentCarry;
         db._cashboxOffset = meta._cashboxOffset !== undefined ? meta._cashboxOffset : db._cashboxOffset;
@@ -5064,7 +5064,7 @@ async function _reloadFromSplitDocs(){
       const localArchiveAt = db._lastArchiveAt || 0;
       const remoteArchiveToken = meta._archiveToken || null;
       const localArchiveToken = db._archiveToken || null;
-      const isNewArchive = (remoteArchiveAt > localArchiveAt) || (remoteArchiveToken && remoteArchiveToken !== localArchiveToken);
+      const isNewArchive = remoteArchiveAt > localArchiveAt;
       if(isNewArchive){ 
         const archivedCats = ['sales','payments','expenses','buyers','cashAdditions','exchanges']; 
         archivedCats.forEach(cat => { db[cat] = []; }); 
