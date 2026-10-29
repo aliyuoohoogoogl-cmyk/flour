@@ -1635,7 +1635,31 @@ async function _uploadSplitItem(category, item){
 async function _uploadMetaConfig(){
   if(!cloudEnabled || !cloudMetaRef) return false;
   try{
-    const meta = { _permanentCarry: db._permanentCarry || 0, _cashboxOffset: db._cashboxOffset || 0, _lastArchiveAt: db._lastArchiveAt || null, _archiveCutoff: db._archiveCutoff || db._lastArchiveAt || null, _archiveToken: db._archiveToken || null, _manualOverrides: db._manualOverrides || {}, _notifications: (db._notifications || []).slice(0, 20), _lastSaved: db._lastSaved, _lastActionBy: _deviceId, _actionId: db._actionId, _migratedToSplit: true, _migratedAt: db._migratedAt || null, _clearedAt: db._clearedAt || 0, _clearedBy: db._clearedBy || null, _fullOverwriteAt: db._fullOverwriteAt || 0, _uploadedAt: Date.now() };
+    // ✅ [إصلاح] إذا الجهاز ما عنده توكن أرشيف محلي → نجيبه من السحابة قبل الرفع
+    // عشان ما نمسح معلومات الأرشيف اللي موجودة في السحابة
+    let archiveToken = db._archiveToken || null;
+    let archiveCutoff = db._archiveCutoff || db._lastArchiveAt || null;
+    let lastArchiveAt = db._lastArchiveAt || null;
+    
+    if(!archiveToken){
+      try{
+        const cloudSnap = await cloudMetaRef.get();
+        if(cloudSnap.exists && cloudSnap.data()){
+          const cloudMeta = cloudSnap.data();
+          if(cloudMeta._archiveToken){
+            archiveToken = cloudMeta._archiveToken;
+            archiveCutoff = cloudMeta._archiveCutoff || cloudMeta._lastArchiveAt || null;
+            lastArchiveAt = cloudMeta._lastArchiveAt || null;
+            // نحفظهم محلياً أيضاً
+            db._archiveToken = archiveToken;
+            db._archiveCutoff = archiveCutoff;
+            db._lastArchiveAt = lastArchiveAt;
+          }
+        }
+      }catch(e){}
+    }
+    
+    const meta = { _permanentCarry: db._permanentCarry || 0, _cashboxOffset: db._cashboxOffset || 0, _lastArchiveAt: lastArchiveAt, _archiveCutoff: archiveCutoff, _archiveToken: archiveToken, _manualOverrides: db._manualOverrides || {}, _notifications: (db._notifications || []).slice(0, 20), _lastSaved: db._lastSaved, _lastActionBy: _deviceId, _actionId: db._actionId, _migratedToSplit: true, _migratedAt: db._migratedAt || null, _clearedAt: db._clearedAt || 0, _clearedBy: db._clearedBy || null, _fullOverwriteAt: db._fullOverwriteAt || 0, _uploadedAt: Date.now() };
     await cloudMetaRef.set(meta);
     return true;
   }catch(e){ console.warn('upload meta failed:', e); return false; }
@@ -5072,8 +5096,8 @@ async function _reloadFromSplitDocs(){
   }catch(e){ console.warn('read meta failed:', e); }
   
   const archivedCats = ['sales','payments','expenses','buyers','cashAdditions','exchanges'];
-  const isLocked = db._archiveLock === true;
-
+// ✅ [إصلاح] نعتمد على وجود _archiveCutoff كفلتر دائم — مو على flag مؤقت
+const isLocked = !!(db._archiveCutoff && db._archiveCutoff !== null);
   // ✅ [تعديل السرعة] جلب كل البيانات بنفس الوقت (بالتوازي)
   const _loadedData = {};
   await Promise.all(SPLIT_CATEGORIES.map(async (cat) => {
@@ -5090,8 +5114,16 @@ async function _reloadFromSplitDocs(){
         db[category] = merged.length ? merged : db[category];
       } else {
         const cloudList = Array.isArray(items) ? items : [];
-        if(isLocked && archivedCats.includes(category)){ const archiveCutoff = db._archiveCutoff || 0; const validCloudItems = cloudList.filter(item => { if(!item || !item.date) return true; try{ return new Date(item.date).getTime() > archiveCutoff; }catch(e){ return true; } }); db[category] = validCloudItems; continue; }
-        const localList = Array.isArray(db[category]) ? db[category] : [];
+if(isLocked && archivedCats.includes(category)){ 
+  // ✅ [إصلاح] نحول _archiveCutoff لرقم قبل المقارنة (كان bug قديم)
+  const archiveCutoffMs = db._archiveCutoff ? new Date(db._archiveCutoff).getTime() : 0;
+  const validCloudItems = cloudList.filter(item => { 
+    if(!item || !item.date) return true; 
+    try{ return new Date(item.date).getTime() > archiveCutoffMs; }catch(e){ return true; } 
+  }); 
+  db[category] = validCloudItems; 
+  continue; 
+}        const localList = Array.isArray(db[category]) ? db[category] : [];
         const cloudIds = new Set(cloudList.map(x => x.id));
         const mergedList = [...cloudList];
         localList.forEach(localItem => { if(!localItem || !localItem.id) return; if(cloudIds.has(localItem.id)) return; if(db._archiveCutoff && localItem.date){ try{ if(new Date(localItem.date).getTime() <= db._archiveCutoff) return; }catch(e){} } mergedList.push(localItem); });
@@ -5255,16 +5287,12 @@ async function receiveFromCloud(){
   if(!confirm('📥 سيتم جلب البيانات من السحابة ومسح بياناتك المحلية الحالية.\n\n⚠️ راح تصير نسخة طبق الأصل من آخر جهاز أرسل بياناته.\n\nمتابعة؟')) return;
   try{
     setSyncStatus('loading','📥 جاري الاستقبال...');
-// ✅ تصفير الداتابيس بالكامل ومسح أي إعدادات أرشيف قديمة عشان ما يفلتر البيانات
-db = emptyDB();
-db._migratedToSplit = true;
-db._lastArchiveAt = null;
-db._archiveCutoff = null;
-db._archiveToken = null;
-db._lastUploadedArchiveToken = null;
-db._archiveLock = false;
+    // ✅ [إصلاح] لا نمسح معلومات الأرشيف — نترك السحابة تكون المرجع الأساسي
+    db = emptyDB();
+    db._migratedToSplit = true;
+    // ⚠️ حذفنا السطور اللي كانت تصفّر _lastArchiveAt و _archiveCutoff و _archiveToken
 
-await _reloadFromSplitDocs();
+    await _reloadFromSplitDocs();
     db._lastSync = Date.now();
     localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db));
     renderAll();renderArchive();renderSettings();renderSaleItems();renderExItems();renderDepositTypes();
