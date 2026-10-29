@@ -4063,7 +4063,59 @@ save();renderAll();
 toast(fixed>0 ? `✅ تم إصلاح ${fixed} نوع — المباع انضبط من المطابقة` : '✅ كل الكميات مضبوطة');
 }
 
-function refreshFlourView(){ _matchedFlourIds.clear(); renderFlour(); toast('✅ تم تحديث الكميات'); }
+
+ function refreshFlourView(){ _matchedFlourIds.clear(); renderFlour(); toast('✅ تم تحديث الكميات'); }
+async function doFlourMatch(){
+  if(!db || !db.flourTypes || !db.flourTypes.length) 
+    return toast('❌ لا توجد أنواع للمطابقة', true);
+  
+  if(!confirm('✅ تأكيد مطابقة المخزون؟\n\nسيتم:\n• تعليم كل الأنواع بعلامة ✅\n• حفظ لقطة (snapshot) للطحين في الأرشيف\n\n(لن يتم مسح أي بيانات)')) 
+    return;
+  
+  // 1️⃣ علامة ✅ على كل الأنواع
+  _matchedFlourIds.clear();
+  db.flourTypes.forEach(t => _matchedFlourIds.add(t.id));
+  renderFlour();
+  
+  // 2️⃣ لقطة الطحين (بدون تعديل أي شي أصلي)
+  const _snapshotFlour = JSON.parse(JSON.stringify(db.flourTypes || []));
+  _snapshotFlour.forEach(ft => { 
+    ft._archivedReserved = getReservedQty(ft.name, null); 
+  });
+  
+  // 3️⃣ إنشاء وثيقة أرشيف من نوع "مطابقة مخزون"
+  const _matchTime = nowISO();
+  const _dateKey = _getDateKey(_matchTime);
+  const _flourHTML = renderArchiveFlourSection(_snapshotFlour);
+  
+  const archiveDoc = {
+    id: uid(),
+    archivedAt: _matchTime,
+    archivedBy: currentUser,
+    dateKey: _dateKey,
+    dateArabic: _formatDateArabic(_dateKey),
+    dayName: _getDayName(_dateKey),
+    type: 'flour-match',
+    title: '📦 مطابقة مخزون الطحين',
+    savedReportHTML: _flourHTML,
+    savedFinalTotal: 0,
+    savedFinalExpenses: 0,
+    savedFinalCashbox: 0,
+    flourCount: _snapshotFlour.length,
+    _slim: true,
+    _editedAt: Date.now()
+  };
+  
+  db.archive.unshift(archiveDoc);
+  
+  // 4️⃣ حفظ ورفع
+  _pendingCategories = new Set(['archive', 'flourTypes']);
+  save();
+  renderArchive();
+  renderFlour();
+  
+  toast('✅ تمت المطابقة — ' + _snapshotFlour.length + ' نوع محفوظ بالأرشيف');
+}
 </script><script>
 // ═══════════════════════════════════════════════════════════
 // ✅ الرئيسية
