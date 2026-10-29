@@ -1330,11 +1330,31 @@ body.dark-mode .notif-item { background-color: #2a2a2a !important; border-color:
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><script>
 // ===== التحديث التلقائي =====
-const APP_VERSION = "1.15";
+const APP_VERSION = "1.1";
 const APP_UPDATE_URL = "https://flour-afk.pages.dev/latest.json";
 const MAX_UPDATE_POSTPONES = 3;
 let _updateBlocked = false;
-
+function showUpdateNotification(newVersion, notes, url, forced, postponed){
+  const old = document.getElementById('updateNotificationBox');
+  if(old) old.remove();
+  
+  const box = document.createElement('div');
+  box.id = 'updateNotificationBox';
+  box.style.cssText = 'position:fixed;bottom:20px;left:15px;right:15px;max-width:400px;margin:0 auto;background:linear-gradient(135deg,#D2691E,#8B4513);color:#fff;padding:16px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,0.3);z-index:99999;direction:rtl;font-family:inherit';
+  
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b style="font-size:15px">🎉 تحديث جديد متوفر!</b>
+      ${forced ? '' : `<button onclick="document.getElementById('updateNotificationBox').remove()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer">✕</button>`}
+    </div>
+    <div style="font-size:12px;opacity:0.95;margin-bottom:12px;line-height:1.6">
+      النسخة الجديدة: <b>${newVersion}</b>${notes ? '<br>📝 ' + notes : ''}
+    </div>
+    <button onclick="window.location.href='${url || './'}'" style="width:100%;background:#fff;color:#8B4513;border:none;padding:12px;border-radius:10px;font-weight:bold;font-size:14px;cursor:pointer;font-family:inherit">🔄 تحديث الآن</button>
+    ${forced ? '<div style="font-size:11px;text-align:center;margin-top:8px;opacity:0.8">⚠️ التحديث إجباري</div>' : ''}
+  `;
+  document.body.appendChild(box);
+    }
   async function checkForUpdates(){
   try{
     // ✅ 1. تنظيف أزرار تأجيل التحديث القديمة
