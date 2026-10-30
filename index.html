@@ -4286,21 +4286,10 @@ h+=`<tr style="background:#faf0e6;font-weight:bold"><td colspan="7" style="text-
 h+=`</table></div>`;
 const expRows=[...db.expenses].filter(e=>!_isArch(e)).sort((a,b)=>a.date.localeCompare(b.date));
 if(expRows.length){ const totalExp=expRows.reduce((a,e)=>a+e.amount,0); h+=`<div class="card" style="background:#fff5f5;border:2px solid #c0392b;margin-top:10px;padding:10px"><div style="text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:2px dashed #c0392b"><b style="color:#c0392b;font-size:14px">💸 الصرفيات</b></div><table style="font-size:11px"><tr><th>الوصف</th><th>المبلغ</th><th class="time-cell">الوقت</th></tr>`; expRows.forEach(e=>{ const isExchange = e.fromExchange; h+=`<tr${isExchange?' style="background:#fff3e0"':''}><td>${_escHtml(e.desc)}${isExchange?' <span style="background:#f39c12;color:#fff;padding:1px 6px;border-radius:6px;font-size:9px">💱</span>':''}</td><td style="color:#c0392b;font-weight:bold">${money(e.amount)}</td><td class="time-cell">${fmtTime(e.date)}</td></tr>`; }); h+=`<tr style="background:#ffe5e5;font-weight:bold"><td style="text-align:center">المجموع</td><td style="color:#c0392b">${money(totalExp)}</td><td></td></tr></table></div>`; }
-let _reportTotal=0;
-db.sales.forEach(s=>{ if(_isArch(s)) return; const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}]; const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0); const disc=s.discount||0; items.forEach(it=>{ const ratio=grossTotal>0?(it.total/grossTotal):0; const discountedTotal=Math.max(0,it.total-disc*ratio); let paid=discountedTotal; if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);} else if(s.method==='واصل'){paid=0;} else if(s.method==='هدية'){paid=0;} _reportTotal += paid; }); });
-_reportTotal += db.payments.filter(p => p._fromDeposit !== true && !_isArch(p)).reduce((a,p)=>a+p.amount,0);
-_reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين' && !_isArch(e)).reduce((a,e)=>a+(+e.diff||0), 0);
-_reportTotal += _aggregatedDeps.reduce((a,d)=>{
-  const orig = +d.originalAmount !== undefined ? +d.originalAmount : +d.amount;
-  const used = +d._usedMoney || 0;
-  return a + Math.max(0, orig - used);
-}, 0);_reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange && !_isArch(c)).reduce((a,c)=>a+c.amount,0);
-const _te=db.expenses.filter(e=>!_isArch(e)).reduce((a,e)=>a+e.amount,0);
-let _carry=0;
-if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carry=+db._permanentCarry || 0;}
-_finalTotal=_reportTotal + _carry;
-_finalExpenses=_te;
-_finalCashbox=_finalTotal - _finalExpenses + (db._cashboxOffset || 0);
+// ✅ [إصلاح] نخلي المربع البني ياخذ الأرقام بالضبط من مجموع الجداول
+_finalTotal = totalSales + _carryAmount;
+_finalExpenses = expRows.reduce((a,e)=>a+(+e.amount||0), 0);
+_finalCashbox = _finalTotal - _finalExpenses;
 document.getElementById('reportArea').innerHTML=h;
 }
 </script><script>
