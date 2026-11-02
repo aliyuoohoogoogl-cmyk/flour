@@ -4338,7 +4338,31 @@ async function doArchive(){
   db.deposits.forEach(d=>{ if(d.isWithdrawal){ markDeleted('deposits', d.id); return; } const origQty = +d.originalQty !== undefined ? +d.originalQty : (+d.qty || 0); const origAmt = +d.originalAmount !== undefined ? +d.originalAmount : (+d.amount || 0); const usedQty = +d._usedQty || 0; const usedMoney = +d._usedMoney || 0; const remQty = Math.max(0, origQty - usedQty); const remAmt = Math.max(0, origAmt - usedMoney); if(remQty <= 0 && remAmt <= 0){ markDeleted('deposits', d.id); return; } d.originalQty = remQty; d.qty = remQty; d.originalAmount = remAmt; d.amount = remAmt; d._usedQty = 0; d._usedMoney = 0; d._finished = false; d._editedAt = Date.now(); d._archived = true; d._archivedAt = _archiveTime; d._countedInCashbox = true; keptDeposits.push(d); });
   db.reservations.forEach(r=>{ const rem = Math.max(0, (r.totalQty||0) - (r.usedQty||0)); if(rem <= 0){ markDeleted('reservations', r.id); } else { r.totalQty = rem; r.usedQty = 0; r._editedAt = Date.now(); } });
   db.reservations = db.reservations.filter(r => (r.totalQty || 0) > 0);
-  const datesSorted = Object.keys(byDate).sort();
+  // ✅ [إصلاح] نجمع كل العمليات (سبت، أحد، اثنين) بوثيقة وحدة باسم تاريخ اليوم
+const _todayKey = _getDateKey(nowISO());
+const datesSorted = [_todayKey];
+
+// إذا اليوم ماكو عمليات، نسوي يوم وهمي ونجمع كل شي فيه
+if(!byDate[_todayKey]) {
+  byDate[_todayKey] = {sales:[],payments:[],expenses:[],cashAdditions:[],exchanges:[],deposits:[],buyers:[],dateKey:_todayKey};
+}
+
+// ننقل كل العمليات من الأيام القديمة لليوم الحالي
+Object.keys(byDate).forEach(oldKey => {
+  if(oldKey === _todayKey) return;
+  const oldData = byDate[oldKey];
+  byDate[_todayKey].sales.push(...oldData.sales);
+  byDate[_todayKey].payments.push(...oldData.payments);
+  byDate[_todayKey].expenses.push(...oldData.expenses);
+  byDate[_todayKey].cashAdditions.push(...oldData.cashAdditions);
+  byDate[_todayKey].exchanges.push(...oldData.exchanges);
+  byDate[_todayKey].deposits.push(...oldData.deposits);
+  byDate[_todayKey].buyers.push(...oldData.buyers);
+  if(oldData.debts) {
+    if(!byDate[_todayKey].debts) byDate[_todayKey].debts = [];
+    byDate[_todayKey].debts.push(...oldData.debts);
+  }
+});
   const archivesCreated = [];
   datesSorted.forEach(dateKey=>{ const dayData = byDate[dateKey]; const hasRealOps = dayData.sales.length||dayData.payments.length||dayData.expenses.length||dayData.cashAdditions.length||dayData.exchanges.length||(dayData.debts&&dayData.debts.length); if(!hasRealOps) return; let dayTotal = 0; dayData.sales.forEach(s=>{ const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}]; const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0); const disc=s.discount||0; items.forEach(it=>{ const ratio=grossTotal>0?(it.total/grossTotal):0; const discountedTotal=Math.max(0,it.total-disc*ratio); let paid=discountedTotal; if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);} else if(s.method==='واصل'){paid=0;} else if(s.method==='هدية'){paid=0;} dayTotal += paid; }); }); dayTotal += dayData.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0); dayTotal += dayData.exchanges.filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0); dayTotal += dayData.deposits.filter(d=>{if(!(+d.amount>0)) return false;if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.legacy && d._showInReport !== true) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0); dayTotal += dayData.cashAdditions.filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0); const dayExpenses = dayData.expenses.reduce((a,e)=>a+e.amount,0); // ✅ نبني أقسام الإيداعات/الديون/الطحين كـ HTML مباشرة عشان يصير حجم الأرشيف صغير ويرتقع بسرعة
 let _extraArchiveHTML = '';
