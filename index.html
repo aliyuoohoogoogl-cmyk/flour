@@ -853,7 +853,7 @@ body.dark-mode .notif-item { background-color: #2a2a2a !important; border-color:
 <div class="row no-print" style="margin-bottom:10px">
 <button onclick="refreshFlourView()" class="blue">🔄 تحديث</button>
 <button onclick="viewFlour()" class="ok">📷 عرض الأنواع</button>
-<button onclick="doFlourMatch()" class="purple">✅ مطابقة</button>
+<button onclick="if(!db||!db.flourTypes.length){toast('❌ لا توجد أنواع',true);}else if(!confirm('✅ مطابقة الطحين؟\n\n• علامة ✅ خضراء لكل نوع\n• إنشاء وثيقة في الأرشيف\n• انتقال تلقائي للأرشيف')){}else{_matchedFlourIds.clear();db.flourTypes.forEach(t=>_matchedFlourIds.add(t.id));renderFlour();var _s=JSON.parse(JSON.stringify(db.flourTypes));_s.forEach(f=>f._archivedReserved=getReservedQty(f.name,null));var _h=renderArchiveFlourSection(_s);var _n=nowISO();var _d=_getDateKey(_n);db.archive.unshift({id:uid(),archivedAt:_n,archivedBy:currentUser,dateKey:_d,dateArabic:_formatDateArabic(_d),dayName:_getDayName(_d),savedReportHTML:_h,savedFinalTotal:0,savedFinalExpenses:0,savedFinalCashbox:0,_flourOnly:true,_editedAt:Date.now()});save();toast('✅ تمت المطابقة');setTimeout(function(){gotoPage('archive');setTimeout(function(){_matchedFlourIds.clear();},2000);},1500);}" class="purple">✅ مطابقة</button>
 </div>
 <div id="flourList"></div>
 </div>
