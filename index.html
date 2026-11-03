@@ -1330,7 +1330,7 @@ body.dark-mode .notif-item { background-color: #2a2a2a !important; border-color:
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><script>
 // ===== التحديث التلقائي =====
-const APP_VERSION = "1.1";
+const APP_VERSION = "1.15";
 const APP_UPDATE_URL = "https://flour-afk.pages.dev/latest.json";
 const MAX_UPDATE_POSTPONES = 3;
 let _updateBlocked = false;
@@ -2183,12 +2183,8 @@ function toast(m,e){const t=document.getElementById('toast');t.textContent=m;t.c
 function _escJs(s){ return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/\n/g,' '); }
 function _escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-function getArchiveTime(){
-  // ✅ [إصلاح] الخط الأحمر (وقت الأرشفة) مستقل تماماً عن ألبوم الصور
-  if(db && db._archiveCutoff) return db._archiveCutoff;
-  if(db && db._lastArchiveAt) return db._lastArchiveAt;
-  return null; // ⛔ ممنوع نقرأ من قائمة الأرشيف عشان ما يتأثر إذا حذفنا صورة
-}
+function getArchiveTime(){if(db && db._archiveCutoff) return db._archiveCutoff;if(db && db._lastArchiveAt) return db._lastArchiveAt;if(db && db.archive && db.archive.length > 0 && db.archive[0].archivedAt){db._lastArchiveAt = db.archive[0].archivedAt;return db._lastArchiveAt;}return null;}
+
 function _isArchivedItem(item){ if(!item || !item.date) return false; const cutoff = db._archiveCutoff || db._lastArchiveAt || 0; if(!cutoff) return false; if(item._addedAfterArchive === true) return false; try{ return new Date(item.date).getTime() <= new Date(cutoff).getTime(); }catch(e){ return false; } }
 
 // ═══════════════════════════════════════════════════════════
@@ -4067,59 +4063,7 @@ save();renderAll();
 toast(fixed>0 ? `✅ تم إصلاح ${fixed} نوع — المباع انضبط من المطابقة` : '✅ كل الكميات مضبوطة');
 }
 
-
- function refreshFlourView(){ _matchedFlourIds.clear(); renderFlour(); toast('✅ تم تحديث الكميات'); }
-async function doFlourMatch(){
-  if(!db || !db.flourTypes || !db.flourTypes.length) 
-    return toast('❌ لا توجد أنواع للمطابقة', true);
-  
-  if(!confirm('✅ تأكيد مطابقة المخزون؟\n\nسيتم:\n• تعليم كل الأنواع بعلامة ✅\n• حفظ لقطة (snapshot) للطحين في الأرشيف\n\n(لن يتم مسح أي بيانات)')) 
-    return;
-  
-  // 1️⃣ علامة ✅ على كل الأنواع
-  _matchedFlourIds.clear();
-  db.flourTypes.forEach(t => _matchedFlourIds.add(t.id));
-  renderFlour();
-  
-  // 2️⃣ لقطة الطحين (بدون تعديل أي شي أصلي)
-  const _snapshotFlour = JSON.parse(JSON.stringify(db.flourTypes || []));
-  _snapshotFlour.forEach(ft => { 
-    ft._archivedReserved = getReservedQty(ft.name, null); 
-  });
-  
-  // 3️⃣ إنشاء وثيقة أرشيف من نوع "مطابقة مخزون"
-  const _matchTime = nowISO();
-  const _dateKey = _getDateKey(_matchTime);
-  const _flourHTML = renderArchiveFlourSection(_snapshotFlour);
-  
-  const archiveDoc = {
-    id: uid(),
-    archivedAt: _matchTime,
-    archivedBy: currentUser,
-    dateKey: _dateKey,
-    dateArabic: _formatDateArabic(_dateKey),
-    dayName: _getDayName(_dateKey),
-    type: 'flour-match',
-    title: '📦 مطابقة مخزون الطحين',
-    savedReportHTML: _flourHTML,
-    savedFinalTotal: 0,
-    savedFinalExpenses: 0,
-    savedFinalCashbox: 0,
-    flourCount: _snapshotFlour.length,
-    _slim: true,
-    _editedAt: Date.now()
-  };
-  
-  db.archive.unshift(archiveDoc);
-  
-  // 4️⃣ حفظ ورفع
-  _pendingCategories = new Set(['archive', 'flourTypes']);
-  save();
-  renderArchive();
-  renderFlour();
-  
-  toast('✅ تمت المطابقة — ' + _snapshotFlour.length + ' نوع محفوظ بالأرشيف');
-}
+function refreshFlourView(){ _matchedFlourIds.clear(); renderFlour(); toast('✅ تم تحديث الكميات'); }
 </script><script>
 // ═══════════════════════════════════════════════════════════
 // ✅ الرئيسية
@@ -4290,10 +4234,21 @@ h+=`<tr style="background:#faf0e6;font-weight:bold"><td colspan="7" style="text-
 h+=`</table></div>`;
 const expRows=[...db.expenses].filter(e=>!_isArch(e)).sort((a,b)=>a.date.localeCompare(b.date));
 if(expRows.length){ const totalExp=expRows.reduce((a,e)=>a+e.amount,0); h+=`<div class="card" style="background:#fff5f5;border:2px solid #c0392b;margin-top:10px;padding:10px"><div style="text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:2px dashed #c0392b"><b style="color:#c0392b;font-size:14px">💸 الصرفيات</b></div><table style="font-size:11px"><tr><th>الوصف</th><th>المبلغ</th><th class="time-cell">الوقت</th></tr>`; expRows.forEach(e=>{ const isExchange = e.fromExchange; h+=`<tr${isExchange?' style="background:#fff3e0"':''}><td>${_escHtml(e.desc)}${isExchange?' <span style="background:#f39c12;color:#fff;padding:1px 6px;border-radius:6px;font-size:9px">💱</span>':''}</td><td style="color:#c0392b;font-weight:bold">${money(e.amount)}</td><td class="time-cell">${fmtTime(e.date)}</td></tr>`; }); h+=`<tr style="background:#ffe5e5;font-weight:bold"><td style="text-align:center">المجموع</td><td style="color:#c0392b">${money(totalExp)}</td><td></td></tr></table></div>`; }
-// ✅ [إصلاح] نخلي المربع البني ياخذ الأرقام بالضبط من مجموع الجداول
-_finalTotal = totalSales + _carryAmount;
-_finalExpenses = expRows.reduce((a,e)=>a+(+e.amount||0), 0);
-_finalCashbox = _finalTotal - _finalExpenses;
+let _reportTotal=0;
+db.sales.forEach(s=>{ if(_isArch(s)) return; const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}]; const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0); const disc=s.discount||0; items.forEach(it=>{ const ratio=grossTotal>0?(it.total/grossTotal):0; const discountedTotal=Math.max(0,it.total-disc*ratio); let paid=discountedTotal; if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);} else if(s.method==='واصل'){paid=0;} else if(s.method==='هدية'){paid=0;} _reportTotal += paid; }); });
+_reportTotal += db.payments.filter(p => p._fromDeposit !== true && !_isArch(p)).reduce((a,p)=>a+p.amount,0);
+_reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين' && !_isArch(e)).reduce((a,e)=>a+(+e.diff||0), 0);
+_reportTotal += _aggregatedDeps.reduce((a,d)=>{
+  const orig = +d.originalAmount !== undefined ? +d.originalAmount : +d.amount;
+  const used = +d._usedMoney || 0;
+  return a + Math.max(0, orig - used);
+}, 0);_reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange && !_isArch(c)).reduce((a,c)=>a+c.amount,0);
+const _te=db.expenses.filter(e=>!_isArch(e)).reduce((a,e)=>a+e.amount,0);
+let _carry=0;
+if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carry=+db._permanentCarry || 0;}
+_finalTotal=_reportTotal + _carry;
+_finalExpenses=_te;
+_finalCashbox=_finalTotal - _finalExpenses + (db._cashboxOffset || 0);
 document.getElementById('reportArea').innerHTML=h;
 }
 </script><script>
@@ -4338,31 +4293,7 @@ async function doArchive(){
   db.deposits.forEach(d=>{ if(d.isWithdrawal){ markDeleted('deposits', d.id); return; } const origQty = +d.originalQty !== undefined ? +d.originalQty : (+d.qty || 0); const origAmt = +d.originalAmount !== undefined ? +d.originalAmount : (+d.amount || 0); const usedQty = +d._usedQty || 0; const usedMoney = +d._usedMoney || 0; const remQty = Math.max(0, origQty - usedQty); const remAmt = Math.max(0, origAmt - usedMoney); if(remQty <= 0 && remAmt <= 0){ markDeleted('deposits', d.id); return; } d.originalQty = remQty; d.qty = remQty; d.originalAmount = remAmt; d.amount = remAmt; d._usedQty = 0; d._usedMoney = 0; d._finished = false; d._editedAt = Date.now(); d._archived = true; d._archivedAt = _archiveTime; d._countedInCashbox = true; keptDeposits.push(d); });
   db.reservations.forEach(r=>{ const rem = Math.max(0, (r.totalQty||0) - (r.usedQty||0)); if(rem <= 0){ markDeleted('reservations', r.id); } else { r.totalQty = rem; r.usedQty = 0; r._editedAt = Date.now(); } });
   db.reservations = db.reservations.filter(r => (r.totalQty || 0) > 0);
-  // ✅ [إصلاح] نجمع كل العمليات (سبت، أحد، اثنين) بوثيقة وحدة باسم تاريخ اليوم
-const _todayKey = _getDateKey(nowISO());
-const datesSorted = [_todayKey];
-
-// إذا اليوم ماكو عمليات، نسوي يوم وهمي ونجمع كل شي فيه
-if(!byDate[_todayKey]) {
-  byDate[_todayKey] = {sales:[],payments:[],expenses:[],cashAdditions:[],exchanges:[],deposits:[],buyers:[],dateKey:_todayKey};
-}
-
-// ننقل كل العمليات من الأيام القديمة لليوم الحالي
-Object.keys(byDate).forEach(oldKey => {
-  if(oldKey === _todayKey) return;
-  const oldData = byDate[oldKey];
-  byDate[_todayKey].sales.push(...oldData.sales);
-  byDate[_todayKey].payments.push(...oldData.payments);
-  byDate[_todayKey].expenses.push(...oldData.expenses);
-  byDate[_todayKey].cashAdditions.push(...oldData.cashAdditions);
-  byDate[_todayKey].exchanges.push(...oldData.exchanges);
-  byDate[_todayKey].deposits.push(...oldData.deposits);
-  byDate[_todayKey].buyers.push(...oldData.buyers);
-  if(oldData.debts) {
-    if(!byDate[_todayKey].debts) byDate[_todayKey].debts = [];
-    byDate[_todayKey].debts.push(...oldData.debts);
-  }
-});
+  const datesSorted = Object.keys(byDate).sort();
   const archivesCreated = [];
   datesSorted.forEach(dateKey=>{ const dayData = byDate[dateKey]; const hasRealOps = dayData.sales.length||dayData.payments.length||dayData.expenses.length||dayData.cashAdditions.length||dayData.exchanges.length||(dayData.debts&&dayData.debts.length); if(!hasRealOps) return; let dayTotal = 0; dayData.sales.forEach(s=>{ const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}]; const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0); const disc=s.discount||0; items.forEach(it=>{ const ratio=grossTotal>0?(it.total/grossTotal):0; const discountedTotal=Math.max(0,it.total-disc*ratio); let paid=discountedTotal; if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);} else if(s.method==='واصل'){paid=0;} else if(s.method==='هدية'){paid=0;} dayTotal += paid; }); }); dayTotal += dayData.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0); dayTotal += dayData.exchanges.filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0); dayTotal += dayData.deposits.filter(d=>{if(!(+d.amount>0)) return false;if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.legacy && d._showInReport !== true) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0); dayTotal += dayData.cashAdditions.filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0); const dayExpenses = dayData.expenses.reduce((a,e)=>a+e.amount,0); // ✅ نبني أقسام الإيداعات/الديون/الطحين كـ HTML مباشرة عشان يصير حجم الأرشيف صغير ويرتقع بسرعة
 let _extraArchiveHTML = '';
@@ -4370,7 +4301,26 @@ try { if(keptDeposits && keptDeposits.length) _extraArchiveHTML += renderArchive
 try { if(db.debts && db.debts.length) _extraArchiveHTML += renderArchiveDebtsSection(db.debts, db.payments || []); } catch(e){ console.warn('debt html:', e); }
 try { if(_archivedFlourSnapshot && _archivedFlourSnapshot.length) _extraArchiveHTML += renderArchiveFlourSection(_archivedFlourSnapshot); } catch(e){ console.warn('flour html:', e); }
 
-const _finalArchiveHTML = _savedReportHTML + _extraArchiveHTML;
+// ✅ [إصلاح] نضيف المربع البني بعد المطابقة مباشرة وقبل باقي الأقسام
+const _summaryBox = `
+<!-- SUMMARY_BOX -->
+<div style="margin-top:10px;background:linear-gradient(135deg,#D2691E,#8B4513);color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.15);direction:rtl">
+    <table style="width:100%;border-collapse:collapse">
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.25)">
+            <td style="padding:4px 8px;font-size:14px;font-weight:bold;color:#fff">💰 المبلغ الكامل</td>
+            <td style="padding:4px 8px;text-align:left;font-size:17px;font-weight:bold;color:#fff">${money(_savedFinalTotal)} د.ع</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.25)">
+            <td style="padding:4px 8px;font-size:14px;font-weight:bold;color:#ffcccc">💸 الصرفيات</td>
+            <td style="padding:4px 8px;text-align:left;font-size:17px;font-weight:bold;color:#ffcccc">− ${money(_savedFinalExpenses)} د.ع</td>
+        </tr>
+        <tr>
+            <td style="padding:5px 8px;font-size:15px;font-weight:bold;color:#FFD700">✅ المبلغ النهائي</td>
+            <td style="padding:5px 8px;text-align:left;font-size:20px;font-weight:bold;color:#FFD700">${money(_savedFinalCashbox)} د.ع</td>
+        </tr>
+    </table>
+</div>`;
+const _finalArchiveHTML = _savedReportHTML + _summaryBox + _extraArchiveHTML;
 
 const archiveDoc = { 
   id: uid(), 
@@ -4392,11 +4342,6 @@ const archiveDoc = {
   exchangesCount: dayData.exchanges.length,
   cashAdditionsCount: dayData.cashAdditions.length,
   cashboxAtArchive: dayTotal - dayExpenses, 
-  // ✅ [إصلاح] حفظ صورة ثابتة (Snapshot) من البيانات عشان ما تتأثر بأي تعديل
-  allDeposits: JSON.parse(JSON.stringify(keptDeposits)),
-  allDebts: JSON.parse(JSON.stringify(db.debts)),
-  allFlourTypes: JSON.parse(JSON.stringify(_archivedFlourSnapshot)),
-  payments: JSON.parse(JSON.stringify(db.payments || [])),
   _slim: true,
   _editedAt: Date.now() 
 }; 
@@ -4443,14 +4388,8 @@ db.archive.unshift(archiveDoc); archivesCreated.push(dateKey); });
   }
 
   db.deposits=keptDeposits;
-db.debts = db.debts.filter(d => +d.amount > 0.01);
-_skipNextMerge = true;
-
-// ✅ [إصلاح] إجبار السحابة على رفع الديون والحجوزات المتبقية بعد مسحها
-(db.debts || []).forEach(d => delete d._uploadedAt);
-(db.reservations || []).forEach(r => delete r._uploadedAt);
-(db.deposits || []).forEach(d => delete d._uploadedAt);
-(db.flourTypes || []).forEach(f => delete f._uploadedAt);
+  db.debts = db.debts.filter(d => +d.amount > 0.01);
+  _skipNextMerge = true;
   // ✅ إجبار السحابة على استبدال البيانات بالكامل بدل الدمج
   if(cloudMetaRef){ try{ await cloudMetaRef.set({ _lastActionBy: _deviceId, _archiveToken: db._archiveToken, _lastArchiveAt: _archiveTime, _archiveCutoff: _archiveTime, _permanentCarry: db._permanentCarry, _cashboxOffset: 0 }, { merge: true }); }catch(e){} }
   db._lastActionBy = _deviceId;
@@ -4509,7 +4448,8 @@ let h='';
 // ✅ [تعديل] ترتيب الأرشيف من الأحدث للأقدم
 const sortedArchive = [...db.archive].sort((a,b) => new Date(b.archivedAt || 0).getTime() - new Date(a.archivedAt || 0).getTime());
 sortedArchive.forEach((a,idx)=>{if(q){
-const nameMatch = (a.sales||[]).some(s=>s.buyer&&s.buyer.toLowerCase().includes(q)) || (a.payments||[]).some(p=>p.person&&p.person.toLowerCase().includes(q)) || (a.allDeposits||[]).some(d=>d.person&&d.person.toLowerCase().includes(q)) || (a.allDebts||[]).some(d=>d.person&&d.person.toLowerCase().includes(q));  const dateMatch = a.dateKey && a.dateKey.toLowerCase().includes(q);
+  const nameMatch = (a.sales||[]).some(s=>s.buyer&&s.buyer.toLowerCase().includes(q)) || (a.payments||[]).some(p=>p.person&&p.person.toLowerCase().includes(q)) || (a.deposits||[]).some(d=>d.person&&d.person.toLowerCase().includes(q)) || (a.debts||[]).some(d=>d.person&&d.person.toLowerCase().includes(q)) || (a.allDeposits||[]).some(d=>d.person&&d.person.toLowerCase().includes(q)) || (a.allDebts||[]).some(d=>d.person&&d.person.toLowerCase().includes(q));
+  const dateMatch = a.dateKey && a.dateKey.toLowerCase().includes(q);
   const arabicMatch = a.dateArabic && a.dateArabic.toLowerCase().includes(q);
   const dayMatch = a.dayName && a.dayName.toLowerCase().includes(q);
   if(!nameMatch && !dateMatch && !arabicMatch && !dayMatch) return;
@@ -4523,16 +4463,8 @@ function toggleArch(i){const el=document.getElementById('arch_'+i);if(el)el.clas
 
 function delArchive(id){
 if(!confirm('حذف هذا الأرشيف؟\n\n⚠️ البيانات الحالية لن تتأثر — فقط الوثيقة التاريخية ستُحذف'))return;
-const deletedArch = db.archive.find(x => x.id === id);
 db.archive = db.archive.filter(x => x.id !== id);
 markDeleted('archive', id);
-
-// ✅ [إصلاح] تأمين تاريخ الأرشفة (الخط الأحمر) عشان البيانات القديمة ما ترجع
-if(deletedArch && deletedArch.archivedAt === db._lastArchiveAt){
-   if(!db._archiveCutoff) db._archiveCutoff = deletedArch.archivedAt;
-   if(!db._lastArchiveAt) db._lastArchiveAt = deletedArch.archivedAt;
-}
-
 _skipNextMerge = true;
 db._lastActionBy = _deviceId;
 db._actionId = _deviceId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
@@ -4638,20 +4570,25 @@ function viewSingleArchive(id){
   _finalCashbox = a.savedFinalCashbox || 0;
   
   let fullHTML = '';
+  
+  // ✅ إذا الأرشيف محفوظ بالكامل من قبل (الجديد) → نعرضه مثل ما هو بدون إضافات
   if(a.savedReportHTML && a.savedReportHTML.trim() && a.savedReportHTML.includes('table')){
     fullHTML = a.savedReportHTML;
-  } else {
+  } 
+  // ✅ إذا أرشيف قديم (ما بي HTML) → نبنيه من الصفر
+  else {
     fullHTML = _buildArchiveReportHTML(a);
+    
+    const archDeposits = a.allDeposits || [];
+    if(archDeposits.length){ fullHTML += renderArchiveDepositsSection(archDeposits); }
+    
+    const archDebts = a.allDebts || [];
+    if(archDebts.length){ fullHTML += renderArchiveDebtsSection(archDebts, a.payments || [], a.allFlourTypes || []); }
+    
+    const archFlour = a.allFlourTypes || [];
+    if(archFlour.length){ fullHTML += renderArchiveFlourSection(archFlour); }
   }
   
-  const archDeposits = a.allDeposits || [];
-if(archDeposits.length){ fullHTML += renderArchiveDepositsSection(archDeposits); }
-
-const archDebts = a.allDebts || [];
-if(archDebts.length){ fullHTML += renderArchiveDebtsSection(archDebts, a.payments || [], a.allFlourTypes || []); }
-
-const archFlour = a.allFlourTypes || [];
-if(archFlour.length){ fullHTML += renderArchiveFlourSection(archFlour); }
   _currentViewHTML = fullHTML;
   currentReportImages = [];
   const title = a.dateArabic || ('أرشيف ' + fmt(a.archivedAt));
@@ -4678,9 +4615,9 @@ function renderArchiveDepositsSection(deps){
   return h;
 }
 
-function renderArchiveDebtsSection(debts, payments, flourTypes){
+function renderArchiveDebtsSection(debts, payments){
   if(!debts || !debts.length) return '';
-  const flourNames = new Set((flourTypes || []).map(t => _cleanType(t.name)));
+  const flourNames = new Set((db.flourTypes||[]).map(t => _cleanType(t.name)));
   const allPersons=[...new Set([...debts.map(d=>d.person),...(payments||[]).map(p=>p.person)])].filter(p => !flourNames.has(_cleanType(p)));
   let h = `<div class="card" style="background:#fff5f5;border:2px solid #c0392b;margin-top:10px;padding:10px"><div style="text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #c0392b"><b style="color:#c0392b;font-size:14px">📋 سجل المطلوبين (وقت الأرشفة)</b></div><table style="font-size:10px;width:100%"><tr><th>#</th><th>الاسم</th><th>النوع</th><th>📦 مأخوذ</th><th>💵 قيمته</th><th>✅ مسدد</th><th>💰 متبقي</th><th>📅 التاريخ</th></tr>`;
   let counter = 0;
@@ -5262,7 +5199,6 @@ async function loadUserData(){
   const key = DATA_PREFIX+currentUser;
   let localDb = null;
   try{ const s = localStorage.getItem(key); if(s){ localDb = Object.assign(emptyDB(), JSON.parse(s)); } }catch(e){ localDb = null; }
-  db = localDb || emptyDB();   // ✅ [إصلاح] نعين db قبل ما نقرأ من السحابة
   // ✅ [المهلة الذكية] ننتظر السحابة 3 ثواني كحد أقصى قبل ما نفتح الحساب
 if(cloudEnabled && cloudDataRef && navigator.onLine){
    _initUserRefs(currentUser);
@@ -6030,7 +5966,8 @@ function printOverlay(){ const overlay=document.getElementById('reportOverlay');
 
 async function generatePages(sh){
 let c; if(sh!==undefined&&sh!==null)c=sh; else{const e=document.getElementById('reportArea');c=e?e.innerHTML:'';}
-if(!c||c.includes('لا توجد بيانات')||c.trim()==='')return[];
+const _hasSummaryBox = c.includes('<!-- SUMMARY_BOX -->');
+  if(!c||c.includes('لا توجد بيانات')||c.trim()==='')return[];
 const w=document.createElement('div'); w.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff;padding:20px;box-sizing:border-box;direction:rtl;'; w.innerHTML=c;document.body.appendChild(w);
 await new Promise(r=>setTimeout(r,500));
 const MAX_ROWS=window._printRowLimit || 25;
@@ -6045,7 +5982,7 @@ for(let i=0;i<pg.length;i++){
 const p=document.createElement('div'); p.style.cssText='width:794px;min-height:1123px;background:#fff;padding:25px 20px 55px 20px;box-sizing:border-box;position:relative;direction:rtl;display:flex;flex-direction:column;';
 pg[i].forEach(x=>p.appendChild(x));
 if(window._autoFontSize){p.querySelectorAll('table').forEach(tbl=>{const rc=tbl.querySelectorAll('tr').length;let fs,pad;if(rc<=8){fs=20;pad=18;}else if(rc<=12){fs=18;pad=15;}else if(rc<=16){fs=16;pad=12;}else if(rc<=20){fs=14;pad=9;}else if(rc<=25){fs=13;pad=7;}else{fs=11;pad=5;}tbl.style.fontSize=fs+'px';tbl.querySelectorAll('th,td').forEach(c=>{c.style.fontSize=fs+'px';c.style.padding=pad+'px 8px';});});}
-if(i===pg.length-1&&(_finalTotal||_finalExpenses)){ const cb=document.createElement('div'); cb.style.cssText='margin-top:auto;background:linear-gradient(135deg,#D2691E,#8B4513);color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.15);direction:rtl'; cb.innerHTML=`<table style="width:100%;border-collapse:collapse"><tr style="border-bottom:1px solid rgba(255,255,255,0.25)"><td style="padding:4px 8px;font-size:14px;font-weight:bold;color:#fff">💰 المبلغ الكامل</td><td style="padding:4px 8px;text-align:left;font-size:17px;font-weight:bold;color:#fff">${money(_finalTotal)} د.ع</td></tr><tr style="border-bottom:1px solid rgba(255,255,255,0.25)"><td style="padding:4px 8px;font-size:14px;font-weight:bold;color:#ffcccc">💸 الصرفيات</td><td style="padding:4px 8px;text-align:left;font-size:17px;font-weight:bold;color:#ffcccc">− ${money(_finalExpenses)} د.ع</td></tr><tr><td style="padding:5px 8px;font-size:15px;font-weight:bold;color:#FFD700">✅ المبلغ النهائي</td><td style="padding:5px 8px;text-align:left;font-size:20px;font-weight:bold;color:#FFD700">${money(_finalCashbox)} د.ع</td></tr></table>`; p.appendChild(cb); }
+if(i===pg.length-1&&(_finalTotal||_finalExpenses)&&!_hasSummaryBox){ const cb=document.createElement('div'); cb.style.cssText='margin-top:auto;background:linear-gradient(135deg,#D2691E,#8B4513);color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.15);direction:rtl'; cb.innerHTML=`<table style="width:100%;border-collapse:collapse"><tr style="border-bottom:1px solid rgba(255,255,255,0.25)"><td style="padding:4px 8px;font-size:14px;font-weight:bold;color:#fff">💰 المبلغ الكامل</td><td style="padding:4px 8px;text-align:left;font-size:17px;font-weight:bold;color:#fff">${money(_finalTotal)} د.ع</td></tr><tr style="border-bottom:1px solid rgba(255,255,255,0.25)"><td style="padding:4px 8px;font-size:14px;font-weight:bold;color:#ffcccc">💸 الصرفيات</td><td style="padding:4px 8px;text-align:left;font-size:17px;font-weight:bold;color:#ffcccc">− ${money(_finalExpenses)} د.ع</td></tr><tr><td style="padding:5px 8px;font-size:15px;font-weight:bold;color:#FFD700">✅ المبلغ النهائي</td><td style="padding:5px 8px;text-align:left;font-size:20px;font-weight:bold;color:#FFD700">${money(_finalCashbox)} د.ع</td></tr></table>`; p.appendChild(cb); }
 const pn=document.createElement('div'); pn.style.cssText='position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:13px;color:#666;font-weight:bold;'; pn.textContent=`📄 صفحة ${i+1} من ${pg.length}`; p.appendChild(pn);
 rn.appendChild(p);
 await new Promise(r=>setTimeout(r,150));
