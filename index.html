@@ -853,7 +853,7 @@ body.dark-mode .notif-item { background-color: #2a2a2a !important; border-color:
 <div class="row no-print" style="margin-bottom:10px">
 <button onclick="refreshFlourView()" class="blue">🔄 تحديث</button>
 <button onclick="viewFlour()" class="ok">📷 عرض الأنواع</button>
-<button onclick="if(!db||!db.flourTypes.length){toast('❌ لا توجد أنواع',true);}else if(!confirm('✅ مطابقة الطحين؟\n\n• علامة ✅ خضراء لكل نوع\n• إنشاء وثيقة في الأرشيف\n• انتقال تلقائي للأرشيف')){}else{_matchedFlourIds.clear();db.flourTypes.forEach(t=>_matchedFlourIds.add(t.id));renderFlour();var _s=JSON.parse(JSON.stringify(db.flourTypes));_s.forEach(f=>f._archivedReserved=getReservedQty(f.name,null));var _h=renderArchiveFlourSection(_s);var _n=nowISO();var _d=_getDateKey(_n);db.archive.unshift({id:uid(),archivedAt:_n,archivedBy:currentUser,dateKey:_d,dateArabic:_formatDateArabic(_d),dayName:_getDayName(_d),savedReportHTML:_h,savedFinalTotal:0,savedFinalExpenses:0,savedFinalCashbox:0,_flourOnly:true,_editedAt:Date.now()});save();toast('✅ تمت المطابقة');setTimeout(function(){gotoPage('archive');setTimeout(function(){_matchedFlourIds.clear();},2000);},1500);}" class="purple">✅ مطابقة</button>
+<button onclick="doFlourMatch()" class="purple">✅ مطابقة</button>
 </div>
 <div id="flourList"></div>
 </div>
@@ -1330,7 +1330,7 @@ body.dark-mode .notif-item { background-color: #2a2a2a !important; border-color:
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><script>
 // ===== التحديث التلقائي =====
-const APP_VERSION = "1.1";
+const APP_VERSION = "1.15";
 const APP_UPDATE_URL = "https://flour-afk.pages.dev/latest.json";
 const MAX_UPDATE_POSTPONES = 3;
 let _updateBlocked = false;
@@ -4234,10 +4234,21 @@ h+=`<tr style="background:#faf0e6;font-weight:bold"><td colspan="7" style="text-
 h+=`</table></div>`;
 const expRows=[...db.expenses].filter(e=>!_isArch(e)).sort((a,b)=>a.date.localeCompare(b.date));
 if(expRows.length){ const totalExp=expRows.reduce((a,e)=>a+e.amount,0); h+=`<div class="card" style="background:#fff5f5;border:2px solid #c0392b;margin-top:10px;padding:10px"><div style="text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:2px dashed #c0392b"><b style="color:#c0392b;font-size:14px">💸 الصرفيات</b></div><table style="font-size:11px"><tr><th>الوصف</th><th>المبلغ</th><th class="time-cell">الوقت</th></tr>`; expRows.forEach(e=>{ const isExchange = e.fromExchange; h+=`<tr${isExchange?' style="background:#fff3e0"':''}><td>${_escHtml(e.desc)}${isExchange?' <span style="background:#f39c12;color:#fff;padding:1px 6px;border-radius:6px;font-size:9px">💱</span>':''}</td><td style="color:#c0392b;font-weight:bold">${money(e.amount)}</td><td class="time-cell">${fmtTime(e.date)}</td></tr>`; }); h+=`<tr style="background:#ffe5e5;font-weight:bold"><td style="text-align:center">المجموع</td><td style="color:#c0392b">${money(totalExp)}</td><td></td></tr></table></div>`; }
-// ✅ [إصلاح] نخلي المربع البني ياخذ الأرقام بالضبط من مجموع الجداول
-_finalTotal = totalSales + _carryAmount;
-_finalExpenses = expRows.reduce((a,e)=>a+(+e.amount||0), 0);
-_finalCashbox = _finalTotal - _finalExpenses;
+let _reportTotal=0;
+db.sales.forEach(s=>{ if(_isArch(s)) return; const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}]; const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0); const disc=s.discount||0; items.forEach(it=>{ const ratio=grossTotal>0?(it.total/grossTotal):0; const discountedTotal=Math.max(0,it.total-disc*ratio); let paid=discountedTotal; if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);} else if(s.method==='واصل'){paid=0;} else if(s.method==='هدية'){paid=0;} _reportTotal += paid; }); });
+_reportTotal += db.payments.filter(p => p._fromDeposit !== true && !_isArch(p)).reduce((a,p)=>a+p.amount,0);
+_reportTotal += (db.exchanges||[]).filter(e=>e.diff>0 && e.method!=='دين' && !_isArch(e)).reduce((a,e)=>a+(+e.diff||0), 0);
+_reportTotal += _aggregatedDeps.reduce((a,d)=>{
+  const orig = +d.originalAmount !== undefined ? +d.originalAmount : +d.amount;
+  const used = +d._usedMoney || 0;
+  return a + Math.max(0, orig - used);
+}, 0);_reportTotal += (db.cashAdditions||[]).filter(c=>!c.isCarry && !c.fromExchange && !_isArch(c)).reduce((a,c)=>a+c.amount,0);
+const _te=db.expenses.filter(e=>!_isArch(e)).reduce((a,e)=>a+e.amount,0);
+let _carry=0;
+if(db._permanentCarry !== undefined && db._permanentCarry !== null){_carry=+db._permanentCarry || 0;}
+_finalTotal=_reportTotal + _carry;
+_finalExpenses=_te;
+_finalCashbox=_finalTotal - _finalExpenses + (db._cashboxOffset || 0);
 document.getElementById('reportArea').innerHTML=h;
 }
 </script><script>
@@ -4284,47 +4295,13 @@ async function doArchive(){
   db.reservations = db.reservations.filter(r => (r.totalQty || 0) > 0);
   const datesSorted = Object.keys(byDate).sort();
   const archivesCreated = [];
-// ✅ أرشيف واحد فقط باسم اليوم — يحتوي كل العمليات
-const todayKey = _getDateKey(nowISO());
-const _mergedDayData = {
-  sales: [], payments: [], expenses: [], cashAdditions: [], exchanges: [],
-  deposits: keptDeposits || [], buyers: db.buyers || [], debts: db.debts || []
-};
-datesSorted.forEach(dateKey => {
-  const dayData = byDate[dateKey];
-  _mergedDayData.sales.push(...dayData.sales);
-  _mergedDayData.payments.push(...dayData.payments);
-  _mergedDayData.expenses.push(...dayData.expenses);
-  _mergedDayData.cashAdditions.push(...dayData.cashAdditions);
-  _mergedDayData.exchanges.push(...dayData.exchanges);
-});
-
-[todayKey].forEach(dateKey=>{ const dayData = _mergedDayData; const hasRealOps = dayData.sales.length||dayData.payments.length||dayData.expenses.length||dayData.cashAdditions.length||dayData.exchanges.length||(dayData.debts&&dayData.debts.length); if(!hasRealOps) return; let dayTotal = 0; dayData.sales.forEach(s=>{ const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}]; const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0); const disc=s.discount||0; items.forEach(it=>{ const ratio=grossTotal>0?(it.total/grossTotal):0; const discountedTotal=Math.max(0,it.total-disc*ratio); let paid=discountedTotal; if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);} else if(s.method==='واصل'){paid=0;} else if(s.method==='هدية'){paid=0;} dayTotal += paid; }); }); dayTotal += dayData.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0); dayTotal += dayData.exchanges.filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0); dayTotal += dayData.deposits.filter(d=>{if(!(+d.amount>0)) return false;if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.legacy && d._showInReport !== true) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0); dayTotal += dayData.cashAdditions.filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0); const dayExpenses = dayData.expenses.reduce((a,e)=>a+e.amount,0); // ✅ نبني أقسام الإيداعات/الديون/الطحين كـ HTML مباشرة عشان يصير حجم الأرشيف صغير ويرتقع بسرعة
+  datesSorted.forEach(dateKey=>{ const dayData = byDate[dateKey]; const hasRealOps = dayData.sales.length||dayData.payments.length||dayData.expenses.length||dayData.cashAdditions.length||dayData.exchanges.length||(dayData.debts&&dayData.debts.length); if(!hasRealOps) return; let dayTotal = 0; dayData.sales.forEach(s=>{ const items=s.items||[{typeName:s.typeName,qty:s.qty,unitPrice:s.unitPrice,total:s.total}]; const grossTotal=s.grossTotal||items.reduce((x,i)=>x+(i.total||0),0); const disc=s.discount||0; items.forEach(it=>{ const ratio=grossTotal>0?(it.total/grossTotal):0; const discountedTotal=Math.max(0,it.total-disc*ratio); let paid=discountedTotal; if(s.method==='دين'){const debtPart=(s.remaining && s.remaining>0) ? s.remaining : discountedTotal;paid=Math.max(0, discountedTotal - debtPart);} else if(s.method==='واصل'){paid=0;} else if(s.method==='هدية'){paid=0;} dayTotal += paid; }); }); dayTotal += dayData.payments.filter(p => p._fromDeposit !== true).reduce((a,p)=>a+p.amount,0); dayTotal += dayData.exchanges.filter(e=>e.diff>0 && e.method!=='دين').reduce((a,e)=>a+(+e.diff||0), 0); dayTotal += dayData.deposits.filter(d=>{if(!(+d.amount>0)) return false;if(d.isWithdrawal||d.cashPayment||d.isCarry) return false;if(d.legacy && d._showInReport !== true) return false;if(d.note&&(d.note.includes('رصيد مرحّل')||d.note.includes('رصيد مرحل'))) return false;return true;}).reduce((a,d)=>a+(+d.originalAmount!==undefined?+d.originalAmount:+d.amount),0); dayTotal += dayData.cashAdditions.filter(c=>!c.isCarry && !c.fromExchange).reduce((a,c)=>a+c.amount,0); const dayExpenses = dayData.expenses.reduce((a,e)=>a+e.amount,0); // ✅ نبني أقسام الإيداعات/الديون/الطحين كـ HTML مباشرة عشان يصير حجم الأرشيف صغير ويرتقع بسرعة
 let _extraArchiveHTML = '';
 try { if(keptDeposits && keptDeposits.length) _extraArchiveHTML += renderArchiveDepositsSection(keptDeposits); } catch(e){ console.warn('dep html:', e); }
 try { if(db.debts && db.debts.length) _extraArchiveHTML += renderArchiveDebtsSection(db.debts, db.payments || []); } catch(e){ console.warn('debt html:', e); }
 try { if(_archivedFlourSnapshot && _archivedFlourSnapshot.length) _extraArchiveHTML += renderArchiveFlourSection(_archivedFlourSnapshot); } catch(e){ console.warn('flour html:', e); }
 
-// ✅ [إصلاح] نضيف المربع البني بعد المطابقة مباشرة وقبل باقي الأقسام
-const _summaryBox = `
-<!-- SUMMARY_BOX -->
-<div style="margin-top:10px;background:linear-gradient(135deg,#D2691E,#8B4513);color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.15);direction:rtl">
-    <table style="width:100%;border-collapse:collapse">
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.25)">
-            <td style="padding:4px 8px;font-size:14px;font-weight:bold;color:#fff">💰 المبلغ الكامل</td>
-            <td style="padding:4px 8px;text-align:left;font-size:17px;font-weight:bold;color:#fff">${money(_savedFinalTotal)} د.ع</td>
-        </tr>
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.25)">
-            <td style="padding:4px 8px;font-size:14px;font-weight:bold;color:#ffcccc">💸 الصرفيات</td>
-            <td style="padding:4px 8px;text-align:left;font-size:17px;font-weight:bold;color:#ffcccc">− ${money(_savedFinalExpenses)} د.ع</td>
-        </tr>
-        <tr>
-            <td style="padding:5px 8px;font-size:15px;font-weight:bold;color:#FFD700">✅ المبلغ النهائي</td>
-            <td style="padding:5px 8px;text-align:left;font-size:20px;font-weight:bold;color:#FFD700">${money(_savedFinalCashbox)} د.ع</td>
-        </tr>
-    </table>
-</div>`;
-const _finalArchiveHTML = _savedReportHTML + _summaryBox + _extraArchiveHTML;
+const _finalArchiveHTML = _savedReportHTML + _extraArchiveHTML;
 
 const archiveDoc = { 
   id: uid(), 
@@ -4574,24 +4551,20 @@ function viewSingleArchive(id){
   _finalCashbox = a.savedFinalCashbox || 0;
   
   let fullHTML = '';
-  
-  // ✅ إذا الأرشيف محفوظ بالكامل من قبل (الجديد) → نعرضه مثل ما هو بدون إضافات
   if(a.savedReportHTML && a.savedReportHTML.trim() && a.savedReportHTML.includes('table')){
     fullHTML = a.savedReportHTML;
-  } 
-  // ✅ إذا أرشيف قديم (ما بي HTML) → نبنيه من الصفر
-  else {
+  } else {
     fullHTML = _buildArchiveReportHTML(a);
-    
-    const archDeposits = a.allDeposits || [];
-    if(archDeposits.length){ fullHTML += renderArchiveDepositsSection(archDeposits); }
-    
-    const archDebts = a.allDebts || [];
-    if(archDebts.length){ fullHTML += renderArchiveDebtsSection(archDebts, a.payments || [], a.allFlourTypes || []); }
-    
-    const archFlour = a.allFlourTypes || [];
-    if(archFlour.length){ fullHTML += renderArchiveFlourSection(archFlour); }
   }
+  
+  const archDeposits = a.allDeposits || [];
+  if(archDeposits.length){ fullHTML += renderArchiveDepositsSection(archDeposits); }
+  
+  const archDebts = a.allDebts || [];
+  if(archDebts.length){ fullHTML += renderArchiveDebtsSection(archDebts, a.payments || []); }
+  
+  const archFlour = a.allFlourTypes || [];
+  if(archFlour.length){ fullHTML += renderArchiveFlourSection(archFlour); }
   
   _currentViewHTML = fullHTML;
   currentReportImages = [];
@@ -5970,8 +5943,7 @@ function printOverlay(){ const overlay=document.getElementById('reportOverlay');
 
 async function generatePages(sh){
 let c; if(sh!==undefined&&sh!==null)c=sh; else{const e=document.getElementById('reportArea');c=e?e.innerHTML:'';}
-const _hasSummaryBox = c.includes('<!-- SUMMARY_BOX -->');
-  if(!c||c.includes('لا توجد بيانات')||c.trim()==='')return[];
+if(!c||c.includes('لا توجد بيانات')||c.trim()==='')return[];
 const w=document.createElement('div'); w.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff;padding:20px;box-sizing:border-box;direction:rtl;'; w.innerHTML=c;document.body.appendChild(w);
 await new Promise(r=>setTimeout(r,500));
 const MAX_ROWS=window._printRowLimit || 25;
@@ -5986,7 +5958,7 @@ for(let i=0;i<pg.length;i++){
 const p=document.createElement('div'); p.style.cssText='width:794px;min-height:1123px;background:#fff;padding:25px 20px 55px 20px;box-sizing:border-box;position:relative;direction:rtl;display:flex;flex-direction:column;';
 pg[i].forEach(x=>p.appendChild(x));
 if(window._autoFontSize){p.querySelectorAll('table').forEach(tbl=>{const rc=tbl.querySelectorAll('tr').length;let fs,pad;if(rc<=8){fs=20;pad=18;}else if(rc<=12){fs=18;pad=15;}else if(rc<=16){fs=16;pad=12;}else if(rc<=20){fs=14;pad=9;}else if(rc<=25){fs=13;pad=7;}else{fs=11;pad=5;}tbl.style.fontSize=fs+'px';tbl.querySelectorAll('th,td').forEach(c=>{c.style.fontSize=fs+'px';c.style.padding=pad+'px 8px';});});}
-if(i===pg.length-1&&(_finalTotal||_finalExpenses)&&!_hasSummaryBox){ const cb=document.createElement('div'); cb.style.cssText='margin-top:auto;background:linear-gradient(135deg,#D2691E,#8B4513);color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.15);direction:rtl'; cb.innerHTML=`<table style="width:100%;border-collapse:collapse"><tr style="border-bottom:1px solid rgba(255,255,255,0.25)"><td style="padding:4px 8px;font-size:14px;font-weight:bold;color:#fff">💰 المبلغ الكامل</td><td style="padding:4px 8px;text-align:left;font-size:17px;font-weight:bold;color:#fff">${money(_finalTotal)} د.ع</td></tr><tr style="border-bottom:1px solid rgba(255,255,255,0.25)"><td style="padding:4px 8px;font-size:14px;font-weight:bold;color:#ffcccc">💸 الصرفيات</td><td style="padding:4px 8px;text-align:left;font-size:17px;font-weight:bold;color:#ffcccc">− ${money(_finalExpenses)} د.ع</td></tr><tr><td style="padding:5px 8px;font-size:15px;font-weight:bold;color:#FFD700">✅ المبلغ النهائي</td><td style="padding:5px 8px;text-align:left;font-size:20px;font-weight:bold;color:#FFD700">${money(_finalCashbox)} د.ع</td></tr></table>`; p.appendChild(cb); }
+if(i===pg.length-1&&(_finalTotal||_finalExpenses)){ const cb=document.createElement('div'); cb.style.cssText='margin-top:auto;background:linear-gradient(135deg,#D2691E,#8B4513);color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.15);direction:rtl'; cb.innerHTML=`<table style="width:100%;border-collapse:collapse"><tr style="border-bottom:1px solid rgba(255,255,255,0.25)"><td style="padding:4px 8px;font-size:14px;font-weight:bold;color:#fff">💰 المبلغ الكامل</td><td style="padding:4px 8px;text-align:left;font-size:17px;font-weight:bold;color:#fff">${money(_finalTotal)} د.ع</td></tr><tr style="border-bottom:1px solid rgba(255,255,255,0.25)"><td style="padding:4px 8px;font-size:14px;font-weight:bold;color:#ffcccc">💸 الصرفيات</td><td style="padding:4px 8px;text-align:left;font-size:17px;font-weight:bold;color:#ffcccc">− ${money(_finalExpenses)} د.ع</td></tr><tr><td style="padding:5px 8px;font-size:15px;font-weight:bold;color:#FFD700">✅ المبلغ النهائي</td><td style="padding:5px 8px;text-align:left;font-size:20px;font-weight:bold;color:#FFD700">${money(_finalCashbox)} د.ع</td></tr></table>`; p.appendChild(cb); }
 const pn=document.createElement('div'); pn.style.cssText='position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:13px;color:#666;font-weight:bold;'; pn.textContent=`📄 صفحة ${i+1} من ${pg.length}`; p.appendChild(pn);
 rn.appendChild(p);
 await new Promise(r=>setTimeout(r,150));
