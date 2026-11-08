@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'flour-v30';
+const CACHE_VERSION = 'flour-v31';
 const CACHE_FILES = [
   './',
   './latest.json',
