@@ -991,7 +991,8 @@ body.dark-mode .notif-item { background-color: #2a2a2a !important; border-color:
 <!-- ===== التسديد ===== -->
 <div class="page" id="page-pay">
 <div class="card"><h2>✅ تسديد دين</h2>
-<div class="row"><input id="pPerson" placeholder="اسم الزبون"></div>
+<div class="row"><input id="pPerson" placeholder="اسم الزبون" list="payBuyersList"><datalist id="payBuyersList"></datalist></div>
+<div class="row"><input id="pCarrier" placeholder="اسم الناقل 🚛 (اختياري)"></div>
 <div class="row"><input id="pType" placeholder="نوع الطحين (اختياري)"></div>
 <div class="row"><input id="pQty" type="number" placeholder="الكمية (اختياري)" min="0"><input id="pAmount" type="number" placeholder="المبلغ المسدد" min="0"></div>
 <div class="row"><input id="pDetails" placeholder="📝 التفاصيل (اختياري)"></div>
@@ -2075,8 +2076,7 @@ cloudItems.forEach(item => { if(item && item.id) merged.set(item.id, item); });
 (db[category] || []).forEach(localItem => { 
     if(!localItem || !localItem.id) return; 
     if(deletedIds.has(localItem.id)) return;
-    if(!merged.has(localItem.id)){ merged.set(localItem.id, localItem); } else { const cloudItem = merged.get(localItem.id); const cTime = +cloudItem._uploadedAt || +cloudItem._editedAt || 0; const lTime = +localItem._editedAt || 0; if(lTime > cTime) merged.set(localItem.id, localItem); } 
-});
+if(!merged.has(localItem.id)){ merged.set(localItem.id, localItem); } else { const cloudItem = merged.get(localItem.id); const cTime = +cloudItem._uploadedAt || +cloudItem._editedAt || 0; const lTime = +localItem._editedAt || 0; if(cloudItem._settled === true || localItem._settled === true){ merged.set(localItem.id, cloudItem._settled === true ? cloudItem : localItem); } else if(lTime > cTime){ merged.set(localItem.id, localItem); } }});
 db[category] = Array.from(merged.values());
         try{ localStorage.setItem(DATA_PREFIX+currentUser, JSON.stringify(db)); }catch(e){}
         renderAll();
@@ -3754,7 +3754,8 @@ function editRsv(id){const r=db.reservations.find(x=>x.id===id);if(!r)return;con
   const q = +document.getElementById('pQty').value || 0;
   const a = +document.getElementById('pAmount').value;
   const det = document.getElementById('pDetails')?.value.trim() || '';
-  if(!p) return toast('اكتب اسم الزبون', true);
+ const carrier = document.getElementById('pCarrier')?.value.trim() || '';
+    if(!p) return toast('اكتب اسم الزبون', true);
   if(!a || a <= 0) return toast('اكتب المبلغ', true);
 
   let d = nowISO();
@@ -3825,12 +3826,13 @@ db.payments
 
   // إنشاء سجلات التسديد
   paymentsToAdd.forEach(item => {
-    const pay = {
-      id: uid(), person: p, amount: item.amount,
-      typeName: item.typeName, qty: q,
-      details: det + (excess > 0 ? ` (فائض ${money(excess)} للإيداع)` : ''),
-      date: d, _editedAt: Date.now()
-    };
+  const pay = {
+    id: uid(), person: p, amount: item.amount,
+    typeName: item.typeName, qty: q,
+    carrier: carrier,
+    details: det + (excess > 0 ? ` (فائض ${money(excess)} للإيداع)` : ''),
+    date: d, _editedAt: Date.now()
+  };
     _markAsNewAfterArchive(pay);
     db.payments.push(pay);
   });
@@ -3872,7 +3874,7 @@ db.payments
   document.getElementById('pAmount').value = '';
   if(document.getElementById('pDetails')) document.getElementById('pDetails').value = '';
   if(document.getElementById('pDateTime')) document.getElementById('pDateTime').value = '';
-
+if(document.getElementById('pCarrier')) document.getElementById('pCarrier').value = '';
   let msg = `✅ تسديد ${money(paymentAmount)}`;
   if(paymentsToAdd.length > 1) msg += ` (موزّع على ${paymentsToAdd.length} أنواع)`;
   if(excess > 0) msg += ` — الفائض ${money(excess)} راح للإيداع`;
@@ -3880,14 +3882,18 @@ db.payments
 }
 
 function renderPay(){
-const el=document.getElementById('payList');
+// ✅ تعبئة أسماء المطلوبين
+const dl = document.getElementById('payBuyersList');
+if(dl){
+  const debtPersons = [...new Set(db.debts.filter(d => d._settled !== true).map(d => d.person))].filter(p => debtBalance(p) > 0.01);
+  dl.innerHTML = debtPersons.map(p => `<option value="${_escHtml(p)}">`).join('');
+}
+  const el=document.getElementById('payList');
 if(!db.payments.length){el.innerHTML='<div class="empty">لا توجد تسديدات</div>';return;}
-let h=`<table><tr><th>التاريخ</th><th>الاسم</th><th>النوع</th><th>الكمية</th><th>المبلغ</th><th>التفاصيل</th><th>المتبقي</th><th></th></tr>`;
-[...db.payments].reverse().forEach(p=>{
+let h=`<table><tr><th>التاريخ</th><th>الاسم</th><th>الناقل 🚛</th><th>النوع</th><th>الكمية</th><th>المبلغ</th><th>التفاصيل</th><th>المتبقي</th><th></th></tr>`;[...db.payments].reverse().forEach(p=>{
 const isAuto = p._fromDeposit === true;
 const typeBadge = isAuto ? '<span style="background:#f39c12;color:#fff;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:bold">💳 خصم تلقائي</span>' : _escHtml(p.typeName||'—');
-h+=`<tr${isAuto?' style="background:#fff8e6"':''}><td style="font-size:11px">${fmt(p.date)}</td><td><b>${_escHtml(p.person)}</b></td><td>${typeBadge}</td><td>${p.qty?money(p.qty)+' كيس':'—'}</td><td style="color:#27ae60;font-weight:bold">${money(p.amount)}</td><td style="font-size:11px;color:#666">${_escHtml(p.details||'—')}</td><td style="color:#c0392b">${money(debtBalance(p.person))}</td><td style="white-space:nowrap"><button class="blue small" onclick="editPayment('${p.id}')">✏️</button> <button class="gold small" onclick="editDateTime('payment','${p.id}')">⏰</button> <button class="danger small" onclick="delPayment('${p.id}')">🗑️</button></td></tr>`;
-});
+h+=`<tr${isAuto?' style="background:#fff8e6"':''}><td style="font-size:11px">${fmt(p.date)}</td><td><b>${_escHtml(p.person)}</b></td><td style="font-size:11px;color:#666">${_escHtml(p.carrier||'—')}</td><td>${typeBadge}</td><td>${p.qty?money(p.qty)+' كيس':'—'}</td><td style="color:#27ae60;font-weight:bold">${money(p.amount)}</td><td style="font-size:11px;color:#666">${_escHtml(p.details||'—')}</td><td style="color:#c0392b">${money(debtBalance(p.person))}</td><td style="white-space:nowrap"><button class="blue small" onclick="editPayment('${p.id}')">✏️</button> <button class="gold small" onclick="editDateTime('payment','${p.id}')">⏰</button> <button class="danger small" onclick="delPayment('${p.id}')">🗑️</button></td></tr>`;});
 el.innerHTML=h+'</table>';
 }
 
@@ -4196,19 +4202,8 @@ const gs=db.sales.filter(s=>s.method==='هدية' && !_isArch(s)).reduce((a,s)=>
 const _debtPersons = [...new Set([...db.debts.map(d=>d.person), ...db.payments.map(p=>p.person)])];
 let td = 0;
 _debtPersons.forEach(p => {
-  const pd = db.debts.filter(d=>d.person===p);
-  const pp = db.payments.filter(x=>x.person===p);
-  const allTypes = [...new Set([...pd.map(d=>d.typeName||'بدون نوع'), ...pp.map(x=>x.typeName||'بدون نوع')])];
-  
-  allTypes.forEach(type => {
-    const tds = pd.filter(d=>(d.typeName||'بدون نوع')===type);
-    const tps = pp.filter(x=>(x.typeName||'بدون نوع')===type);
-    const debtAmt = tds.reduce((a,d)=>a+d.amount,0);
-    const paidAmt = tps.reduce((a,x)=>a+x.amount,0);
-    const remAmt = Math.max(0, debtAmt - paidAmt);
-    td += remAmt;
-  });
-});  
+  td += debtBalance(p);
+});
 const tp=db.payments.filter(p=>!_isArch(p)).reduce((a,p)=>a+p.amount,0);
 const te=db.expenses.filter(e=>!_isArch(e)).reduce((a,e)=>a+e.amount,0);
 if(!db.cashAdditions)db.cashAdditions=[];
@@ -4363,7 +4358,7 @@ async function doArchive(){
   const _savedFinalTotal = _finalTotal;
   const _savedFinalExpenses = _finalExpenses;
   const _savedFinalCashbox = _finalCashbox;
-  db.payments.forEach(pay=>{ let rem = pay.amount; const pd = db.debts.filter(d => d.person === pay.person).sort((a,b)=>a.date.localeCompare(b.date)); for(const d of pd){ if(rem <= 0) break; const deduct = Math.min(rem, d.amount); d.amount -= deduct; rem -= deduct; d._editedAt = Date.now(); } });
+  db.payments.filter(pay => pay._settled !== true).forEach(pay=>{ let rem = pay.amount; const pd = db.debts.filter(d => d.person === pay.person).sort((a,b)=>a.date.localeCompare(b.date)); for(const d of pd){ if(rem <= 0) break; const deduct = Math.min(rem, d.amount); d.amount -= deduct; rem -= deduct; d._editedAt = Date.now(); } });
   db.debts = db.debts.filter(d => d.amount > 0.01);
   let currentCashbox = _lastCashboxValue || 0;
   const _archiveTime = nowISO();
@@ -4746,8 +4741,8 @@ function renderArchiveDebtsSection(debts, payments){
   let counter = 0;
   let totalDebt = 0, totalPaid = 0, totalRemaining = 0;
   allPersons.forEach(p=>{
-    const pd = debts.filter(d=>d.person===p);
-    const pp = (payments||[]).filter(x=>x.person===p);
+  const pd = debts.filter(d=>d.person===p && d._settled !== true);
+  const pp = (payments||[]).filter(x=>x.person===p && x._settled !== true);
     const allTypes = [...new Set([...pd.map(d=>d.typeName||'بدون نوع'),...pp.map(x=>x.typeName||'بدون نوع')])];
     allTypes.forEach(type=>{
       const tds = pd.filter(d=>(d.typeName||'بدون نوع')===type);
@@ -4773,7 +4768,7 @@ function renderArchiveDebtsSection(debts, payments){
 
 function renderArchiveFlourSection(flourTypes){
   if(!flourTypes || !flourTypes.length) return '';
-  let h = `<div class="card" style="background:#f0f9f2;border:2px solid #27ae60;margin-top:10px;padding:10px;overflow-x:auto;-webkit-overflow-scrolling:touch"><div style="text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #27ae60"><b style="color:#1e8449;font-size:14px">🌾 سجل الطحين (وقت الأرشفة)</b></div><table style="font-size:10px;width:100%;min-width:max-content;white-space:nowrap"><tr><th>#</th><th>النوع</th><th>الأصلي</th><th>المباع</th><th>الباقية</th><th>المحجوزة</th><th>الصافي</th><th>💵 السعر</th><th>💰 الكلي</th></tr>`;
+  let h = `<div class="card" style="background:#f0f9f2;border:2px solid #27ae60;margin-top:10px;padding:10px;overflow-x:auto;-webkit-overflow-scrolling:touch"><div style="text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #27ae60"><b style="color:#1e8449;font-size:14px">🌾 سجل الطحين (وقت الأرشفة)</b></div><table style="font-size:10px;width:100%;min-width:max-content;white-space:nowrap"><tr><th>#</th><th>النوع</th><th>الأصلي</th><th>المباع</th><th>الباقية</th><th>المحجوزة</th><th>الصافي</th><th>💵 السعر</th><th>💰 الكلي</th><th>الإضافة</th></tr>`;
   let totalMoney = 0;
   flourTypes.forEach((t,i)=>{
     const qty = +t.qty || 0;
@@ -4785,7 +4780,18 @@ function renderArchiveFlourSection(flourTypes){
     const lineTotal = net * up;
     totalMoney += lineTotal;
     const finished = qty <= 0;
-    h += `<tr style="${finished?'background:#fff5f5':''}"><td style="text-align:center">${i+1}</td><td><b>${_escHtml(t.name)}</b>${finished?' <span style="background:#e74c3c;color:#fff;padding:1px 5px;border-radius:6px;font-size:8px">منتهي</span>':''}</td><td style="color:#2980b9;font-weight:bold">${money(original)}</td><td style="color:#c0392b;font-weight:bold">${money(sold)}</td><td style="color:${finished?'#c0392b':'#27ae60'};font-weight:bold">${money(qty)}</td><td style="color:#e67e22;font-weight:bold">${reserved > 0 ? money(reserved) : '—'}</td><td style="color:#2980b9;font-weight:bold">${money(net)}</td><td style="color:#8B4513;font-weight:bold">${up?money(up):'—'}</td><td style="color:#8B4513;font-weight:bold">${money(lineTotal)}</td></tr>`;
+    
+    // ✅ عرض الحمولات
+    const adds = (t.additions||[]).filter(x => x && x.note && typeof x.note === 'string' && x.note.includes('حمولة جديدة'));
+    let addShow = '<span style="color:#ccc">—</span>';
+    if(adds.length){
+      addShow = '';
+      adds.forEach((a, idx) => {
+        addShow += `➕ ${idx+1}: <b style="color:#2980b9">${money(a.qty)}</b> كيس<br><span style="font-size:7px;color:#999">${fmt(a.date)}</span><br>`;
+      });
+    }
+    
+    h += `<tr style="${finished?'background:#fff5f5':''}"><td style="text-align:center">${i+1}</td><td><b>${_escHtml(t.name)}</b>${finished?' <span style="background:#e74c3c;color:#fff;padding:1px 5px;border-radius:6px;font-size:8px">منتهي</span>':''}</td><td style="color:#2980b9;font-weight:bold">${money(original)}</td><td style="color:#c0392b;font-weight:bold">${money(sold)}</td><td style="color:${finished?'#c0392b':'#27ae60'};font-weight:bold">${money(qty)}</td><td style="color:#e67e22;font-weight:bold">${reserved > 0 ? money(reserved) : '—'}</td><td style="color:#2980b9;font-weight:bold">${money(net)}</td><td style="color:#8B4513;font-weight:bold">${up?money(up):'—'}</td><td style="color:#8B4513;font-weight:bold">${money(lineTotal)}</td><td style="font-size:8px;color:#666;line-height:1.4;padding:4px">${addShow}</td></tr>`;
   });
   h += `</table><div style="background:linear-gradient(135deg,#27ae60,#1e8449);color:#fff;padding:10px 14px;border-radius:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:11px"><div>💰 المبلغ الكلي للمخزون (الصافي)</div><div style="font-size:16px">${money(totalMoney)} د.ع</div></div></div>`;
   return h;
