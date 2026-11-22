@@ -832,6 +832,11 @@ body.dark-mode .notif-item { background-color: #2a2a2a !important; border-color:
 <div class="row"><input id="caAmount" type="number" placeholder="المبلغ" min="0"><input id="caNote" placeholder="الوصف (اختياري)"></div>
 <div class="row"><button onclick="addCashAmount()" class="ok" style="width:100%">➕ إضافة مبلغ</button></div>
 </div>
+<div class="card">
+<h2>📋 سجل إضافات الصندوق</h2>
+<div class="row no-print" style="margin-bottom:10px"><button onclick="renderCashAdditions()" class="blue">🔄 تحديث</button></div>
+<div id="cashAdditionsList"></div>
+</div>
 <div class="card"><h2>📊 الإحصائيات</h2><div id="stats"></div></div>
 <div class="card"><h2>🕐 آخر العمليات</h2><div id="recent"></div></div>
 <div class="card" style="background:#fffbf0;border:1px solid #f39c12;padding:10px">
@@ -3365,6 +3370,24 @@ function delDeposit(id){
   toast('✅ تم حذف الإيداع');
 }function delRsv(id){if(!confirm('حذف؟'))return;markDeleted('reservations',id);db.reservations=db.reservations.filter(x=>x.id!==id);save();renderAll();toast('تم');}
 function delCashAmount(id){if(!confirm('حذف؟'))return;markDeleted('cashAdditions',id);db.cashAdditions=db.cashAdditions.filter(x=>x.id!==id);save();renderAll();toast('تم');}
+function renderCashAdditions(){
+  const el = document.getElementById('cashAdditionsList');
+  if(!el) return;
+  const _archT = db._archiveCutoff || getArchiveTime();
+  const _isArch = (item) => {
+    if(!item || !item.date || !_archT) return false;
+    if(item._addedAfterArchive === true) return false;
+    try{ return new Date(item.date).getTime() <= new Date(_archT).getTime(); }catch(e){ return false; }
+  };
+  const list = (db.cashAdditions||[]).filter(c => !c.isCarry && !_isArch(c)).sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  if(!list.length){ el.innerHTML = '<div class="empty">لا توجد إضافات</div>'; return; }
+  let h = `<table><tr><th>التاريخ</th><th>الوصف</th><th>المبلغ</th><th></th></tr>`;
+  list.forEach(c => {
+    h += `<tr><td style="font-size:11px">${fmt(c.date)}</td><td>${_escHtml(c.note||'—')}</td><td style="color:#27ae60;font-weight:bold">${money(c.amount)}</td><td style="white-space:nowrap"><button class="blue small" onclick="editCashAmount('${c.id}')">✏️</button> <button class="gold small" onclick="editDateTime('cash','${c.id}')">⏰</button> <button class="danger small" onclick="delCashAmount('${c.id}')">🗑️</button></td></tr>`;
+  });
+  h += `</table>`;
+  el.innerHTML = h;
+}    
 function delRecent(t,id){if(t==='sale')return delSale(id);if(t==='deposit')return delDeposit(id);if(t==='payment')return delPayment(id);if(t==='expense')return delExpense(id);if(t==='cash')return delCashAmount(id);if(t==='exchange')return delExchange(id);}
 function editRecent(t,id){if(t==='sale')return editSale(id);if(t==='deposit')return editDeposit(id);if(t==='payment')return editPayment(id);if(t==='expense')return editExpense(id);if(t==='cash')return editCashAmount(id);if(t==='exchange')return toast('لتعديل — احذف وأعد',true);}
 
@@ -4239,6 +4262,7 @@ db._cashboxOffset=newVal - calculated;
 _skipNextMerge=true;
 save();renderHome();
 toast('✅ تم تعديل الصندوق إلى ' + money(newVal) + ' د.ع');
+if(typeof renderCashAdditions === 'function') renderCashAdditions();    
 }
 
 function resetCashboxOffset(){ if(!db._cashboxOffset){ toast('ما يوجد', true); return; } if(!confirm('إلغاء؟')) return; db._cashboxOffset=0; _skipNextMerge=true; save();renderHome();toast('✅'); }
