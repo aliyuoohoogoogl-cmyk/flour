@@ -3679,24 +3679,69 @@ if(freeDeps.length > 0){
   h+=`</table>`;
 }
 
-// ✅ إيداع الكميات (نوع + كمية) — كل واحد مستقل
+// ✅ إيداع الكميات (نوع + كمية) — مجموع حسب النوع
 if(typeDeps.length > 0){
   h+=`<table style="font-size:11px;margin:6px"><tr><th>النوع</th><th>📦 الأصلي</th><th>📦 المستخدم</th><th>📦 المتبقي</th><th>💰 الأصلي</th><th>💰 المستخدم</th><th>💰 المتبقي</th><th>💵 السعر</th><th>📅 التاريخ</th><th>الحالة</th><th></th></tr>`;
-  typeDeps.forEach(dep=>{
-    const dType = dep.typeName;
-    const origQty = +dep.originalQty || +dep.qty || 0;
-    const origAmt = +dep.originalAmount || +dep.amount || 0;
-    const usedQty = +dep._usedQty || 0;
-    const usedAmt = +dep._usedMoney || 0;
+  
+  // تجميع حسب النوع
+  const _groups = {};
+  typeDeps.forEach(dep => {
+    const key = _cleanType(dep.typeName);
+    if(!_groups[key]){
+      _groups[key] = {
+        typeName: dep.typeName,
+        originalQty: 0, usedQty: 0, originalAmt: 0, usedAmt: 0,
+        legacy: dep.legacy, oldestDate: dep.date, newestDate: dep.date,
+        count: 0, unitPrice: 0, deposits: []
+      };
+    }
+    const g = _groups[key];
+    g.originalQty += +dep.originalQty || +dep.qty || 0;
+    g.usedQty += +dep._usedQty || 0;
+    g.originalAmt += +dep.originalAmount || +dep.amount || 0;
+    g.usedAmt += +dep._usedMoney || 0;
+    g.count++;
+    if(dep.unitPrice && !g.unitPrice) g.unitPrice = dep.unitPrice;
+    const dTime = dep.date ? new Date(dep.date).getTime() : 0;
+    if(!g.oldestDate || dTime < new Date(g.oldestDate).getTime()) g.oldestDate = dep.date;
+    if(!g.newestDate || dTime > new Date(g.newestDate).getTime()) g.newestDate = dep.date;
+    g.deposits.push(dep);
+  });
+  
+  Object.values(_groups).forEach((g, gIdx) => {
+    const origQty = g.originalQty;
+    const origAmt = g.originalAmt;
+    const usedQty = g.usedQty;
+    const usedAmt = g.usedAmt;
     const remQty = Math.max(0, origQty - usedQty);
     const remAmt = Math.max(0, origAmt - usedAmt);
     const depFinished = (remQty <= 0 && remAmt <= 0);
+    
     let qtyCells = ''; let moneyCells = '';
     if(origQty > 0){qtyCells = `<td style="color:#2980b9;font-weight:bold">${money(origQty)}</td><td style="color:#e67e22;font-weight:bold">${money(usedQty)}</td><td style="color:${remQty<=0?'#8b0000':'#c0392b'};font-weight:bold">${remQty<=0?'<span style="background:#8b0000;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px">انتهى</span>':money(remQty)}</td>`;}
     else { qtyCells = `<td style="color:#ccc">—</td><td style="color:#ccc">—</td><td style="color:#ccc">—</td>`; }
     if(origAmt > 0){moneyCells = `<td style="color:#2980b9;font-weight:bold">${money(origAmt)}</td><td style="color:#e67e22;font-weight:bold">${money(usedAmt)}</td><td style="color:${remAmt<=0?'#8b0000':'#c0392b'};font-weight:bold">${remAmt<=0?'<span style="background:#8b0000;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px">انتهى</span>':money(remAmt)}</td>`;}
     else { moneyCells = `<td style="color:#ccc">—</td><td style="color:#ccc">—</td><td style="color:#ccc">—</td>`; }
-    h+=`<tr${depFinished?' style="background:#f5f5f5;opacity:0.7"':''}><td><b>${_escHtml(dType)}</b>${dep.legacy?' <span style="background:#f39c12;color:#fff;padding:1px 6px;border-radius:6px;font-size:9px">📜 قديم</span>':''}</td>${qtyCells}${moneyCells}<td style="color:#8B4513;font-weight:bold">${dep.unitPrice?money(dep.unitPrice):'—'}</td><td style="font-size:10px;color:#666">${fmtShort(dep.date)}</td><td>${depFinished?'<span style="background:#95a5a6;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">انتهى</span>':'<span style="background:#27ae60;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">مفعّل</span>'}</td><td style="white-space:nowrap"><button class="blue small" onclick="editDeposit('${dep.id}')">✏️</button> <button class="gold small" onclick="editDateTime('deposit','${dep.id}')">⏰</button> <button class="danger small" onclick="delDeposit('${dep.id}')">🗑️</button></td></tr>`;
+    
+    const countBadge = g.count > 1 ? ` <span style="background:#3498db;color:#fff;padding:1px 6px;border-radius:6px;font-size:9px">${g.count} إيداع</span>` : '';
+    const dateShow = g.count > 1 ? `${fmtShort(g.oldestDate)} ← ${fmtShort(g.newestDate)}` : fmtShort(g.oldestDate);
+    const groupId = 'depg_' + p.replace(/[^a-zA-Z0-9]/g,'') + '_' + gIdx;
+    
+    h+=`<tr${depFinished?' style="background:#f5f5f5;opacity:0.7"':''}><td><b>${_escHtml(g.typeName)}</b>${g.legacy?' <span style="background:#f39c12;color:#fff;padding:1px 6px;border-radius:6px;font-size:9px">📜 قديم</span>':''}${countBadge}</td>${qtyCells}${moneyCells}<td style="color:#8B4513;font-weight:bold">${g.unitPrice?money(g.unitPrice):'—'}</td><td style="font-size:10px;color:#666">${dateShow}</td><td>${depFinished?'<span style="background:#95a5a6;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">انتهى</span>':'<span style="background:#27ae60;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold">مفعّل</span>'}</td><td style="white-space:nowrap">${g.count > 1 ? `<button class="blue small" onclick="document.getElementById('${groupId}').style.display=(document.getElementById('${groupId}').style.display==='none'?'':'none')">▼ تفاصيل (${g.count})</button>` : `<button class="blue small" onclick="editDeposit('${g.deposits[0].id}')">✏️</button> <button class="gold small" onclick="editDateTime('deposit','${g.deposits[0].id}')">⏰</button> <button class="danger small" onclick="delDeposit('${g.deposits[0].id}')">🗑️</button>`}</td></tr>`;
+    
+    if(g.count > 1){
+      h+=`<tr id="${groupId}" style="display:none"><td colspan="11" style="padding:4px 8px;background:#f9f9f9"><table style="font-size:10px;margin:0;width:100%"><tr style="background:#e8f4fd"><th>📦 أصلي</th><th>📦 مستخدم</th><th>📦 متبقي</th><th>💰 أصلي</th><th>💰 مستخدم</th><th>💰 متبقي</th><th>📅 التاريخ</th><th></th></tr>`;
+      g.deposits.forEach(subDep => {
+        const sOQ = +subDep.originalQty || +subDep.qty || 0;
+        const sOA = +subDep.originalAmount || +subDep.amount || 0;
+        const sUQ = +subDep._usedQty || 0;
+        const sUA = +subDep._usedMoney || 0;
+        const sRQ = Math.max(0, sOQ - sUQ);
+        const sRA = Math.max(0, sOA - sUA);
+        h+=`<tr><td>${sOQ>0?money(sOQ):'—'}</td><td>${sUQ>0?money(sUQ):'—'}</td><td style="color:#c0392b;font-weight:bold">${sRQ>0?money(sRQ):'—'}</td><td>${sOA>0?money(sOA):'—'}</td><td>${sUA>0?money(sUA):'—'}</td><td style="color:#c0392b;font-weight:bold">${sRA>0?money(sRA):'—'}</td><td style="font-size:9px;color:#666">${fmtShort(subDep.date)}</td><td style="white-space:nowrap"><button class="blue small" onclick="editDeposit('${subDep.id}')" style="font-size:10px;padding:3px 6px">✏️</button> <button class="gold small" onclick="editDateTime('deposit','${subDep.id}')" style="font-size:10px;padding:3px 6px">⏰</button> <button class="danger small" onclick="delDeposit('${subDep.id}')" style="font-size:10px;padding:3px 6px">🗑️</button></td></tr>`;
+      });
+      h+=`</table></td></tr>`;
+    }
   });
   h+=`</table>`;
 }
@@ -6359,21 +6404,51 @@ const liveDeps = db.deposits.filter(d=>_cleanPerson(d.person)===_cleanPerson(p) 
     c+=`<tr class="deposit-row" style="background:#f0f9f2"><td class="num">${counter}</td><td class="name">👤 ${_escHtml(p)}</td><td class="carrier">${_escHtml(freeDeps[0].carrier || '—')}</td><td class="type"><b>💵 إيداع حر</b> <span style="background:#27ae60;color:#fff;padding:1px 5px;border-radius:8px;font-size:8px">${freeDeps.length} إيداع</span></td><td class="orig">—</td><td class="used">—</td><td class="rem">—</td><td class="price">—</td><td class="money-o">${money(freeOrigAmt)}</td><td class="money-u">${money(freeUsedAmt)}</td><td class="money-r" style="color:${freeRemAmt<=0?'#8b0000':'#c0392b'};font-weight:bold">${freeRemAmt<=0?'<span style="background:#8b0000;color:#fff;padding:1px 5px;border-radius:8px;font-size:8px">انتهى</span>':money(freeRemAmt)}</td><td>${freeRemAmt<=0?'<span style="background:#8b0000;color:#fff;padding:1px 6px;border-radius:8px;font-size:8px;font-weight:bold">منتهي</span>':'<span style="background:#27ae60;color:#fff;padding:1px 6px;border-radius:8px;font-size:8px;font-weight:bold">مفعّل</span>'}</td><td class="time">${dateShow}</td></tr>`;
   }
 
-  // ✅ إيداع الكميات — كل واحد مستقل
-  typeDeps.forEach((dep) => {
-    counter++;
-    const dType = dep.typeName;
-    const origQty = +dep.originalQty || +dep.qty || 0;
-    const origAmt = +dep.originalAmount || +dep.amount || 0;
-    const usedQty = +dep._usedQty || 0;
-    const usedAmt = +dep._usedMoney || 0;
-    const remQty = Math.max(0, origQty - usedQty);
-    const remAmt = Math.max(0, origAmt - usedAmt);
-    const depFinished = (remQty <= 0 && remAmt <= 0);
-    const legacyBadge = dep.legacy ? ' <span class="badge-legacy">📜 قديم</span>' : '';
-    // ✅ [تعديل] تم إضافة اسم الشخص هنا
-    c+=`<tr class="deposit-row${depFinished?' finished':''}${dep.legacy?' legacy-row':''}"><td class="num">${counter}</td><td class="name">👤 ${_escHtml(p)}</td><td class="carrier">${_escHtml(dep.carrier || '—')}</td><td class="type">${_escHtml(dType)}${legacyBadge}</td><td class="orig">${origQty>0?money(origQty):'—'}</td><td class="used">${usedQty>0?money(usedQty):'—'}</td><td class="rem">${origQty>0?(remQty<=0?'<span style="background:#8b0000;color:#fff;padding:1px 5px;border-radius:8px;font-size:8px">انتهى</span>':money(remQty)):'—'}</td><td class="price">${dep.unitPrice?money(dep.unitPrice):'—'}</td><td class="money-o">${origAmt>0?money(origAmt):'—'}</td><td class="money-u">${usedAmt>0?money(usedAmt):'—'}</td><td class="money-r">${origAmt>0?(remAmt<=0?'<span style="background:#8b0000;color:#fff;padding:1px 5px;border-radius:8px;font-size:8px">انتهى</span>':money(remAmt)):'—'}</td><td>${depFinished?'<span style="background:#8b0000;color:#fff;padding:1px 6px;border-radius:8px;font-size:8px;font-weight:bold">منتهي</span>':'<span style="background:#27ae60;color:#fff;padding:1px 6px;border-radius:8px;font-size:8px;font-weight:bold">مفعّل</span>'}</td><td class="time">${fmtShort(dep.date)}</td></tr>`;
-  });
+  // ✅ إيداع الكميات — مجموع حسب النوع
+const typeGroups = {};
+typeDeps.forEach(dep => {
+  const key = _cleanType(dep.typeName);
+  if(!typeGroups[key]){
+    typeGroups[key] = {
+      typeName: dep.typeName,
+      originalQty: 0,
+      usedQty: 0,
+      originalAmt: 0,
+      usedAmt: 0,
+      carrier: dep.carrier || '—',
+      legacy: dep.legacy,
+      oldestDate: dep.date,
+      newestDate: dep.date,
+      count: 0,
+      unitPrice: dep.unitPrice || 0
+    };
+  }
+  const g = typeGroups[key];
+  g.originalQty += +dep.originalQty || +dep.qty || 0;
+  g.usedQty += +dep._usedQty || 0;
+  g.originalAmt += +dep.originalAmount || +dep.amount || 0;
+  g.usedAmt += +dep._usedMoney || 0;
+  g.count++;
+  const dTime = dep.date ? new Date(dep.date).getTime() : 0;
+  if(!g.oldestDate || dTime < new Date(g.oldestDate).getTime()) g.oldestDate = dep.date;
+  if(!g.newestDate || dTime > new Date(g.newestDate).getTime()) g.newestDate = dep.date;
+  if(dep.unitPrice && !g.unitPrice) g.unitPrice = dep.unitPrice;
+});
+
+Object.values(typeGroups).forEach(g => {
+  counter++;
+  const origQty = g.originalQty;
+  const origAmt = g.originalAmt;
+  const usedQty = g.usedQty;
+  const usedAmt = g.usedAmt;
+  const remQty = Math.max(0, origQty - usedQty);
+  const remAmt = Math.max(0, origAmt - usedAmt);
+  const depFinished = (remQty <= 0 && remAmt <= 0);
+  const legacyBadge = g.legacy ? ' <span class="badge-legacy">📜 قديم</span>' : '';
+  const countBadge = g.count > 1 ? ` <span style="background:#3498db;color:#fff;padding:1px 5px;border-radius:8px;font-size:8px">${g.count} إيداع</span>` : '';
+  const dateShow = g.count > 1 ? `${fmtShort(g.oldestDate)} ← ${fmtShort(g.newestDate)}` : fmtShort(g.oldestDate);
+  c+=`<tr class="deposit-row${depFinished?' finished':''}${g.legacy?' legacy-row':''}"><td class="num">${counter}</td><td class="name">👤 ${_escHtml(p)}</td><td class="carrier">${_escHtml(g.carrier)}</td><td class="type">${_escHtml(g.typeName)}${legacyBadge}${countBadge}</td><td class="orig">${origQty>0?money(origQty):'—'}</td><td class="used">${usedQty>0?money(usedQty):'—'}</td><td class="rem">${origQty>0?(remQty<=0?'<span style="background:#8b0000;color:#fff;padding:1px 5px;border-radius:8px;font-size:8px">انتهى</span>':money(remQty)):'—'}</td><td class="price">${g.unitPrice?money(g.unitPrice):'—'}</td><td class="money-o">${origAmt>0?money(origAmt):'—'}</td><td class="money-u">${usedAmt>0?money(usedAmt):'—'}</td><td class="money-r">${origAmt>0?(remAmt<=0?'<span style="background:#8b0000;color:#fff;padding:1px 5px;border-radius:8px;font-size:8px">انتهى</span>':money(remAmt)):'—'}</td><td>${depFinished?'<span style="background:#8b0000;color:#fff;padding:1px 6px;border-radius:8px;font-size:8px;font-weight:bold">منتهي</span>':'<span style="background:#27ae60;color:#fff;padding:1px 6px;border-radius:8px;font-size:8px;font-weight:bold">مفعّل</span>'}</td><td class="time">${dateShow}</td></tr>`;
+});
 });
 c+=`</table></div>`;
 _currentViewHTML=c;currentReportImages=[];_finalCashbox=0;_finalTotal=0;_finalExpenses=0;
